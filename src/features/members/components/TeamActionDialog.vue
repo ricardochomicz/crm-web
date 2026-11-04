@@ -1,0 +1,170 @@
+<script setup lang="ts">
+import { computed, nextTick, ref, watch } from 'vue'
+import AppDialog from '@/components/ui/AppDialog.vue'
+import RoleSelect from './RoleSelect.vue'
+import { teamApi } from '../api'
+import { errorMessage } from '@/lib/feedback'
+import type { AssignableRole, TeamAction, TeamNotice } from '../types'
+const props = defineProps<{
+  tenantId: string
+  action: TeamAction | null
+  canWrite: boolean
+  resendBlocked: string
+}>()
+const emit = defineEmits<{ close: []; completed: [notice: TeamNotice] }>()
+const busy = ref(false)
+const error = ref('')
+const role = ref<AssignableRole>('CONSULTANT')
+const errorElement = ref<HTMLElement>()
+watch(
+  () => props.action,
+  (action) => {
+    error.value = ''
+    if (action?.kind === 'role' && action.member.role !== 'OWNER') role.value = action.member.role
+  },
+)
+const title = computed(() => {
+  switch (props.action?.kind) {
+    case 'role':
+      return 'Alterar papel na empresa'
+    case 'status':
+      return props.action.member.status === 'ACTIVE' ? 'Suspender acesso?' : 'Reativar acesso?'
+    case 'resend':
+      return 'Reenviar convite?'
+    case 'revoke':
+      return 'Revogar convite?'
+    default:
+      return ''
+  }
+})
+const subject = computed(
+  () =>
+    props.action &&
+    ('member' in props.action ? props.action.member.email : props.action.invitation.email),
+)
+const description = computed(() => {
+  switch (props.action?.kind) {
+    case 'role':
+      return 'O novo papel será aplicado ao vínculo desta pessoa nesta empresa.'
+    case 'status':
+      return props.action.member.status === 'ACTIVE'
+        ? 'A pessoa perderá o acesso a esta empresa. O vínculo será preservado e continuará ocupando uma vaga. Você poderá reativá-lo depois.'
+        : 'A pessoa voltará a acessar esta empresa com o papel atual.'
+    case 'resend':
+      return 'Um novo link será enviado, válido por 7 dias. O link anterior deixará de funcionar. Se o convite expirou, será necessário reservar uma vaga novamente.'
+    case 'revoke':
+      return 'O link deixará de funcionar e a vaga reservada, se houver, será liberada. Este convite não poderá ser reenviado; será necessário criar outro.'
+    default:
+      return ''
+  }
+})
+const blocked = computed(() => {
+  if (!props.action || props.action.kind === 'revoke') return ''
+  if (!props.canWrite) return 'A assinatura não permite esta alteração no momento.'
+  if (props.action.kind === 'resend') return props.resendBlocked
+  if (props.action.member.role === 'OWNER') return 'O acesso do proprietário não pode ser alterado.'
+  if (props.action.kind === 'role' && props.action.member.role === role.value)
+    return 'Selecione um papel diferente do atual.'
+  return ''
+})
+const destructive = computed(
+  () =>
+    props.action?.kind === 'revoke' ||
+    (props.action?.kind === 'status' && props.action.member.status === 'ACTIVE'),
+)
+async function submit() {
+  if (!props.action || busy.value || blocked.value) return
+  const action = props.action
+  busy.value = true
+  error.value = ''
+  try {
+    let notice: TeamNotice = { tone: 'success', message: '' }
+    if (action.kind === 'role') {
+      await teamApi.role(props.tenantId, action.member.id, role.value)
+      notice.message = 'Papel atualizado nesta empresa.'
+    } else if (action.kind === 'status') {
+      const status = action.member.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
+      await teamApi.status(props.tenantId, action.member.id, status)
+      notice.message =
+        status === 'SUSPENDED'
+          ? 'Acesso suspenso. O vínculo continua ocupando uma vaga.'
+          : 'Acesso reativado.'
+    } else if (action.kind === 'revoke') {
+      await teamApi.revoke(props.tenantId, action.invitation.id)
+      notice.message = 'Convite revogado. O link não pode mais ser utilizado.'
+    } else {
+      const result = await teamApi.resend(props.tenantId, action.invitation.id)
+      notice = result.meta.notification_dispatched
+        ? {
+            tone: 'success',
+            message: 'Convite renovado e encaminhado para envio. O link anterior foi invalidado.',
+          }
+        : {
+            tone: 'warning',
+            message:
+              'O convite foi renovado e o link anterior foi invalidado, mas o e-mail não pôde ser encaminhado. Tente reenviar novamente.',
+          }
+    }
+    emit('completed', notice)
+  } catch (failure) {
+    error.value = errorMessage(failure)
+    await nextTick()
+    errorElement.value?.focus()
+  } finally {
+    busy.value = false
+  }
+}
+</script>
+<template>
+  <AppDialog
+    :open="!!action"
+    :title="title"
+    :description="description"
+    :busy="busy"
+    @close="emit('close')"
+    ><form :aria-busy="busy" @submit.prevent="submit">
+      <div
+        class="mb-5 break-all rounded-xl border border-stone-200 bg-stone-50 p-4 text-sm font-medium"
+      >
+        {{ subject }}
+      </div>
+      <p
+        v-if="error"
+        ref="errorElement"
+        tabindex="-1"
+        role="alert"
+        class="mb-5 rounded-xl bg-red-50 p-4 text-sm text-red-800"
+      >
+        {{ error }}
+      </p>
+      <fieldset :disabled="busy" class="space-y-5">
+        <RoleSelect v-if="action?.kind === 'role'" id="member-role" v-model="role" />
+        <p v-if="blocked" role="status" class="text-xs leading-6 text-amber-800">{{ blocked }}</p>
+        <div class="flex justify-end gap-3 border-t border-stone-100 pt-5">
+          <button type="button" class="secondary-button" data-initial-focus @click="emit('close')">
+            Cancelar</button
+          ><button
+            type="submit"
+            class="primary-button w-auto"
+            :class="destructive ? 'bg-red-600 hover:bg-red-700' : ''"
+            :disabled="busy || !!blocked"
+          >
+            <span v-if="busy" class="spinner" />{{
+              busy
+                ? 'Salvando…'
+                : action?.kind === 'role'
+                  ? 'Salvar papel'
+                  : action?.kind === 'status'
+                    ? action.member.status === 'ACTIVE'
+                      ? 'Suspender acesso'
+                      : 'Reativar acesso'
+                    : action?.kind === 'resend'
+                      ? 'Reenviar convite'
+                      : 'Revogar convite'
+            }}
+          </button>
+        </div>
+      </fieldset>
+    </form></AppDialog
+  >
+</template>

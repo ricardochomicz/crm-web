@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import TenantNavigation from '../components/TenantNavigation.vue'
 import { tenantApi } from '../api'
 import { roleLabels, type Tenant, type Subscription } from '../types'
 import { dateLabel, errorMessage } from '@/lib/feedback'
@@ -55,6 +56,7 @@ onMounted(load)
         >Trocar empresa<AppIcon class="size-4"
       /></RouterLink>
     </div>
+    <TenantNavigation v-if="tenant" :tenant="tenant" />
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
     <template v-if="!loading && tenant">
       <section
@@ -126,6 +128,19 @@ onMounted(load)
           </article>
         </div></template
       >
+      <RouterLink
+        v-if="tenant.role === 'OWNER'"
+        :to="`/empresas/${tenant.id}/equipe`"
+        class="mt-7 flex items-center justify-between gap-5 rounded-2xl border border-orange-200 bg-orange-50 p-6 transition hover:bg-orange-100"
+        ><div>
+          <h2 class="text-sm font-semibold text-orange-900">Sua próxima conexão começa aqui.</h2>
+          <p class="mt-2 text-xs leading-6 text-orange-800">
+            Convide pessoas, acompanhe os aceites e gerencie os acessos da equipe.
+          </p>
+        </div>
+        <span class="flex shrink-0 items-center gap-2 text-xs font-semibold text-orange-800"
+          >Gerenciar equipe<AppIcon class="size-4" /></span
+      ></RouterLink>
       <section class="mt-7 rounded-2xl border border-stone-200 bg-white p-6">
         <h2 class="text-base font-semibold">Sobre este espaço</h2>
         <dl class="mt-5 grid gap-5 text-sm sm:grid-cols-3">
