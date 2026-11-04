@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AppNavigation from './AppNavigation.vue'
+import type { Tenant } from '@/features/tenants/types'
 import BrandLogo from '@/components/ui/BrandLogo.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { useAuthStore } from '@/features/auth/store'
 import { errorMessage } from '@/lib/feedback'
-withDefaults(defineProps<{ title?: string; subtitle?: string }>(), {
+withDefaults(defineProps<{ title?: string; subtitle?: string; tenant?: Tenant }>(), {
   title: 'Seu espaço de trabalho',
   subtitle: 'TelecomHub',
 })
@@ -13,6 +15,12 @@ const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const menuOpen = ref(false)
+watch(
+  () => route.fullPath,
+  () => {
+    menuOpen.value = false
+  },
+)
 const busy = ref(false)
 const error = ref('')
 async function logout() {
@@ -32,27 +40,10 @@ async function logout() {
 <template>
   <div class="min-h-dvh bg-[#f7f8fa] lg:pl-64">
     <aside
-      class="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-stone-200 bg-white px-5 py-7 lg:flex"
+      class="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col overflow-y-auto border-r border-stone-200 bg-white px-5 py-7 lg:flex"
     >
       <RouterLink to="/app" aria-label="TelecomHub, início" class="px-2"><BrandLogo /></RouterLink>
-      <p class="mb-3 mt-14 px-3 text-[10px] font-bold tracking-[.18em] text-slate-400">
-        ESPAÇOS DE TRABALHO
-      </p>
-      <nav class="space-y-2" aria-label="Menu principal">
-        <RouterLink
-          to="/empresas"
-          class="nav-item"
-          :class="{ 'nav-active': !route.path.startsWith('/admin') }"
-          ><AppIcon name="grid" class="size-5" />Minhas empresas</RouterLink
-        >
-        <RouterLink
-          v-if="auth.user?.is_platform_admin"
-          to="/admin"
-          class="nav-item"
-          :class="{ 'nav-active': route.path.startsWith('/admin') }"
-          ><AppIcon name="lock" class="size-5" />Administração</RouterLink
-        >
-      </nav>
+      <AppNavigation :tenant="tenant" class="mb-8 mt-9" />
       <div class="mt-auto rounded-2xl bg-[#f8f6f2] p-4">
         <span class="text-xs font-semibold text-slate-700">Cada conexão importa.</span>
         <p class="mt-2 text-xs leading-6 text-slate-500">
@@ -99,10 +90,11 @@ async function logout() {
         aria-label="Menu principal móvel"
         class="mt-5 space-y-2 border-t border-stone-100 pt-4 lg:hidden"
       >
-        <RouterLink to="/empresas" class="nav-item">Minhas empresas</RouterLink
-        ><RouterLink v-if="auth.user?.is_platform_admin" to="/admin" class="nav-item"
-          >Administração</RouterLink
-        ><button class="nav-item w-full" :disabled="busy" @click="logout">
+        <AppNavigation :tenant="tenant" /><button
+          class="nav-item mt-5 w-full"
+          :disabled="busy"
+          @click="logout"
+        >
           {{ busy ? 'Saindo…' : 'Sair da conta' }}
         </button>
       </nav>

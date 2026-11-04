@@ -5,7 +5,6 @@ import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
-import TenantNavigation from '@/features/tenants/components/TenantNavigation.vue'
 import { useAuthStore } from '@/features/auth/store'
 import { useTeamManagement } from '../composables/useTeamManagement'
 import MembersTable from '../components/MembersTable.vue'
@@ -116,7 +115,7 @@ function keyboardTab(event: KeyboardEvent) {
 onMounted(load)
 </script>
 <template>
-  <AppShell :title="tenant?.name ?? 'Sua equipe'" subtitle="Gestão de acesso">
+  <AppShell :tenant="tenant" :title="tenant?.name ?? 'Sua equipe'" subtitle="Gestão de acesso">
     <div class="mb-7 flex flex-wrap items-end justify-between gap-5">
       <div>
         <p class="eyebrow">AS PESSOAS FAZEM A DIFERENÇA</p>
@@ -147,7 +146,6 @@ onMounted(load)
         </button>
       </div>
     </div>
-    <TenantNavigation v-if="tenant" :tenant="tenant" />
     <AsyncNotice :loading="loading" :error="error || subscriptionError" @retry="load" />
     <section
       v-if="!loading && tenant && !canAccess"

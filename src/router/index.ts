@@ -34,7 +34,17 @@ const router = createRouter({
     {
       path: '/empresas/:tenantId',
       component: () => import('@/features/tenants/views/TenantDashboardView.vue'),
-      meta: { requiresAuth: true, title: 'Visão geral' },
+      meta: { requiresAuth: true, title: 'Início' },
+    },
+    {
+      path: '/empresas/:tenantId/dados',
+      component: () => import('@/features/tenants/views/TenantDetailsView.vue'),
+      meta: { requiresAuth: true, title: 'Dados da empresa' },
+    },
+    {
+      path: '/empresas/:tenantId/assinatura',
+      component: () => import('@/features/tenants/views/TenantSubscriptionView.vue'),
+      meta: { requiresAuth: true, title: 'Plano e assinatura' },
     },
     {
       path: '/empresas/:tenantId/equipe',

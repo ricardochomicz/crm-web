@@ -5,7 +5,6 @@ import AppShell from '@/components/layout/AppShell.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
-import TenantNavigation from '../components/TenantNavigation.vue'
 import { tenantApi } from '../api'
 import { roleLabels, type Tenant, type TenantRole, type Page } from '../types'
 import { permissionsApi, type PermissionSettings, type PermissionChange } from '../permissions'
@@ -29,7 +28,18 @@ const historyError = ref('')
 const current = computed(() =>
   settings.value?.roles.find((role) => role.role === selectedRole.value),
 )
-const groups = computed(() => [...new Set(settings.value?.catalog.map((item) => item.group) ?? [])])
+const search = ref('')
+const normalize = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+const filteredCatalog = computed(() =>
+  (settings.value?.catalog ?? []).filter((item) =>
+    normalize(`${item.group} ${item.label}`).includes(normalize(search.value.trim())),
+  ),
+)
+const groups = computed(() => [...new Set(filteredCatalog.value.map((item) => item.group))])
 const added = computed(() => draft.value.filter((key) => !current.value?.permissions.includes(key)))
 const removed = computed(
   () => current.value?.permissions.filter((key) => !draft.value.includes(key)) ?? [],
@@ -139,7 +149,7 @@ function dateTime(value: string) {
 }
 </script>
 <template>
-  <AppShell :title="tenant?.name ?? 'Configurações'" subtitle="Controle de acesso">
+  <AppShell :tenant="tenant" :title="tenant?.name ?? 'Configurações'" subtitle="Controle de acesso">
     <header class="mb-7 flex flex-wrap items-end justify-between gap-4">
       <div>
         <p class="eyebrow">CADA PESSOA, O ACESSO CERTO</p>
@@ -151,7 +161,6 @@ function dateTime(value: string) {
       </div>
       <button class="secondary-button" :disabled="loading || busy" @click="load">Recarregar</button>
     </header>
-    <TenantNavigation v-if="tenant" :tenant="tenant" />
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
     <section
       v-if="!loading && !error && !tenant?.access?.can_manage_permissions"
@@ -233,13 +242,42 @@ function dateTime(value: string) {
               }}
             </p>
           </header>
+          <div class="border-b border-stone-100 px-6 py-5 sm:px-7">
+            <label for="permission-search" class="mb-2 block text-xs font-semibold text-slate-600"
+              >Buscar módulo ou permissão</label
+            ><input
+              id="permission-search"
+              v-model="search"
+              type="search"
+              class="field"
+              placeholder="Ex.: convites, editar, assinatura"
+            />
+            <p class="mt-2 text-xs text-slate-500" role="status">
+              {{ filteredCatalog.length }} permissões encontradas. A busca não altera sua seleção.
+            </p>
+          </div>
           <fieldset :disabled="locked" class="divide-y divide-stone-100">
             <legend class="sr-only">Permissões de {{ roleLabels[selectedRole] }}</legend>
-            <section v-for="group in groups" :key="group" class="p-6 sm:p-7">
-              <h3 class="text-sm font-semibold text-slate-800">{{ group }}</h3>
+            <details
+              v-for="group in groups"
+              :key="`${selectedRole}-${group}-${search.trim() ? 'search' : 'all'}`"
+              :open="!!search.trim() || group === groups[0]"
+              class="p-6 sm:p-7"
+            >
+              <summary class="cursor-pointer text-sm font-semibold text-slate-800">
+                {{ group }}
+                <span class="ml-2 text-xs font-normal text-slate-500"
+                  >{{
+                    settings.catalog.filter(
+                      (item) => item.group === group && draft.includes(item.key),
+                    ).length
+                  }}
+                  selecionadas</span
+                >
+              </summary>
               <div class="mt-4 grid gap-3 sm:grid-cols-2">
                 <label
-                  v-for="permission in settings.catalog.filter((item) => item.group === group)"
+                  v-for="permission in filteredCatalog.filter((item) => item.group === group)"
                   :key="permission.key"
                   class="flex items-start gap-3 rounded-xl border p-4 text-sm transition"
                   :class="
@@ -256,7 +294,10 @@ function dateTime(value: string) {
                   /><span>{{ permission.label }}</span>
                 </label>
               </div>
-            </section>
+            </details>
+            <p v-if="!groups.length" class="p-7 text-sm text-slate-500">
+              Nenhuma permissão encontrada. Tente outra busca.
+            </p>
           </fieldset>
           <footer class="border-t border-stone-100 bg-stone-50 p-6">
             <p class="text-xs leading-6 text-slate-500">
