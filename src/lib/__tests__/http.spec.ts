@@ -14,6 +14,7 @@ describe('HTTP session client', () => {
     const options = fetchMock.mock.calls[1]?.[1] as RequestInit
     expect(new Headers(options.headers).get('X-XSRF-TOKEN')).toBe('token=value')
     expect(options.credentials).toBe('include')
+    expect(options.referrerPolicy).toBe('strict-origin')
   })
   it('retains field errors for validation feedback', async () => {
     vi.stubGlobal(

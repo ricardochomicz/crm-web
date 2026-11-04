@@ -21,6 +21,7 @@ export async function request<T = void>(path: string, options: RequestInit = {})
       ...options,
       headers,
       credentials: 'include',
+      referrerPolicy: 'strict-origin',
       signal: options.signal ?? AbortSignal.timeout(15000),
     })
   } catch {
