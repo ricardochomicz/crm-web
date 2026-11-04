@@ -2,6 +2,7 @@ export interface User {
   id: number
   name: string
   email: string
+  is_platform_admin?: boolean
 }
 export interface Credentials {
   email: string

@@ -7,6 +7,7 @@ import AppIcon from '@/components/ui/AppIcon.vue'
 import { useAuthStore } from '../store'
 import { authApi } from '../api'
 import { ApiError } from '@/lib/http'
+import { authDestination, authLink } from '../navigation'
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
@@ -119,7 +120,7 @@ async function submit() {
           password_confirmation: form.password_confirmation,
         })
       else await auth.login(credentials)
-      await router.replace('/app')
+      await router.replace(authDestination(route))
     }
   } catch (error) {
     if (error instanceof ApiError) {
@@ -159,7 +160,7 @@ async function submit() {
           }}
         </p>
       </div>
-      <RouterLink to="/login" class="primary-button mt-8"
+      <RouterLink :to="authLink('/login', route)" class="primary-button mt-8"
         >Voltar para o login <AppIcon class="size-4"
       /></RouterLink>
       <button
@@ -182,7 +183,7 @@ async function submit() {
             { path: '/register', label: 'Criar conta' },
           ]"
           :key="item.path"
-          :to="item.path"
+          :to="authLink(item.path, route)"
           class="rounded-lg px-4 py-2.5 text-center text-sm font-medium transition"
           :class="
             route.path === item.path
@@ -194,7 +195,7 @@ async function submit() {
       </div>
       <RouterLink
         v-else
-        to="/login"
+        :to="authLink('/login', route)"
         class="mb-8 inline-flex items-center gap-2 text-sm text-slate-500 hover:text-orange-700"
         ><AppIcon class="size-4 rotate-180" /> Voltar para entrar</RouterLink
       >
@@ -257,7 +258,7 @@ async function submit() {
             @update:model-value="clearError('password')"
             ><template v-if="mode === 'login'" #label-action
               ><RouterLink
-                to="/forgot-password"
+                :to="authLink('/forgot-password', route)"
                 class="text-xs font-medium text-orange-700 hover:underline"
                 >Esqueceu a senha?</RouterLink
               ></template
@@ -295,14 +296,16 @@ async function submit() {
       <p class="mt-6 text-center text-xs leading-6 text-slate-400">
         <template v-if="mode === 'register'"
           >Já faz parte da equipe?
-          <RouterLink to="/login" class="font-semibold text-slate-700 hover:text-orange-700"
+          <RouterLink
+            :to="authLink('/login', route)"
+            class="font-semibold text-slate-700 hover:text-orange-700"
             >Entre na sua conta</RouterLink
           ></template
         ><template v-else-if="mode === 'login'"
           >Sua equipe mais próxima. Seu trabalho mais leve.</template
         ><template v-else
           >Precisa de um novo link?
-          <RouterLink to="/forgot-password" class="font-semibold text-slate-700"
+          <RouterLink :to="authLink('/forgot-password', route)" class="font-semibold text-slate-700"
             >Recuperar acesso</RouterLink
           ></template
         >

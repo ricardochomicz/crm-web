@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/features/auth/store'
+import { authDestination } from '@/features/auth/navigation'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   scrollBehavior: () => ({ top: 0 }),
@@ -17,8 +18,33 @@ const router = createRouter({
     })),
     {
       path: '/app',
-      component: () => import('@/features/auth/views/AccountView.vue'),
-      meta: { requiresAuth: true, title: 'Sua conta' },
+      component: () => import('@/features/tenants/views/TenantAccessView.vue'),
+      meta: { requiresAuth: true, title: 'Seu espaço', autoEnter: true },
+    },
+    {
+      path: '/empresas',
+      component: () => import('@/features/tenants/views/TenantAccessView.vue'),
+      meta: { requiresAuth: true, title: 'Minhas empresas' },
+    },
+    {
+      path: '/empresas/nova',
+      component: () => import('@/features/tenants/views/CreateTenantView.vue'),
+      meta: { requiresAuth: true, title: 'Criar empresa' },
+    },
+    {
+      path: '/empresas/:tenantId',
+      component: () => import('@/features/tenants/views/TenantDashboardView.vue'),
+      meta: { requiresAuth: true, title: 'Visão geral' },
+    },
+    {
+      path: '/convites',
+      component: () => import('@/features/invitations/views/AcceptInvitationView.vue'),
+      meta: { title: 'Aceitar convite' },
+    },
+    {
+      path: '/admin',
+      component: () => import('@/features/admin/views/PlatformView.vue'),
+      meta: { requiresAuth: true, admin: true, title: 'Administração' },
     },
     { path: '/:pathMatch(.*)*', redirect: '/app' },
   ],
@@ -31,7 +57,8 @@ router.beforeEach(async (to) => {
     if (to.meta.requiresAuth) return { path: '/login' }
   }
   if (to.meta.requiresAuth && !auth.user) return '/login'
-  if (to.meta.guest && auth.user) return '/app'
+  if (to.meta.admin && !auth.user?.is_platform_admin) return '/app'
+  if (to.meta.guest && auth.user) return authDestination(to)
 })
 router.afterEach((to) => {
   document.title = `${String(to.meta.title ?? 'CRM')} · TelecomHub`
