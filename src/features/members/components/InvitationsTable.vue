@@ -4,6 +4,8 @@ import { roleLabels } from '@/features/tenants/types'
 import type { Invitation, TeamAction } from '../types'
 defineProps<{
   invitations: Invitation[]
+  canResend: boolean
+  canRevoke: boolean
   busy?: boolean
   resendBlockedReason: (invitation: Invitation) => string
 }>()
@@ -60,6 +62,7 @@ function expiration(value: string) {
                 class="secondary-button px-3 py-2"
                 :disabled="busy || !!resendBlockedReason(invitation)"
                 :title="resendBlockedReason(invitation)"
+                v-if="canResend"
                 :aria-label="`Reenviar convite para ${invitation.email}`"
                 @click="$emit('action', { kind: 'resend', invitation })"
               >
@@ -67,6 +70,7 @@ function expiration(value: string) {
               ><button
                 class="secondary-button px-3 py-2"
                 :disabled="busy"
+                v-if="canRevoke"
                 :aria-label="`Revogar convite de ${invitation.email}`"
                 @click="$emit('action', { kind: 'revoke', invitation })"
               >

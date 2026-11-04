@@ -3,7 +3,14 @@ import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { roleLabels } from '@/features/tenants/types'
 import { dateLabel } from '@/lib/feedback'
 import type { Member, TeamAction } from '../types'
-defineProps<{ members: Member[]; canWrite: boolean; busy?: boolean; userId?: number }>()
+defineProps<{
+  members: Member[]
+  canWrite: boolean
+  canChangeRole: boolean
+  canChangeStatus: boolean
+  busy?: boolean
+  userId?: number
+}>()
 defineEmits<{ action: [action: TeamAction] }>()
 </script>
 <template>
@@ -51,10 +58,14 @@ defineEmits<{ action: [action: TeamAction] }>()
           </td>
           <td class="px-5 py-5 text-xs text-slate-500">{{ dateLabel(member.joined_at) }}</td>
           <td class="px-6 py-5">
-            <div v-if="member.role !== 'OWNER'" class="flex justify-end gap-2">
+            <div
+              v-if="member.can_manage && (canChangeRole || canChangeStatus)"
+              class="flex justify-end gap-2"
+            >
               <button
                 class="secondary-button px-3 py-2"
                 :disabled="!canWrite || busy"
+                v-if="canChangeRole"
                 :aria-label="`Alterar papel de ${member.name}`"
                 @click="$emit('action', { kind: 'role', member })"
               >
@@ -62,13 +73,16 @@ defineEmits<{ action: [action: TeamAction] }>()
               ><button
                 class="secondary-button px-3 py-2"
                 :disabled="!canWrite || busy"
+                v-if="canChangeStatus"
                 :aria-label="`${member.status === 'ACTIVE' ? 'Suspender' : 'Reativar'} ${member.name}`"
                 @click="$emit('action', { kind: 'status', member })"
               >
                 {{ member.status === 'ACTIVE' ? 'Suspender' : 'Reativar' }}
               </button>
             </div>
-            <p v-else class="text-right text-xs text-slate-400">Acesso protegido</p>
+            <p v-else class="text-right text-xs text-slate-400">
+              {{ member.role === 'OWNER' ? 'Acesso protegido' : 'Sem ações disponíveis' }}
+            </p>
           </td>
         </tr>
         <tr v-if="!members.length">

@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { tenantApi } from '@/features/tenants/api'
-import type { Page, Subscription, Tenant } from '@/features/tenants/types'
+import { can, canViewTeam, type Page, type Tenant } from '@/features/tenants/types'
 import { errorMessage } from '@/lib/feedback'
 import { teamApi } from '../api'
 import type { Invitation, InvitationStatus, Member } from '../types'
@@ -10,7 +10,6 @@ export function useTeamManagement(tenantId: string) {
   const error = ref('')
   const members = ref<Page<Member>>()
   const invitations = ref<Page<Invitation>>()
-  const subscription = ref<Subscription>()
   const membersLoading = ref(false)
   const invitationsLoading = ref(false)
   const subscriptionLoading = ref(false)
@@ -20,16 +19,31 @@ export function useTeamManagement(tenantId: string) {
   const memberPage = ref(1)
   const invitationPage = ref(1)
   const invitationFilter = ref<InvitationStatus | ''>('')
-  const isOwner = computed(() => tenant.value?.role === 'OWNER')
+  const has = (permission: string) => can(tenant.value, permission)
+  const canAccess = computed(() => canViewTeam(tenant.value))
+  const canViewMembers = computed(() => has('members.view'))
+  const canViewInvitations = computed(() => has('invitations.view'))
+  const allowedRoles = computed(() => tenant.value?.access?.assignable_roles ?? [])
+  const subscription = computed(() =>
+    tenant.value?.access?.capacity
+      ? {
+          ...tenant.value.access.capacity,
+          allows_operational_writes: tenant.value.access.allows_operational_writes,
+        }
+      : undefined,
+  )
   const canWrite = computed(
     () =>
-      isOwner.value &&
       !subscriptionLoading.value &&
-      !!subscription.value?.allows_operational_writes,
+      !subscriptionError.value &&
+      !!tenant.value?.access?.allows_operational_writes,
   )
   const inviteBlockedReason = computed(() => {
+    if (!has('invitations.create')) return 'Seu cargo não permite convidar pessoas.'
+    if (!allowedRoles.value.length) return 'Nenhum cargo disponível para atribuição.'
     if (subscriptionLoading.value) return 'Conferindo a disponibilidade de vagas…'
-    if (!subscription.value) return 'Atualize os dados da assinatura para convidar pessoas.'
+    if (!subscription.value || subscriptionError.value)
+      return 'Atualize os dados da empresa para convidar pessoas.'
     if (!canWrite.value) return 'A assinatura não permite novos convites no momento.'
     if (subscription.value.remaining.users <= 0)
       return 'Não há vagas disponíveis. Revogue um convite pendente ou revise seu plano.'
@@ -39,6 +53,8 @@ export function useTeamManagement(tenantId: string) {
     () => membersLoading.value || invitationsLoading.value || subscriptionLoading.value,
   )
   function resendBlockedReason(invitation: Invitation): string {
+    if (!has('invitations.resend')) return 'Seu cargo não permite reenviar convites.'
+    if (!allowedRoles.value.includes(invitation.role)) return 'Você não pode atribuir este cargo.'
     if (!canWrite.value || !subscription.value)
       return 'A assinatura precisa permitir alterações para reenviar.'
     const otherSeats =
@@ -50,7 +66,10 @@ export function useTeamManagement(tenantId: string) {
       : ''
   }
   async function loadMembers(page = memberPage.value) {
-    if (!isOwner.value) return
+    if (!canViewMembers.value) {
+      members.value = undefined
+      return
+    }
     membersLoading.value = true
     membersError.value = ''
     memberPage.value = page
@@ -63,7 +82,10 @@ export function useTeamManagement(tenantId: string) {
     }
   }
   async function loadInvitations(page = invitationPage.value) {
-    if (!isOwner.value) return
+    if (!canViewInvitations.value) {
+      invitations.value = undefined
+      return
+    }
     invitationsLoading.value = true
     invitationsError.value = ''
     invitationPage.value = page
@@ -76,27 +98,28 @@ export function useTeamManagement(tenantId: string) {
     }
   }
   async function loadSubscription() {
-    if (!isOwner.value) return
     subscriptionLoading.value = true
     subscriptionError.value = ''
-    subscription.value = undefined
     try {
-      subscription.value = (await tenantApi.subscription(tenantId)).data
+      tenant.value = (await tenantApi.show(tenantId)).data
     } catch (failure) {
+      tenant.value = undefined
       subscriptionError.value = errorMessage(failure)
     } finally {
       subscriptionLoading.value = false
     }
   }
   async function refresh() {
-    await Promise.all([loadMembers(), loadInvitations(), loadSubscription()])
+    await loadSubscription()
+    await Promise.all([loadMembers(), loadInvitations()])
   }
   async function load() {
+    subscriptionError.value = ''
     loading.value = true
     error.value = ''
     try {
       tenant.value = (await tenantApi.show(tenantId)).data
-      if (isOwner.value) await refresh()
+      await Promise.all([loadMembers(), loadInvitations()])
     } catch (failure) {
       tenant.value = undefined
       error.value = errorMessage(failure)
@@ -120,7 +143,11 @@ export function useTeamManagement(tenantId: string) {
     memberPage,
     invitationPage,
     invitationFilter,
-    isOwner,
+    canAccess,
+    canViewMembers,
+    canViewInvitations,
+    has,
+    allowedRoles,
     canWrite,
     inviteBlockedReason,
     refreshing,

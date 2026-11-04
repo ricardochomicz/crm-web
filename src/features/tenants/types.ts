@@ -4,6 +4,7 @@ export interface Tenant {
   name: string
   type: 'PF' | 'PJ'
   role: TenantRole
+  access?: TenantAccess
 }
 export interface Page<T> {
   data: T[]
@@ -46,4 +47,23 @@ export const roleLabels: Record<TenantRole, string> = {
   MANAGER: 'Gerente',
   CONSULTANT: 'Consultor',
   ASSISTANT: 'Assistente',
+}
+
+export interface TeamCapacity {
+  limits: { users: number }
+  usage: { users: number; reserved_invitations: number }
+  remaining: { users: number }
+}
+export interface TenantAccess {
+  permissions: string[]
+  can_manage_permissions: boolean
+  allows_operational_writes: boolean
+  assignable_roles: Exclude<TenantRole, 'OWNER'>[]
+  capacity: TeamCapacity | null
+}
+export function can(tenant: Tenant | undefined, permission: string): boolean {
+  return tenant?.access?.permissions.includes(permission) ?? false
+}
+export function canViewTeam(tenant: Tenant | undefined): boolean {
+  return can(tenant, 'members.view') || can(tenant, 'invitations.view')
 }

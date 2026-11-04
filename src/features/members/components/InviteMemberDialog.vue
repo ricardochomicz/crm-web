@@ -7,7 +7,12 @@ import { ApiError } from '@/lib/http'
 import { errorMessage } from '@/lib/feedback'
 import { teamApi } from '../api'
 import type { AssignableRole, TeamNotice } from '../types'
-const props = defineProps<{ open: boolean; tenantId: string; blockedReason: string }>()
+const props = defineProps<{
+  open: boolean
+  tenantId: string
+  blockedReason: string
+  allowedRoles: AssignableRole[]
+}>()
 const emit = defineEmits<{ close: []; completed: [notice: TeamNotice] }>()
 const email = ref('')
 const role = ref<AssignableRole>('CONSULTANT')
@@ -20,7 +25,9 @@ watch(
   (open) => {
     if (open) {
       email.value = ''
-      role.value = 'CONSULTANT'
+      role.value = props.allowedRoles.includes('CONSULTANT')
+        ? 'CONSULTANT'
+        : (props.allowedRoles[0] ?? 'CONSULTANT')
       error.value = ''
       emailError.value = ''
     }
@@ -30,8 +37,8 @@ async function submit() {
   if (busy.value) return
   error.value = ''
   emailError.value = ''
-  if (props.blockedReason) {
-    error.value = props.blockedReason
+  if (props.blockedReason || !props.allowedRoles.includes(role.value)) {
+    error.value = props.blockedReason || 'Selecione um cargo disponível.'
     return
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
@@ -100,7 +107,7 @@ async function submit() {
           maxlength="254"
           data-initial-focus
           :error="emailError"
-        /><RoleSelect id="invite-role" v-model="role" />
+        /><RoleSelect id="invite-role" v-model="role" :allowed-roles="allowedRoles" />
         <div class="rounded-xl bg-orange-50 p-4 text-xs leading-6 text-orange-900">
           O convite vale por 7 dias e reserva uma vaga do plano. A pessoa precisa aceitar com o
           mesmo e-mail informado.

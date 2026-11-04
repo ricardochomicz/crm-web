@@ -42,6 +42,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Membros e convites' },
     },
     {
+      path: '/empresas/:tenantId/permissoes',
+      component: () => import('@/features/tenants/views/TenantPermissionsView.vue'),
+      meta: { requiresAuth: true, title: 'Cargos e permissões' },
+    },
+    {
       path: '/convites',
       component: () => import('@/features/invitations/views/AcceptInvitationView.vue'),
       meta: { title: 'Aceitar convite' },

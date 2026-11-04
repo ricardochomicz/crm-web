@@ -8,6 +8,8 @@ import type { AssignableRole, TeamAction, TeamNotice } from '../types'
 const props = defineProps<{
   tenantId: string
   action: TeamAction | null
+  allowedRoles: AssignableRole[]
+  allowed: boolean
   canWrite: boolean
   resendBlocked: string
 }>()
@@ -59,10 +61,13 @@ const description = computed(() => {
   }
 })
 const blocked = computed(() => {
+  if (!props.allowed) return 'Seu cargo não permite esta ação.'
   if (!props.action || props.action.kind === 'revoke') return ''
   if (!props.canWrite) return 'A assinatura não permite esta alteração no momento.'
   if (props.action.kind === 'resend') return props.resendBlocked
-  if (props.action.member.role === 'OWNER') return 'O acesso do proprietário não pode ser alterado.'
+  if (!props.action.member.can_manage) return 'O acesso do proprietário não pode ser alterado.'
+  if (props.action.kind === 'role' && !props.allowedRoles.includes(role.value))
+    return 'Selecione um cargo disponível.'
   if (props.action.kind === 'role' && props.action.member.role === role.value)
     return 'Selecione um papel diferente do atual.'
   return ''
@@ -138,7 +143,12 @@ async function submit() {
         {{ error }}
       </p>
       <fieldset :disabled="busy" class="space-y-5">
-        <RoleSelect v-if="action?.kind === 'role'" id="member-role" v-model="role" />
+        <RoleSelect
+          v-if="action?.kind === 'role'"
+          id="member-role"
+          v-model="role"
+          :allowed-roles="allowedRoles"
+        />
         <p v-if="blocked" role="status" class="text-xs leading-6 text-amber-800">{{ blocked }}</p>
         <div class="flex justify-end gap-3 border-t border-stone-100 pt-5">
           <button type="button" class="secondary-button" data-initial-focus @click="emit('close')">

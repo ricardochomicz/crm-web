@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
@@ -30,7 +30,11 @@ const {
   subscriptionError,
   invitationPage,
   invitationFilter,
-  isOwner,
+  canAccess,
+  canViewMembers,
+  canViewInvitations,
+  has,
+  allowedRoles,
   canWrite,
   inviteBlockedReason,
   refreshing,
@@ -42,9 +46,25 @@ const {
   load,
 } = useTeamManagement(tenantId)
 const tab = ref<'members' | 'invitations'>('members')
+watch([canViewMembers, canViewInvitations], () => {
+  if (!canViewMembers.value && canViewInvitations.value) tab.value = 'invitations'
+  else if (!canViewInvitations.value && canViewMembers.value) tab.value = 'members'
+})
 const inviteOpen = ref(false)
 const action = ref<TeamAction | null>(null)
 const notice = ref<TeamNotice>()
+const actionAllowed = computed(() =>
+  action.value
+    ? has(
+        {
+          role: 'members.role',
+          status: 'members.status',
+          resend: 'invitations.resend',
+          revoke: 'invitations.revoke',
+        }[action.value.kind],
+      )
+    : false,
+)
 const modalOpen = computed(() => inviteOpen.value || !!action.value)
 const usedSeats = computed(() =>
   subscription.value
@@ -80,6 +100,7 @@ async function completed(result: TeamNotice, created = false) {
   await refresh()
 }
 function keyboardTab(event: KeyboardEvent) {
+  if (!canViewMembers.value || !canViewInvitations.value) return
   if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
   event.preventDefault()
   tab.value =
@@ -106,7 +127,7 @@ onMounted(load)
           Gerencie quem faz parte da empresa e convide novas pessoas.
         </p>
       </div>
-      <div v-if="isOwner && !loading" class="flex gap-3">
+      <div v-if="canAccess && !loading" class="flex gap-3">
         <button
           type="button"
           class="secondary-button"
@@ -116,6 +137,7 @@ onMounted(load)
           {{ refreshing ? 'Atualizando…' : 'Atualizar' }}</button
         ><button
           type="button"
+          v-if="has('invitations.create')"
           class="primary-button w-auto"
           :disabled="!!inviteBlockedReason || modalOpen"
           :title="inviteBlockedReason"
@@ -126,22 +148,21 @@ onMounted(load)
       </div>
     </div>
     <TenantNavigation v-if="tenant" :tenant="tenant" />
-    <AsyncNotice :loading="loading" :error="error" @retry="load" />
+    <AsyncNotice :loading="loading" :error="error || subscriptionError" @retry="load" />
     <section
-      v-if="!loading && tenant && !isOwner"
+      v-if="!loading && tenant && !canAccess"
       class="rounded-2xl border border-stone-200 bg-white p-8"
     >
       <AppIcon name="lock" class="mb-4 size-8 text-orange-600" />
-      <h2 class="text-lg font-semibold">Esta área é gerenciada pelo proprietário.</h2>
+      <h2 class="text-lg font-semibold">Seu cargo não permite acessar esta área.</h2>
       <p class="mt-3 text-sm leading-7 text-slate-500">
-        Para consultar membros ou alterar acessos, entre em contato com o proprietário desta
-        empresa.
+        Para solicitar acesso, entre em contato com o proprietário desta empresa.
       </p>
       <RouterLink :to="`/empresas/${tenant.id}`" class="secondary-button mt-5"
         >Voltar à visão geral</RouterLink
       >
     </section>
-    <template v-if="!loading && isOwner">
+    <template v-if="!loading && canAccess">
       <div
         v-if="notice"
         role="status"
@@ -170,9 +191,8 @@ onMounted(load)
         <div class="border-b border-stone-100 bg-[#f3f5f0] p-6 md:border-b-0 md:border-r">
           <div class="flex items-center justify-between gap-3">
             <h2 class="text-sm font-semibold">Capacidade da equipe</h2>
-            <span
-              class="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-slate-500"
-              >{{ subscription.plan.name ?? 'Seu plano' }}</span
+            <span class="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-slate-500"
+              >Vagas do plano</span
             >
           </div>
           <p class="mt-5 text-3xl font-semibold tracking-tight">
@@ -223,8 +243,8 @@ onMounted(load)
         role="status"
         class="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"
       >
-        Sua assinatura está bloqueada para alterações. Você pode consultar a equipe e revogar
-        convites, mas não pode convidar, reenviar ou alterar membros.
+        Sua assinatura está bloqueada para alterações. Você pode consultar os dados autorizados para
+        seu cargo. A revogação de convites continua disponível quando permitida.
       </div>
       <p
         v-else-if="inviteBlockedReason && !subscriptionLoading"
@@ -240,6 +260,7 @@ onMounted(load)
           @keydown="keyboardTab"
         >
           <button
+            v-if="canViewMembers"
             id="tab-members"
             role="tab"
             :aria-selected="tab === 'members'"
@@ -255,6 +276,7 @@ onMounted(load)
               members.total
             }}</span></button
           ><button
+            v-if="canViewInvitations"
             id="tab-invitations"
             role="tab"
             :aria-selected="tab === 'invitations'"
@@ -286,7 +308,7 @@ onMounted(load)
         </div>
       </div>
       <section
-        v-show="tab === 'members'"
+        v-show="tab === 'members' && canViewMembers"
         id="panel-members"
         role="tabpanel"
         aria-labelledby="tab-members"
@@ -301,6 +323,8 @@ onMounted(load)
           ><MembersTable
             :members="members.data"
             :can-write="canWrite"
+            :can-change-role="has('members.role')"
+            :can-change-status="has('members.status')"
             :busy="modalOpen"
             :user-id="auth.user?.id"
             @action="openAction" /><PagePagination
@@ -316,7 +340,7 @@ onMounted(load)
         </p>
       </section>
       <section
-        v-show="tab === 'invitations'"
+        v-show="tab === 'invitations' && canViewInvitations"
         id="panel-invitations"
         role="tabpanel"
         aria-labelledby="tab-invitations"
@@ -330,6 +354,8 @@ onMounted(load)
         /><template v-if="!invitationsLoading && !invitationsError && invitations"
           ><InvitationsTable
             :invitations="invitations.data"
+            :can-resend="has('invitations.resend')"
+            :can-revoke="has('invitations.revoke')"
             :busy="modalOpen"
             :resend-blocked-reason="resendBlockedReason"
             @action="openAction" /><PagePagination
@@ -347,12 +373,15 @@ onMounted(load)
     </template>
     <InviteMemberDialog
       :open="inviteOpen"
+      :allowed-roles="allowedRoles"
       :tenant-id="tenantId"
       :blocked-reason="inviteBlockedReason"
       @close="inviteOpen = false"
       @completed="completed($event, true)"
     /><TeamActionDialog
       :action="action"
+      :allowed="actionAllowed"
+      :allowed-roles="allowedRoles"
       :tenant-id="tenantId"
       :can-write="canWrite"
       :resend-blocked="actionResendBlocked"

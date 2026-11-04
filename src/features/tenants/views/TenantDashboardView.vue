@@ -6,7 +6,7 @@ import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import TenantNavigation from '../components/TenantNavigation.vue'
 import { tenantApi } from '../api'
-import { roleLabels, type Tenant, type Subscription } from '../types'
+import { can, canViewTeam, roleLabels, type Tenant, type Subscription } from '../types'
 import { dateLabel, errorMessage } from '@/lib/feedback'
 const route = useRoute()
 const tenant = ref<Tenant>()
@@ -15,7 +15,7 @@ const loading = ref(true)
 const error = ref('')
 const subscriptionError = ref('')
 async function loadSubscription() {
-  if (!tenant.value || tenant.value.role !== 'OWNER') return
+  if (!can(tenant.value, 'subscription.view') || !tenant.value) return
   subscriptionError.value = ''
   subscription.value = undefined
   try {
@@ -69,8 +69,8 @@ onMounted(load)
           >
           <h2 class="text-2xl font-medium tracking-tight">Um espaço. Muitas possibilidades.</h2>
           <p class="mt-3 max-w-lg text-sm leading-6 text-slate-300">
-            Sua empresa está pronta. Aqui você acompanha as informações do seu acesso e, como
-            proprietário, a capacidade da assinatura.
+            Sua empresa está pronta. Aqui você acompanha as informações do seu acesso e, quando
+            autorizado, a capacidade da assinatura.
           </p>
         </div>
         <span
@@ -129,7 +129,7 @@ onMounted(load)
         </div></template
       >
       <RouterLink
-        v-if="tenant.role === 'OWNER'"
+        v-if="canViewTeam(tenant)"
         :to="`/empresas/${tenant.id}/equipe`"
         class="mt-7 flex items-center justify-between gap-5 rounded-2xl border border-orange-200 bg-orange-50 p-6 transition hover:bg-orange-100"
         ><div>
