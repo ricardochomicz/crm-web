@@ -1,0 +1,13 @@
+export interface User {
+  id: number
+  name: string
+  email: string
+}
+export interface Credentials {
+  email: string
+  password: string
+}
+export interface Registration extends Credentials {
+  name: string
+  password_confirmation: string
+}

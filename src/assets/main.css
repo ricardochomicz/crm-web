@@ -1,35 +1,119 @@
 @import 'tailwindcss';
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+@theme {
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
-
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
-}
-
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
-}
-
-@media (min-width: 1024px) {
+@layer base {
   body {
-    display: flex;
-    place-items: center;
+    margin: 0;
+    color: #25302c;
+    -webkit-font-smoothing: antialiased;
   }
-
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
+  button,
+  a,
+  input {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:not(:disabled),
+  a {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 3px solid #fb923c;
+    outline-offset: 4px;
+  }
+  ::selection {
+    background: #fed7aa;
+    color: #431407;
+  }
+}
+@layer components {
+  .field {
+    @apply block w-full rounded-xl border border-stone-200 bg-white px-4 py-3.5 text-sm text-slate-800 shadow-xs transition placeholder:text-slate-400 hover:border-stone-300 focus:border-orange-500 focus:outline-none focus:ring-4 focus:ring-orange-500/10;
+  }
+  .field-error {
+    @apply border-red-400 focus:border-red-500 focus:ring-red-500/10;
+  }
+  .primary-button {
+    @apply flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-orange-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 hover:shadow-md active:translate-y-px disabled:cursor-wait disabled:opacity-60;
+  }
+  .eyebrow {
+    @apply text-[10px] font-bold tracking-[.18em] text-orange-700;
+  }
+  .auth-title {
+    @apply mt-3 text-[34px] font-semibold leading-[1.16] tracking-[-.04em] text-slate-900 sm:text-[38px];
+  }
+}
+.auth-story {
+  background:
+    radial-gradient(ellipse at 5% 90%, #4c5031 0%, transparent 55%),
+    radial-gradient(ellipse at 100% 20%, #3b473b 0%, transparent 55%), #202a26;
+}
+.auth-story::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  background-image: radial-gradient(#e1e8ce 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: linear-gradient(transparent, black);
+}
+.orbit {
+  position: absolute;
+  border: 1px solid #ffffff15;
+  border-radius: 50%;
+  left: 12%;
+  top: 7%;
+  width: 75%;
+  height: 85%;
+  transform: rotate(-22deg);
+}
+.orbit-two {
+  left: 20%;
+  top: 0%;
+  width: 60%;
+  height: 100%;
+  transform: rotate(35deg);
+}
+.auth-enter {
+  animation: appear 0.45s ease-out both;
+}
+.float-card {
+  animation: float 7s ease-in-out infinite;
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ffffff66;
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes float {
+  50% {
+    transform: translateY(-7px);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 }
