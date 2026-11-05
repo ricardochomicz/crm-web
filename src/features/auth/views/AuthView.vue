@@ -13,15 +13,22 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const mode = computed(() => String(route.meta.authMode ?? 'login'))
-const invitationToken = computed(() => route.query.continue === 'invitation' && /^#token=[A-Za-z0-9]{64}$/.test(route.hash) ? route.hash.slice(7) : '')
+const invitationFlow = computed(() => route.query.continue === 'invitation')
+const invitationToken = computed(() => invitationFlow.value ? new URLSearchParams(route.hash.slice(1)).get('token') ?? '' : '')
+const validInvitationToken = computed(() => /^[A-Za-z0-9]{64}$/.test(invitationToken.value))
+const form = reactive({ name: '', email: '', password: '', password_confirmation: '' })
 const invitedEmail = ref('')
 const invitationLoading = ref(false)
 const invitationError = ref('')
 const emailLocked = computed(() => !!invitationToken.value && !!invitedEmail.value && !invitationError.value)
-watch(invitationToken, async (token, _old, onCleanup) => {
+watch([invitationToken, invitationFlow], async ([token], _old, onCleanup) => (token, _old, onCleanup) => {
   invitedEmail.value = ''
   invitationError.value = ''
-  if (!token) return
+  if (!invitationFlow.value) return
+  if (!validInvitationToken.value) {
+    invitationError.value = 'O link do convite está incompleto ou inválido. Abra novamente o link recebido por e-mail.'
+    return
+  }
   let cancelled = false
   onCleanup(() => { cancelled = true })
   invitationLoading.value = true
@@ -37,7 +44,6 @@ watch(invitationToken, async (token, _old, onCleanup) => {
     if (!cancelled) invitationLoading.value = false
   }
 }, { immediate: true })
-const form = reactive({ name: '', email: '', password: '', password_confirmation: '' })
 const busy = ref(false)
 const success = ref(false)
 const errors = ref<Record<string, string>>({})
@@ -105,7 +111,7 @@ async function showErrors() {
   else alertElement.value?.focus()
 }
 async function submit() {
-  if (busy.value || (invitationToken.value && (invitationLoading.value || !!invitationError.value || !emailLocked.value))) return
+  if (busy.value || (invitationFlow.value && (invitationLoading.value || !!invitationError.value || !emailLocked.value))) return
   if (emailLocked.value) form.email = invitedEmail.value
   errors.value = {}
   alert.value = ''
@@ -317,7 +323,7 @@ async function submit() {
               <AppIcon name="check" class="size-3.5" />{{ rule.label }}
             </li>
           </ul>
-          <button type="submit" class="primary-button" :disabled="busy || (!!invitationToken && (invitationLoading || !!invitationError || !emailLocked))">
+          <button type="submit" class="primary-button" :disabled="busy || (invitationFlow && (invitationLoading || !!invitationError || !emailLocked))">
             <span v-if="busy" class="spinner" aria-hidden="true" />{{
               busy ? 'Só um instante…' : copy.button
             }}<AppIcon v-if="!busy" class="size-4" />
