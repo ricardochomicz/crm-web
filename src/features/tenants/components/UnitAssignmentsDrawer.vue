@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import { errorMessage } from '@/lib/feedback'
+import { ApiError, mutate } from '@/lib/http'
 import type { Page } from '../types'
 import { unitsApi, type AssignmentKind, type TenantUnit, type UnitAssignment } from '../units'
 const props = defineProps<{ tenantId: string; unit: TenantUnit; canCreateTeam: boolean }>()
@@ -21,6 +21,10 @@ const busy = ref(false)
 const loadError = ref('')
 const error = ref('')
 const success = ref('')
+const createTeamOpen = ref(false)
+const teamName = ref('')
+const teamNameError = ref('')
+const creatingTeam = ref(false)
 const confirmation = ref<{ operation: 'add' | 'remove'; items: UnitAssignment[] }>()
 let sequence = 0
 let timer: ReturnType<typeof setTimeout> | undefined
@@ -100,6 +104,34 @@ async function apply(operation: 'add' | 'remove', items: UnitAssignment[]) {
     busy.value = false
   }
 }
+async function createTeam() {
+  if (creatingTeam.value) return
+  teamNameError.value = ''
+  const name = teamName.value.trim()
+  if (!name) {
+    teamNameError.value = 'Informe o nome da equipe.'
+    return
+  }
+  creatingTeam.value = true
+  try {
+    await mutate(`/api/v1/tenants/${encodeURIComponent(props.tenantId)}/teams`, {
+      name,
+      tenant_unit_id: props.unit.id,
+    })
+    createTeamOpen.value = false
+    teamName.value = ''
+    success.value = 'Equipe criada com sucesso.'
+    emit('changed')
+    navigate('teams', 'linked')
+    success.value = 'Equipe criada com sucesso.'
+  } catch (failure) {
+    teamNameError.value = failure instanceof ApiError
+      ? (failure.errors.name?.[0] ?? errorMessage(failure))
+      : errorMessage(failure)
+  } finally {
+    creatingTeam.value = false
+  }
+}
 function add() {
   if (kind.value === 'teams')
     confirmation.value = { operation: 'add', items: [...selectedItems.value] }
@@ -146,12 +178,9 @@ onBeforeUnmount(() => {
         </button>
       </div>
       <div v-if="kind === 'teams' && canCreateTeam" class="flex justify-end">
-        <RouterLink
-          :to="{ path: `/empresas/${tenantId}/equipes`, query: { createTeam: '1' } }"
-          class="primary-button w-auto"
-        >
+        <button type="button" class="primary-button w-auto" @click="teamName = ''; teamNameError = ''; createTeamOpen = true">
           Nova equipe
-        </RouterLink>
+        </button>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <h3 class="font-semibold">
@@ -326,5 +355,25 @@ onBeforeUnmount(() => {
         </div>
       </footer>
     </div>
+  </AppDialog>
+  <AppDialog
+    :open="createTeamOpen"
+    title="Nova equipe"
+    :description="`Criar equipe em ${unit.name}`"
+    :busy="creatingTeam"
+    @close="createTeamOpen = false"
+  >
+    <form class="grid gap-5" @submit.prevent="createTeam">
+      <div class="grid gap-2">
+        <label for="new-unit-team-name" class="text-sm font-semibold">Nome da equipe</label>
+        <input id="new-unit-team-name" v-model="teamName" class="field" maxlength="100"
+          required data-initial-focus :disabled="creatingTeam" />
+        <p v-if="teamNameError" role="alert" class="text-sm text-red-600">{{ teamNameError }}</p>
+      </div>
+      <div class="flex justify-end gap-3">
+        <button type="button" class="secondary-button" :disabled="creatingTeam" @click="createTeamOpen = false">Cancelar</button>
+        <button type="submit" class="primary-button w-auto" :disabled="creatingTeam">{{ creatingTeam ? 'Criando…' : 'Criar equipe' }}</button>
+      </div>
+    </form>
   </AppDialog>
 </template>
