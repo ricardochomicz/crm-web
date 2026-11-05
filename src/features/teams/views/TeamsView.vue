@@ -17,7 +17,8 @@ import CreateTeamDialog from '../components/CreateTeamDialog.vue'
 import EditTeamDialog from '../components/EditTeamDialog.vue'
 import TeamMembersDrawer from '../components/TeamMembersDrawer.vue'
 
-const tenantId = String(useRoute().params.tenantId)
+const route = useRoute()
+const tenantId = String(route.params.tenantId)
 
 const tenant = ref<Tenant>()
 const loading = ref(true)
@@ -94,6 +95,9 @@ async function load() {
   error.value = ''
   await Promise.all([loadTenant(), loadTeams(1), loadMembers()])
   loading.value = false
+  if (route.query.createTeam === '1' && canCreate.value && canWrite.value) {
+    openCreate()
+  }
 }
 
 async function refresh() {
