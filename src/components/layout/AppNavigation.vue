@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { can, canViewTeam, canViewTeams, type Tenant } from '@/features/tenants/types'
@@ -6,26 +7,15 @@ import { useAuthStore } from '@/features/auth/store'
 defineProps<{ tenant?: Tenant }>()
 const route = useRoute()
 const auth = useAuthStore()
+const teamOpen = ref(false)
+const settingsOpen = ref(false)
+watch(() => route.path, (path) => {
+  if (/\/(equipe|equipes)$/.test(path)) teamOpen.value = true
+  if (/\/(dados|unidades|permissoes|assinatura)$/.test(path)) settingsOpen.value = true
+}, { immediate: true })
 </script>
 <template>
   <div class="space-y-7">
-    <RouterLink
-      to="/empresas"
-      class="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 p-3 hover:border-orange-300"
-      aria-label="Selecionar ou trocar empresa"
-    >
-      <span class="min-w-0"
-        ><span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">{{
-          tenant ? 'Empresa atual' : 'Espaços de trabalho'
-        }}</span
-        ><span class="mt-1 block truncate text-sm font-semibold text-slate-800">{{
-          tenant?.name ?? 'Minhas empresas'
-        }}</span
-        ><span class="mt-1 block text-xs text-slate-500">{{
-          tenant ? 'Trocar empresa' : 'Selecionar empresa'
-        }}</span></span
-      ><AppIcon name="arrow" class="size-4 shrink-0 text-slate-400" />
-    </RouterLink>
     <nav aria-label="Menu principal" class="space-y-6">
       <template v-if="tenant">
         <RouterLink
@@ -36,7 +26,8 @@ const auth = useAuthStore()
           ><AppIcon name="grid" class="size-5" />Início</RouterLink
         >
         <div v-if="canViewTeam(tenant)" class="space-y-2">
-          <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Equipe</p>
+          <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="teamOpen" @click="teamOpen = !teamOpen">Equipe <span aria-hidden="true">{{ teamOpen ? '⌄' : '›' }}</span></button>
+          <div v-show="teamOpen" class="space-y-1 border-l border-stone-200 pl-2">
           <RouterLink
             :to="`/empresas/${tenant.id}/equipe`"
             class="nav-item"
@@ -52,11 +43,11 @@ const auth = useAuthStore()
             :aria-current="route.path.endsWith('/equipes') ? 'page' : undefined"
             ><AppIcon name="grid" class="size-5" />Equipes</RouterLink
           >
+          </div>
         </div>
         <div class="space-y-2">
-          <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            Configurações
-          </p>
+          <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen">Configurações <span aria-hidden="true">{{ settingsOpen ? '⌄' : '›' }}</span></button>
+          <div v-show="settingsOpen" class="space-y-1 border-l border-stone-200 pl-2">
           <RouterLink
             :to="`/empresas/${tenant.id}/dados`"
             class="nav-item"
@@ -87,6 +78,7 @@ const auth = useAuthStore()
             :aria-current="route.path.endsWith('/assinatura') ? 'page' : undefined"
             >Plano e assinatura</RouterLink
           >
+          </div>
         </div>
       </template>
       <RouterLink
