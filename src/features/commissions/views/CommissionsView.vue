@@ -75,12 +75,23 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
   </header>
   <AsyncNotice :loading="loading" :error="error" @retry="load" />
   <form v-if="!loading && !error" class="mb-5 rounded-2xl border border-stone-200 bg-white p-5" @submit.prevent="saveSettings"><div class="flex flex-wrap items-end gap-4"><label class="block text-sm font-semibold text-slate-700">Desconto padrão da empresa (%)<input v-model="defaultDeduction" :disabled="!writable" inputmode="decimal" class="mt-2 block w-44 rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-normal" /></label><button v-if="writable" type="submit" class="primary-button w-auto">Salvar padrão</button></div><p class="mt-3 text-xs text-slate-500">Aplicado à comissão bruta quando a tabela não possui desconto próprio. Use 0% para não descontar.</p></form>
-  <section v-if="!loading && !error" class="rounded-2xl border border-stone-200 bg-white p-5">
-   <div v-for="item in rows" :key="item.id" class="flex items-center justify-between gap-4 border-b border-stone-100 py-4">
-    <div><p class="font-semibold">{{ item.name }} · {{ item.operator?.name }}</p><p class="text-sm text-slate-500">Comissão: {{ format(item.percentage) }} · Desconto: {{ item.deduction_percentage === null ? 'Padrão da empresa' : format(item.deduction_percentage) }} · {{ item.is_active ? 'Ativa' : 'Inativa' }}</p></div>
-    <button v-if="writable" type="button" class="text-orange-700" @click="edit(item)">Editar</button>
+  <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+   <div class="overflow-x-auto">
+    <table class="w-full min-w-[720px] text-left text-sm">
+     <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-4">Tabela</th><th class="px-4 py-4">Operadora</th><th class="px-4 py-4 text-right">Comissão</th><th class="px-4 py-4 text-right">Desconto</th><th class="px-4 py-4">Situação</th><th v-if="writable" class="px-5 py-4 text-right">Ações</th></tr></thead>
+     <tbody class="divide-y divide-stone-100">
+      <tr v-for="item in rows" :key="item.id" class="hover:bg-stone-50/70">
+       <td class="px-5 py-4 font-semibold text-slate-800">{{ item.name }}</td>
+       <td class="px-4 py-4 text-slate-600">{{ item.operator?.name }}</td>
+       <td class="px-4 py-4 text-right font-semibold text-slate-800">{{ format(item.percentage) }}</td>
+       <td class="px-4 py-4 text-right text-slate-600">{{ item.deduction_percentage === null ? 'Padrão (' + format(defaultDeduction) + ')' : format(item.deduction_percentage) }}</td>
+       <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="item.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-slate-500'">{{ item.is_active ? 'Ativa' : 'Inativa' }}</span></td>
+       <td v-if="writable" class="px-5 py-4 text-right"><button type="button" class="inline-flex size-9 items-center justify-center rounded-lg border border-stone-200 text-slate-600 hover:border-orange-300 hover:text-orange-700" title="Editar tabela" aria-label="Editar tabela" @click="edit(item)"><AppIcon name="edit" class="size-4" /></button></td>
+      </tr>
+     </tbody>
+    </table>
    </div>
-   <p v-if="!rows.length" class="text-sm text-slate-500">Nenhuma tabela cadastrada.</p>
+   <p v-if="!rows.length" class="px-5 py-8 text-center text-sm text-slate-500">Nenhuma tabela cadastrada.</p>
   </section>
   <div v-if="modalOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
    <form class="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-xl" @submit.prevent="save">
