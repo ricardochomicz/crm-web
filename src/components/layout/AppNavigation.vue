@@ -45,6 +45,7 @@ watch(() => route.path, (path) => {
           >
           </div>
         </div>
+        <RouterLink v-if="can(tenant, 'products.view')" :to="`/empresas/${tenant.id}/produtos`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/produtos') }">Produtos e planos</RouterLink>
         <div class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen">Configurações <span aria-hidden="true">{{ settingsOpen ? '⌄' : '›' }}</span></button>
           <div v-show="settingsOpen" class="space-y-1 border-l border-stone-200 pl-2">
