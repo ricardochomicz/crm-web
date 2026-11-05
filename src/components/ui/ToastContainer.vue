@@ -15,7 +15,7 @@ const styles: Record<ToastKind, string> = {
 }
 </script>
 <template>
-  <div class="pointer-events-none fixed inset-x-3 top-4 z-[100] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-5 sm:w-96" aria-label="Notificações">
+  <div class="pointer-events-none fixed inset-x-3 bottom-4 z-[100] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-96" aria-label="Notificações">
     <div
       v-for="item in toastItems"
       :key="item.id"
