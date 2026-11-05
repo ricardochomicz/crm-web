@@ -31,6 +31,6 @@ export const permissionsApi = {
   show: (id: string) => request<{ data: PermissionSettings }>(`${base(id)}/role-permissions`),
   update: (id: string, role: TenantRole, permissions: string[], version: number) =>
     mutate(`${base(id)}/role-permissions/${role}`, { permissions, version }, 'PUT'),
-  history: (id: string, page = 1) =>
-    request<Page<PermissionChange>>(`${base(id)}/permission-changes?page=${page}`),
+  history: (id: string, page = 1, role?: TenantRole) =>
+    request<Page<PermissionChange>>(`${base(id)}/permission-changes?page=${page}&role=${role ?? 'MANAGER'}`),
 }
