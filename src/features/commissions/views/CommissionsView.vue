@@ -74,5 +74,12 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
    </div>
    <p v-if="!rows.length" class="text-sm text-slate-500">Nenhuma tabela cadastrada.</p>
   </section>
+  <div v-if="modalOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+   <form class="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-xl" @submit.prevent="save">
+    <h2 class="text-xl font-semibold">{{ editingId ? 'Editar tabela' : 'Nova tabela de comissão' }}</h2>
+    <label class="block text-sm font-medium">Nome<input v-model="form.name" required maxlength="180" class="mt-1 w-full rounded-lg border p-2" /></label>
+    <label class="block text-sm font-medium">Operadora<select v-model.number="form.operator_id" required class="mt-1 w-full rounded-lg border p-2"><option :value="0" disabled>Selecione</option><option v-for="op in operators" :key="op.id" :value="op.id">{{ op.name }}</option></select></label>
+   </form>
+  </div>
  </AppShell>
 </template>
