@@ -72,11 +72,18 @@ async function loadTeams(page = teamsPage.value) {
 
 async function loadMembers() {
   membersLoading.value = true
+  allMembers.value = []
   try {
-    const result = await teamApi.members(tenantId, 1)
-    allMembers.value = result.data
-  } catch {
-    // Silencioso — select mostrará aviso
+    const firstPage = await teamApi.members(tenantId, 1)
+    const members = [...firstPage.data]
+    for (let page = 2; page <= firstPage.last_page; page++) {
+      const result = await teamApi.members(tenantId, page)
+      members.push(...result.data)
+    }
+    allMembers.value = members
+  } catch (failure) {
+    allMembers.value = []
+    teamsError.value = errorMessage(failure)
   } finally {
     membersLoading.value = false
   }
