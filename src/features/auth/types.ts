@@ -11,4 +11,5 @@ export interface Credentials {
 export interface Registration extends Credentials {
   name: string
   password_confirmation: string
+  invitation_token?: string
 }
