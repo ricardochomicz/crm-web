@@ -67,5 +67,12 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
    <button v-if="writable" class="primary-button w-auto" type="button" @click="edit()">+ Nova tabela</button>
   </header>
   <AsyncNotice :loading="loading" :error="error" @retry="load" />
+  <section v-if="!loading && !error" class="rounded-2xl border border-stone-200 bg-white p-5">
+   <div v-for="item in rows" :key="item.id" class="flex items-center justify-between gap-4 border-b border-stone-100 py-4">
+    <div><p class="font-semibold">{{ item.name }} · {{ item.operator?.name }}</p><p class="text-sm text-slate-500">Comissão: {{ format(item.percentage) }} · Desconto: {{ item.deduction_percentage === null ? 'Padrão da empresa' : format(item.deduction_percentage) }} · {{ item.is_active ? 'Ativa' : 'Inativa' }}</p></div>
+    <button v-if="writable" type="button" class="text-orange-700" @click="edit(item)">Editar</button>
+   </div>
+   <p v-if="!rows.length" class="text-sm text-slate-500">Nenhuma tabela cadastrada.</p>
+  </section>
  </AppShell>
 </template>
