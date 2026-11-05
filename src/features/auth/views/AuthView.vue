@@ -8,10 +8,35 @@ import { useAuthStore } from '../store'
 import { authApi } from '../api'
 import { ApiError } from '@/lib/http'
 import { authDestination, authLink } from '../navigation'
+import { invitationApi } from '@/features/invitations/api'
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const mode = computed(() => String(route.meta.authMode ?? 'login'))
+const invitationToken = computed(() => route.query.continue === 'invitation' && /^#token=[A-Za-z0-9]{64}$/.test(route.hash) ? route.hash.slice(7) : '')
+const invitedEmail = ref('')
+const invitationLoading = ref(false)
+const invitationError = ref('')
+const emailLocked = computed(() => !!invitationToken.value && !!invitedEmail.value && !invitationError.value)
+watch(invitationToken, async (token, _old, onCleanup) => {
+  invitedEmail.value = ''
+  invitationError.value = ''
+  if (!token) return
+  let cancelled = false
+  onCleanup(() => { cancelled = true })
+  invitationLoading.value = true
+  try {
+    const response = await invitationApi.show(token)
+    if (cancelled) return
+    if (!response.data.is_available || !response.data.email) throw new Error('Convite indisponível.')
+    invitedEmail.value = response.data.email
+    form.email = response.data.email
+  } catch {
+    if (!cancelled) invitationError.value = 'Não foi possível validar o e-mail do convite. Solicite um novo convite ou tente novamente.'
+  } finally {
+    if (!cancelled) invitationLoading.value = false
+  }
+}, { immediate: true })
 const form = reactive({ name: '', email: '', password: '', password_confirmation: '' })
 const busy = ref(false)
 const success = ref(false)
@@ -80,7 +105,8 @@ async function showErrors() {
   else alertElement.value?.focus()
 }
 async function submit() {
-  if (busy.value) return
+  if (busy.value || (invitationToken.value && (invitationLoading.value || !!invitationError.value || !emailLocked.value))) return
+  if (emailLocked.value) form.email = invitedEmail.value
   errors.value = {}
   alert.value = ''
   if (mode.value === 'register' && !form.name.trim())
@@ -118,6 +144,7 @@ async function submit() {
           ...credentials,
           name: form.name.trim(),
           password_confirmation: form.password_confirmation,
+          ...(invitationToken.value ? { invitation_token: invitationToken.value } : {}),
         })
       else await auth.login(credentials)
       await router.replace(authDestination(route))
@@ -218,6 +245,8 @@ async function submit() {
       >
         {{ alert }}
       </div>
+      <p v-if="invitationLoading" class="mb-4 text-sm text-slate-500" role="status">Conferindo e-mail do convite…</p>
+      <p v-if="invitationError" class="mb-4 text-sm text-red-700" role="alert">{{ invitationError }}</p>
       <form class="space-y-5" novalidate :aria-busy="busy" @submit.prevent="submit">
         <fieldset :disabled="busy" class="space-y-5 disabled:opacity-70">
           <FormField
@@ -241,6 +270,8 @@ async function submit() {
             placeholder="voce@empresa.com.br"
             maxlength="254"
             :error="errors.email"
+            :readonly="emailLocked"
+            :hint="emailLocked ? 'E-mail definido pelo convite. Não pode ser alterado.' : undefined"
             @update:model-value="clearError('email')"
           />
           <FormField
@@ -286,7 +317,7 @@ async function submit() {
               <AppIcon name="check" class="size-3.5" />{{ rule.label }}
             </li>
           </ul>
-          <button type="submit" class="primary-button" :disabled="busy">
+          <button type="submit" class="primary-button" :disabled="busy || (!!invitationToken && (invitationLoading || !!invitationError || !emailLocked))">
             <span v-if="busy" class="spinner" aria-hidden="true" />{{
               busy ? 'Só um instante…' : copy.button
             }}<AppIcon v-if="!busy" class="size-4" />
