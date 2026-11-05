@@ -34,6 +34,7 @@ export interface TeamNotice {
 export type TeamAction =
   | { kind: 'role'; member: Member }
   | { kind: 'status'; member: Member }
+  | { kind: 'remove'; member: Member }
   | { kind: 'resend'; invitation: Invitation }
   | { kind: 'revoke'; invitation: Invitation }
 export const assignableRoles: { value: AssignableRole; label: string }[] = [
