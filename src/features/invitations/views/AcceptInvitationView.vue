@@ -20,7 +20,7 @@ const error = ref('')
 const busy = ref(false)
 const acceptedTenant = ref('')
 const loginLink = computed(() => ({
-  path: '/login',
+  path: '/register',
   query: { continue: 'invitation' },
   hash: `#token=${token.value}`,
 }))
@@ -57,7 +57,7 @@ async function switchAccount() {
   error.value = ''
   try {
     await auth.logout()
-    await router.replace(loginLink.value)
+    await router.replace({ ...loginLink.value, path: '/login' })
   } catch (failure) {
     error.value = errorMessage(failure)
   } finally {
@@ -119,11 +119,11 @@ onMounted(load)
             preservado.
           </p>
           <RouterLink :to="loginLink" class="primary-button"
-            >Entrar para aceitar<AppIcon class="size-4" /></RouterLink
+            >Criar conta e aceitar convite<AppIcon class="size-4" /></RouterLink
           ><RouterLink
-            :to="{ ...loginLink, path: '/register' }"
+            :to="{ ...loginLink, path: '/login' }"
             class="secondary-button mt-3 w-full"
-            >Criar minha conta</RouterLink
+            >Já tenho conta — entrar</RouterLink
           ></template
         >
       </template>
