@@ -6,7 +6,7 @@ import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import FormField from '@/components/ui/FormField.vue'
 import UnitAssignmentsDrawer from '../components/UnitAssignmentsDrawer.vue'
 import { tenantApi } from '../api'
-import type { Tenant } from '../types'
+import { can, type Tenant } from '../types'
 import { unitsApi, type TenantUnit, type UnitList } from '../units'
 import { errorMessage } from '@/lib/feedback'
 import { ApiError } from '@/lib/http'
@@ -249,6 +249,7 @@ watch(
       v-if="assigning && writable"
       :tenant-id="tenantId"
       :unit="assigning"
+      :can-create-team="!!tenant?.access?.allows_operational_writes && can(tenant, 'teams.create')"
       @close="assigning = undefined"
       @changed="refreshCounts"
     />
