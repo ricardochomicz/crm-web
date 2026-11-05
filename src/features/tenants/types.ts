@@ -67,3 +67,15 @@ export function can(tenant: Tenant | undefined, permission: string): boolean {
 export function canViewTeam(tenant: Tenant | undefined): boolean {
   return can(tenant, 'members.view') || can(tenant, 'invitations.view')
 }
+
+export interface CompanyDetails extends Tenant {
+  document: string
+  trade_name: string | null
+  email: string
+  phone: string | null
+  timezone: string
+}
+export type CompanyUpdate = Pick<
+  CompanyDetails,
+  'name' | 'trade_name' | 'email' | 'phone' | 'timezone'
+>
