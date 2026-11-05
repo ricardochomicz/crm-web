@@ -24,6 +24,7 @@ const conflicted = ref(false)
 const history = ref<Page<PermissionChange>>()
 const historyLoading = ref(false)
 const historyError = ref('')
+let historyRequest = 0
 const current = computed(() =>
   settings.value?.roles.find((role) => role.role === selectedRole.value),
 )
@@ -57,6 +58,7 @@ function selectRole(role: TenantRole) {
   if (dirty.value && !window.confirm('Descartar as alterações não salvas deste cargo?')) return
   selectedRole.value = role
   resetDraft()
+  void loadHistory(1)
 }
 function toggle(key: string, checked: boolean) {
   if (locked.value) return
@@ -75,14 +77,18 @@ function toggle(key: string, checked: boolean) {
   draft.value = [...selected]
 }
 async function loadHistory(page = 1) {
+  const request = ++historyRequest
+  const role = selectedRole.value
   historyLoading.value = true
+  history.value = undefined
   historyError.value = ''
   try {
-    history.value = await permissionsApi.history(tenantId, page)
+    const response = await permissionsApi.history(tenantId, page, role)
+    if (request === historyRequest) history.value = response
   } catch (failure) {
-    historyError.value = errorMessage(failure)
+    if (request === historyRequest) historyError.value = errorMessage(failure)
   } finally {
-    historyLoading.value = false
+    if (request === historyRequest) historyLoading.value = false
   }
 }
 async function load() {
@@ -183,7 +189,7 @@ function dateTime(value: string) {
         Outra sessão alterou as permissões. Feche a revisão e use Recarregar para obter os dados
         atuais.
       </p>
-      <div class="grid items-start gap-6 lg:grid-cols-[15rem_1fr]">
+      <div class="grid items-start gap-5 xl:grid-cols-[minmax(11rem,0.9fr)_minmax(0,2.6fr)_minmax(17rem,1.5fr)]">
         <aside
           class="rounded-2xl border border-stone-200 bg-white p-3"
           aria-label="Selecionar cargo"
@@ -215,7 +221,7 @@ function dateTime(value: string) {
             acesso por esta configuração.
           </p>
         </aside>
-        <section class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+        <section class="min-w-0 overflow-hidden rounded-2xl border border-stone-200 bg-white">
           <header class="border-b border-stone-100 p-6 sm:p-7">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <h2 class="text-xl font-semibold">{{ roleLabels[selectedRole] }}</h2>
@@ -317,17 +323,17 @@ function dateTime(value: string) {
             </div>
           </footer>
         </section>
-      </div>
-      <section class="mt-8 rounded-2xl border border-stone-200 bg-white p-6 sm:p-7">
+      <section class="min-w-0 rounded-2xl border border-stone-200 bg-white p-5 xl:sticky xl:top-5" aria-label="Histórico de alterações">
         <h2 class="text-lg font-semibold">Histórico de alterações</h2>
+        <p class="mt-1 text-xs font-medium text-slate-600">{{ roleLabels[selectedRole] }}</p>
         <p class="mt-2 text-xs text-slate-500">
           Quem alterou, quando e quais permissões mudaram. Horário local.
         </p>
         <AsyncNotice :loading="historyLoading" :error="historyError" @retry="loadHistory()" />
         <template v-if="!historyLoading && !historyError && history"
-          ><ol class="mt-5 divide-y divide-stone-100">
+          ><ol class="mt-4 max-h-[32rem] divide-y divide-stone-100 overflow-y-auto overscroll-contain pr-2">
             <li v-for="change in history.data" :key="change.id" class="py-5">
-              <div class="flex flex-wrap justify-between gap-2 text-sm">
+              <div class="flex flex-col gap-1 text-sm">
                 <p>
                   <strong>{{ change.actor_name }}</strong> alterou {{ roleLabels[change.role] }}
                 </p>
@@ -362,7 +368,7 @@ function dateTime(value: string) {
             </li>
           </ol>
           <p v-if="!history.data.length" class="py-7 text-sm text-slate-500">
-            Nenhuma alteração registrada. Os cargos mantêm as permissões iniciais.
+            Nenhuma alteração registrada para este cargo.
           </p>
           <PagePagination
             :page="history.current_page"
@@ -372,6 +378,7 @@ function dateTime(value: string) {
             @change="loadHistory"
         /></template>
       </section>
+      </div>
     </template>
     <AppDialog
       :open="reviewing"
