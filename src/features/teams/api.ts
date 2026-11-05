@@ -29,3 +29,4 @@ export const teamsApi = {
       `${base(tenantId)}/teams/${encodeURIComponent(teamId)}/members?page=${page}`,
     ),
 }
+

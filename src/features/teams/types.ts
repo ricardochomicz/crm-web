@@ -27,3 +27,4 @@ export type TeamNotice = {
   message: string
   tone: 'success' | 'warning'
 }
+
