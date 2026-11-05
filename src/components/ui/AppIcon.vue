@@ -1,6 +1,8 @@
 <script setup lang="ts">
 defineProps<{ name?: string }>()
 const paths: Record<string, string> = {
+  edit: 'M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L9 17l-4 1 1-4L16.5 3.5z',
+  tag: 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01',
   arrow: 'M5 12h14m-6-6 6 6-6 6',
   check: 'm5 12 4 4L19 6',
   lock: 'M7 10V7a5 5 0 0 1 10 0v3M5 10h14v11H5zM12 14v3',
