@@ -67,6 +67,16 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Cargos e permissões' },
     },
     {
+      path: '/empresas/:tenantId/operadoras',
+      component: () => import('@/features/operators/views/TenantOperatorsView.vue'),
+      meta: { requiresAuth: true, title: 'Minhas operadoras' },
+    },
+    {
+      path: '/admin/operadoras',
+      component: () => import('@/features/operators/views/PlatformOperatorsPage.vue'),
+      meta: { requiresAuth: true, admin: true, title: 'Catálogo de operadoras' },
+    },
+    {
       path: '/convites',
       component: () => import('@/features/invitations/views/AcceptInvitationView.vue'),
       meta: { title: 'Aceitar convite' },
