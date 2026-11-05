@@ -85,7 +85,7 @@ async function logout() {
           <p class="mt-1 text-sm font-semibold text-slate-700">{{ title }}</p>
         </div>
         <div class="flex items-center gap-3">
-          <RouterLink to="/empresas" class="hidden min-w-0 items-center gap-3 rounded-xl border border-stone-200 px-3 py-2 text-left transition hover:border-orange-300 hover:bg-orange-50 sm:flex" aria-label="Selecionar ou trocar empresa">
+          <RouterLink v-if="tenant?.role !== 'CONSULTANT'" to="/empresas" class="hidden min-w-0 items-center gap-3 rounded-xl border border-stone-200 px-3 py-2 text-left transition hover:border-orange-300 hover:bg-orange-50 sm:flex" aria-label="Selecionar ou trocar empresa">
             <span class="min-w-0"><span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Empresa atual</span><span class="block max-w-48 truncate text-xs font-semibold text-slate-800">{{ tenant?.name ?? 'Minhas empresas' }}</span></span>
             <AppIcon name="arrow" class="size-4 shrink-0 text-slate-400" />
           </RouterLink>
