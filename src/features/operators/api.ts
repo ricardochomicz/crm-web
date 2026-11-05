@@ -4,6 +4,7 @@ export type Operator = { id: number; name: string; slug: string; is_active: bool
 export type TenantOperator = Operator & { selected: boolean }
 
 export const operatorsApi = {
+  available: () => request<{ data: Operator[] }>('/api/v1/operators'),
   catalog: () => request<{ data: Operator[] }>('/api/v1/admin/operators'),
   create: (data: { name: string; slug: string }) =>
     mutate<{ data: Operator }>('/api/v1/admin/operators', data),
