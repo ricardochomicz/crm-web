@@ -17,8 +17,6 @@ const tenant = ref<Tenant>()
 const result = ref<UnitList>()
 const loading = ref(true)
 const loadError = ref('')
-const error = ref('')
-const success = ref('')
 const busy = ref(false)
 const editing = ref<string | null>(null)
 const assigning = ref<TenantUnit>()
@@ -56,23 +54,17 @@ function edit(unit?: TenantUnit) {
     state: unit?.state ?? '',
   })
   errors.value = {}
-  error.value = ''
-  success.value = ''
 }
 function assign(unit: TenantUnit) {
   assigning.value = unit
   editing.value = null
   errors.value = {}
-  error.value = ''
-  success.value = ''
 }
 async function save() {
   if (busy.value || !writable.value) return
   const id = tenantId.value
   busy.value = true
-  error.value = ''
   errors.value = {}
-  success.value = ''
   try {
     const data = {
       name: form.name.trim(),
@@ -86,11 +78,10 @@ async function save() {
     else await unitsApi.create(id, data)
     if (id !== tenantId.value) return
     await load()
-    success.value = 'Unidade salva com sucesso.'
-    toast.success(success.value)
+    toast.success('Unidade salva com sucesso.')
   } catch (failure) {
     if (id !== tenantId.value) return
-    error.value = errorMessage(failure)
+    toast.error(errorMessage(failure))
     if (failure instanceof ApiError)
       errors.value = Object.fromEntries(
         Object.entries(failure.errors).map(([key, values]) => [
@@ -108,7 +99,7 @@ async function refreshCounts() {
     const updated = await unitsApi.list(id)
     if (id === tenantId.value) result.value = updated
   } catch (failure) {
-    if (id === tenantId.value) error.value = errorMessage(failure)
+    if (id === tenantId.value) toast.error(errorMessage(failure))
   }
 }
 watch(
@@ -116,9 +107,7 @@ watch(
   () => {
     result.value = undefined
     tenant.value = undefined
-    success.value = ''
-    error.value = ''
-    void load()
+        void load()
   },
   { immediate: true },
 )
@@ -143,16 +132,6 @@ watch(
       </button>
     </header>
     <AsyncNotice :loading="loading" :error="loadError" @retry="load" />
-    <p
-      v-if="success"
-      role="status"
-      class="mb-5 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800"
-    >
-      {{ success }}
-    </p>
-    <p v-if="error" role="alert" class="mb-5 rounded-xl bg-red-50 p-4 text-sm text-red-800">
-      {{ error }}
-    </p>
     <template v-if="!loading && !loadError && result">
       <p
         v-if="result.meta.can_manage && !writable"
