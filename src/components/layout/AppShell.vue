@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppNavigation from './AppNavigation.vue'
 import type { Tenant } from '@/features/tenants/types'
@@ -15,6 +15,23 @@ const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const menuOpen = ref(false)
+const wideLayout = ref(false)
+const layoutPreferenceKey = 'crm:layout-width'
+onMounted(() => {
+  try {
+    wideLayout.value = window.localStorage.getItem(layoutPreferenceKey) === 'wide'
+  } catch {
+    wideLayout.value = false
+  }
+})
+function toggleLayoutWidth() {
+  wideLayout.value = !wideLayout.value
+  try {
+    window.localStorage.setItem(layoutPreferenceKey, wideLayout.value ? 'wide' : 'normal')
+  } catch {
+    // A preferência permanece ativa nesta sessão se o armazenamento estiver indisponível.
+  }
+}
 watch(
   () => route.fullPath,
   () => {
@@ -99,11 +116,23 @@ async function logout() {
         </button>
       </nav>
     </header>
-    <main id="main-content" class="mx-auto max-w-7xl px-5 py-8 sm:px-9 sm:py-11">
+    <main id="main-content" class="mx-auto w-full px-5 py-8 transition-[max-width] duration-200 sm:px-9 sm:py-11" :class="wideLayout ? 'max-w-[1920px]' : 'max-w-7xl'">
       <p v-if="error" role="alert" class="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-800">
         {{ error }} <button class="underline" @click="logout">Tentar novamente</button>
       </p>
       <slot />
     </main>
+    <button
+      type="button"
+      class="fixed bottom-24 right-5 z-40 hidden items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-3 text-xs font-semibold text-slate-700 shadow-lg transition hover:border-orange-300 hover:text-orange-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 lg:flex"
+      :aria-label="wideLayout ? 'Usar largura normal' : 'Usar largura ampla'"
+      :aria-pressed="wideLayout"
+      :title="wideLayout ? 'Voltar à largura normal' : 'Expandir área de trabalho'"
+      @click="toggleLayoutWidth"
+    >
+      <svg v-if="wideLayout" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v5H3M16 3v5h5M8 21v-5H3M16 21v-5h5"/><path d="m3 3 5 5m13-5-5 5M3 21l5-5m13 5-5-5"/></svg>
+      <svg v-else xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/><path d="m3 8 5-5m8 0 5 5M3 16l5 5m8 0 5-5"/></svg>
+      {{ wideLayout ? 'Normal' : 'Wide' }}
+    </button>
   </div>
 </template>
