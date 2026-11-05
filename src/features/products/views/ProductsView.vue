@@ -19,6 +19,9 @@ const loading = ref(true)
 const busy = ref(false)
 const error = ref('')
 const canManage = ref(false)
+const canCreate = ref(false)
+const canUpdate = ref(false)
+const canManagePromotions = ref(false)
 const categories = [
   ['PREPAID','Pré-pago'], ['CONTROL','Controle'], ['POSTPAID','Pós-pago'],
   ['BROADBAND','Fibra / Banda larga'], ['BUSINESS_INTERNET','Internet empresarial'],
@@ -49,6 +52,9 @@ function closeProduct() { if (!busy.value) productModalOpen.value = false }
 function closePromotion() { if (!busy.value) promotionModalOpen.value = false }
 function clearFilters() { nameFilter.value = ''; operatorFilter.value = ''; categoryFilter.value = ''; statusFilter.value = '' }
 const writable = computed(() => canManage.value && !!tenant.value?.access?.allows_operational_writes)
+const canCreateWritable = computed(() => canCreate.value && writable.value)
+const canUpdateWritable = computed(() => canUpdate.value && writable.value)
+const canPromoteWritable = computed(() => canManagePromotions.value && writable.value)
 const base = computed(() => `/api/v1/tenants/${encodeURIComponent(tenantId.value)}/products`)
 
 async function load() {
@@ -58,12 +64,15 @@ async function load() {
   try {
     const [company, result] = await Promise.all([
       tenantApi.show(id),
-      import('@/lib/http').then(m => m.request<{ data: any[]; meta: { can_manage: boolean } }>(`/api/v1/tenants/${encodeURIComponent(id)}/products`)),
+      import('@/lib/http').then(m => m.request<{ data: any[]; meta: { can_manage: boolean; can_create: boolean; can_update: boolean; can_manage_promotions: boolean } }>(`/api/v1/tenants/${encodeURIComponent(id)}/products`)),
     ])
     if (id !== tenantId.value) return
     tenant.value = company.data
     products.value = result.data
     canManage.value = result.meta.can_manage
+    canCreate.value = result.meta.can_create
+    canUpdate.value = result.meta.can_update
+    canManagePromotions.value = result.meta.can_manage_promotions
     operators.value = (await operatorsApi.tenantList(id)).data.filter(o => o.selected && o.is_active)
   } catch (e) {
     if (id === tenantId.value) error.value = errorMessage(e)
@@ -78,7 +87,7 @@ function edit(p: any) {
 }
 function reset() { editingId.value = ''; form.value = blank() }
 async function save() {
-  if (!writable.value || busy.value) return
+  if (!(editingId.value ? canUpdateWritable.value : canCreateWritable.value) || busy.value) return
   busy.value = true
   try {
     const { mutate } = await import('@/lib/http')
@@ -98,7 +107,7 @@ function promotion(p: any, existing?: any) {
   promo.value = existing ? { name: existing.name, promotional_price: money(existing.promotional_price), starts_at: existing.starts_at, ends_at: existing.ends_at, is_active: existing.is_active } : { name: '', promotional_price: '', starts_at: '', ends_at: '', is_active: true }
 }
 async function savePromotion() {
-  if (!writable.value || busy.value) return
+  if (!canPromoteWritable.value || busy.value) return
   busy.value = true
   try {
     const { mutate } = await import('@/lib/http')
@@ -121,7 +130,7 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
         <h1 class="mt-3 text-3xl font-semibold">Produtos e planos</h1>
         <p class="mt-2 text-sm text-slate-500">Consulte e organize os produtos comercializados pela empresa.</p>
       </div>
-      <button v-if="writable && !loading" class="primary-button w-auto" type="button" @click="newProduct">+ Novo produto</button>
+      <button v-if="canCreateWritable && !loading" class="primary-button w-auto" type="button" @click="newProduct">+ Novo produto</button>
     </header>
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
     <template v-if="!loading && !error">
@@ -157,7 +166,7 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
         <div class="overflow-x-auto">
           <table class="w-full min-w-[760px] text-left text-sm">
             <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <tr><th class="px-5 py-4">Produto</th><th class="px-4 py-4">Operadora</th><th class="px-4 py-4">Categoria</th><th class="px-4 py-4 text-right">Preço</th><th class="px-4 py-4">Promoção vigente</th><th class="px-4 py-4">Situação</th><th v-if="writable" class="px-5 py-4 text-right">Ações</th></tr>
+              <tr><th class="px-5 py-4">Produto</th><th class="px-4 py-4">Operadora</th><th class="px-4 py-4">Categoria</th><th class="px-4 py-4 text-right">Preço</th><th class="px-4 py-4">Promoção vigente</th><th class="px-4 py-4">Situação</th><th v-if="canUpdateWritable || canPromoteWritable" class="px-5 py-4 text-right">Ações</th></tr>
             </thead>
             <tbody class="divide-y divide-stone-100">
               <tr v-for="p in filtered" :key="p.id" class="hover:bg-stone-50/70">
@@ -167,16 +176,16 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
                 <td class="whitespace-nowrap px-4 py-4 text-right font-semibold">{{ money(p.price) }}</td>
                 <td class="px-4 py-4"><span v-if="currentPromotion(p)" class="font-medium text-emerald-700">{{ money(currentPromotion(p).promotional_price) }}</span><span v-else class="text-slate-400">—</span></td>
                 <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="p.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-slate-500'">{{ p.is_active ? 'Ativo' : 'Inativo' }}</span></td>
-                <td v-if="writable" class="whitespace-nowrap px-5 py-4 text-right"><button type="button" class="mr-1 inline-flex size-9 items-center justify-center rounded-lg border border-orange-200 bg-white text-orange-700 shadow-sm transition hover:border-orange-400 hover:bg-orange-50 focus-visible:outline-2 focus-visible:outline-orange-600" title="Editar produto" aria-label="Editar produto" @click="edit(p)"><AppIcon name="edit" class="size-5" /></button><button type="button" class="inline-flex size-9 items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-600 shadow-sm transition hover:border-orange-300 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-orange-600" title="Gerenciar promoções" aria-label="Gerenciar promoções" @click="promotion(p)"><AppIcon name="tag" class="size-5" /></button></td>
+                <td v-if="canUpdateWritable || canPromoteWritable" class="whitespace-nowrap px-5 py-4 text-right"><button v-if="canUpdateWritable" type="button" class="mr-1 inline-flex size-9 items-center justify-center rounded-lg border border-orange-200 bg-white text-orange-700 shadow-sm transition hover:border-orange-400 hover:bg-orange-50 focus-visible:outline-2 focus-visible:outline-orange-600" title="Editar produto" aria-label="Editar produto" @click="edit(p)"><AppIcon name="edit" class="size-5" /></button><button v-if="canPromoteWritable" type="button" class="inline-flex size-9 items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-600 shadow-sm transition hover:border-orange-300 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-orange-600" title="Gerenciar promoções" aria-label="Gerenciar promoções" @click="promotion(p)"><AppIcon name="tag" class="size-5" /></button></td>
               </tr>
-              <tr v-if="!filtered.length"><td :colspan="writable ? 7 : 6" class="px-5 py-12 text-center text-slate-500">{{ products.length ? 'Nenhum produto corresponde aos filtros.' : 'Nenhum produto cadastrado.' }}</td></tr>
+              <tr v-if="!filtered.length"><td :colspan="canUpdateWritable || canPromoteWritable ? 7 : 6" class="px-5 py-12 text-center text-slate-500">{{ products.length ? 'Nenhum produto corresponde aos filtros.' : 'Nenhum produto cadastrado.' }}</td></tr>
             </tbody>
           </table>
         </div>
       </section>
     </template>
 
-    <div v-if="productModalOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" @click.self="closeProduct">
+    <div v-if="productModalOpen && (editingId ? canUpdateWritable : canCreateWritable)" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" @click.self="closeProduct">
       <section role="dialog" aria-modal="true" aria-labelledby="product-modal-title" class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
         <div class="mb-6 flex items-center justify-between"><h2 id="product-modal-title" class="text-xl font-semibold">{{ editingId ? 'Editar produto' : 'Novo produto' }}</h2><button type="button" class="rounded-lg px-3 py-1 text-xl text-slate-500 hover:bg-stone-100" aria-label="Fechar" @click="closeProduct">×</button></div>
         <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="save">
@@ -191,7 +200,7 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
       </section>
     </div>
 
-    <div v-if="promotionModalOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" @click.self="closePromotion">
+    <div v-if="promotionModalOpen && canPromoteWritable" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" @click.self="closePromotion">
       <section role="dialog" aria-modal="true" aria-labelledby="promotion-modal-title" class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
         <div class="mb-5 flex items-center justify-between"><h2 id="promotion-modal-title" class="text-xl font-semibold">{{ promoEditingId ? 'Editar promoção' : 'Promoções do produto' }}</h2><button type="button" class="rounded-lg px-3 py-1 text-xl text-slate-500 hover:bg-stone-100" aria-label="Fechar" @click="closePromotion">×</button></div>
         <div v-for="pr in products.find(p => p.id === promoProductId)?.promotions ?? []" :key="pr.id" class="mb-2 flex items-center justify-between gap-3 rounded-lg bg-stone-50 px-3 py-2 text-sm"><span>{{ pr.name }} · {{ money(pr.promotional_price) }} · {{ pr.starts_at }} a {{ pr.ends_at }}</span><button type="button" class="text-orange-700" @click="promotion(products.find(p => p.id === promoProductId), pr)">Editar</button></div>
