@@ -24,6 +24,8 @@ export const teamApi = {
     mutate(`${base(tenantId)}/invitations/${encodeURIComponent(id)}/revoke`),
   role: (tenantId: string, membershipId: string, role: AssignableRole) =>
     mutate(`${base(tenantId)}/members/${encodeURIComponent(membershipId)}/role`, { role }, 'PATCH'),
+  remove: (tenantId: string, membershipId: string) =>
+    mutate(`${base(tenantId)}/members/${encodeURIComponent(membershipId)}`, undefined, 'DELETE'),
   status: (tenantId: string, membershipId: string, status: Member['status']) =>
     mutate(
       `${base(tenantId)}/members/${encodeURIComponent(membershipId)}/status`,
