@@ -14,8 +14,6 @@ const tenantId = computed(() => String(route.params.tenantId))
 const tenant = ref<CompanyDetails>()
 const loading = ref(true)
 const loadError = ref('')
-const error = ref('')
-const success = ref('')
 const busy = ref(false)
 const uploadingLogo = ref(false)
 const logoInput = ref<HTMLInputElement | null>(null)
@@ -35,15 +33,12 @@ function reset() {
     timezone: company.timezone,
   })
   errors.value = {}
-  error.value = ''
-  success.value = ''
 }
 async function load() {
   const id = tenantId.value
   loading.value = true
   loadError.value = ''
   tenant.value = undefined
-  success.value = ''
   try {
     const result = await tenantApi.details(id)
     if (id !== tenantId.value) return
@@ -58,8 +53,6 @@ async function load() {
 async function save() {
   if (busy.value || !editable.value) return
   errors.value = {}
-  error.value = ''
-  success.value = ''
   if (!form.name.trim()) errors.value.name = 'Informe o nome da empresa.'
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()))
     errors.value.email = 'Informe um e-mail válido.'
@@ -83,11 +76,10 @@ async function save() {
     if (id !== tenantId.value || !tenant.value) return
     tenant.value = { ...tenant.value, ...data }
     reset()
-    success.value = 'Dados da empresa atualizados com sucesso.'
-    toast.success(success.value)
+    toast.success('Dados da empresa atualizados com sucesso.')
   } catch (failure) {
     if (id !== tenantId.value) return
-    error.value = errorMessage(failure)
+    toast.error(errorMessage(failure))
     if (failure instanceof ApiError) {
       errors.value = Object.fromEntries(
         Object.entries(failure.errors).map(([key, values]) => [
@@ -97,7 +89,7 @@ async function save() {
       )
     }
     await nextTick()
-    document.getElementById('company-error')?.focus()
+    document.querySelector<HTMLInputElement>('[aria-invalid="true"]')?.focus()
   } finally {
     busy.value = false
   }
@@ -106,10 +98,8 @@ async function uploadLogo(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file || !editable.value || uploadingLogo.value) return
-  error.value = ''
-  success.value = ''
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
-    error.value = 'Selecione uma imagem PNG, JPG ou WebP de até 2 MB.'
+    toast.error('Selecione uma imagem PNG, JPG ou WebP de até 2 MB.')
     input.value = ''
     return
   }
@@ -117,10 +107,9 @@ async function uploadLogo(event: Event) {
   try {
     const response = await tenantApi.uploadLogo(tenantId.value, file)
     if (tenant.value) tenant.value = { ...tenant.value, logo_url: response.data.logo_url + '?v=' + Date.now() }
-    success.value = 'Logo atualizada com sucesso.'
-    toast.success(success.value)
+    toast.success('Logo atualizada com sucesso.')
   } catch (failure) {
-    error.value = errorMessage(failure)
+    toast.error(errorMessage(failure))
   } finally {
     uploadingLogo.value = false
     input.value = ''
@@ -162,22 +151,6 @@ watch(tenantId, load, { immediate: true })
             ? 'Você tem acesso somente à consulta dos dados da empresa.'
             : 'A assinatura atual não permite alterações nos dados da empresa.'
         }}
-      </p>
-      <p
-        v-if="success"
-        role="status"
-        class="mb-6 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800"
-      >
-        {{ success }}
-      </p>
-      <p
-        v-if="error"
-        id="company-error"
-        tabindex="-1"
-        role="alert"
-        class="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-800"
-      >
-        {{ error }}
       </p>
       <div class="mb-8 grid gap-3">
         <label class="text-sm font-semibold">Logo da empresa</label>
