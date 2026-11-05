@@ -9,6 +9,7 @@ import { tenantApi } from '../api'
 import { can, type Tenant } from '../types'
 import { unitsApi, type TenantUnit, type UnitList } from '../units'
 import { errorMessage } from '@/lib/feedback'
+import { toast } from '@/services/toast'
 import { ApiError } from '@/lib/http'
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
@@ -86,6 +87,7 @@ async function save() {
     if (id !== tenantId.value) return
     await load()
     success.value = 'Unidade salva com sucesso.'
+    toast.success(success.value)
   } catch (failure) {
     if (id !== tenantId.value) return
     error.value = errorMessage(failure)
