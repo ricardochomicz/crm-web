@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { RouterLink } from 'vue-router'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import { errorMessage } from '@/lib/feedback'
 import type { Page } from '../types'
 import { unitsApi, type AssignmentKind, type TenantUnit, type UnitAssignment } from '../units'
-const props = defineProps<{ tenantId: string; unit: TenantUnit }>()
+const props = defineProps<{ tenantId: string; unit: TenantUnit; canCreateTeam: boolean }>()
 const emit = defineEmits<{ close: []; changed: [] }>()
 const kind = ref<AssignmentKind>('members')
 const mode = ref<'linked' | 'available'>('linked')
@@ -143,6 +144,14 @@ onBeforeUnmount(() => {
         >
           {{ tab === 'members' ? 'Membros' : 'Equipes' }}
         </button>
+      </div>
+      <div v-if="kind === 'teams' && canCreateTeam" class="flex justify-end">
+        <RouterLink
+          :to="{ path: `/empresas/${tenantId}/equipes`, query: { createTeam: '1' } }"
+          class="primary-button w-auto"
+        >
+          Nova equipe
+        </RouterLink>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <h3 class="font-semibold">
