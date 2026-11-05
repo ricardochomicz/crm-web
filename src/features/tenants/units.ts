@@ -5,8 +5,8 @@ export interface UnitData {
   email: string | null
   phone: string | null
   address: string | null
-  city: string | null
-  state: string | null
+  city?: string | null
+  state?: string | null
 }
 export interface TenantUnit extends UnitData {
   id: string
