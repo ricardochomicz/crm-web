@@ -45,7 +45,7 @@ describe('Accept invitation', () => {
     wrapper.unmount()
   })
   it('preserves the secret in login and registration link fragments', async () => {
-    vi.mocked(invitationApi.show).mockResolvedValue({ data: { is_available: true } })
+    vi.mocked(invitationApi.show).mockResolvedValue({ data: { is_available: true, email: 'ana@example.test' } })
     const token = 'a'.repeat(64)
     const { wrapper } = await render(`#token=${token}`)
     expect(wrapper.get('a[href^="/login"]').attributes('href')).toBe(
@@ -57,7 +57,7 @@ describe('Accept invitation', () => {
     wrapper.unmount()
   })
   it('retries selecting the company without consuming the invitation twice', async () => {
-    vi.mocked(invitationApi.show).mockResolvedValue({ data: { is_available: true } })
+    vi.mocked(invitationApi.show).mockResolvedValue({ data: { is_available: true, email: 'ana@example.test' } })
     vi.mocked(invitationApi.accept).mockResolvedValue({ data: { tenant_id: 'company-a' } })
     vi.mocked(tenantApi.select)
       .mockRejectedValueOnce(new Error('offline'))
