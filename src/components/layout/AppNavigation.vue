@@ -57,6 +57,13 @@ const auth = useAuthStore()
             >Dados da empresa</RouterLink
           >
           <RouterLink
+            :to="`/empresas/${tenant.id}/unidades`"
+            class="nav-item"
+            :class="{ 'nav-active': route.path.endsWith('/unidades') }"
+            :aria-current="route.path.endsWith('/unidades') ? 'page' : undefined"
+            >Matriz e filiais</RouterLink
+          >
+          <RouterLink
             v-if="tenant.access?.can_manage_permissions"
             :to="`/empresas/${tenant.id}/permissoes`"
             class="nav-item"

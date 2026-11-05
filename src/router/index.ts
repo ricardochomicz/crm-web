@@ -32,6 +32,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Criar empresa' },
     },
     {
+      path: '/empresas/:tenantId/unidades',
+      component: () => import('@/features/tenants/views/TenantUnitsView.vue'),
+      meta: { requiresAuth: true, title: 'Matriz e filiais' },
+    },
+    {
       path: '/empresas/:tenantId',
       component: () => import('@/features/tenants/views/TenantDashboardView.vue'),
       meta: { requiresAuth: true, title: 'Início' },
