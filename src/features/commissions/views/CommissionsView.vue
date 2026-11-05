@@ -47,6 +47,9 @@ async function load() {
  } catch (e) { if (id === tenantId.value) error.value = errorMessage(e) }
  finally { if (id === tenantId.value) loading.value = false }
 }
+async function saveSettings() {
+ await mutate(base.value + '/settings', { default_deduction_percentage: Number(defaultDeduction.value) }, 'PUT')
+}
 async function save() {
  if (!writable.value || busy.value) return
  busy.value = true
