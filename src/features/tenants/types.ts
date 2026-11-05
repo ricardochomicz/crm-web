@@ -22,6 +22,7 @@ export interface Plan {
   storage_limit_mb: number
 }
 export interface NewTenant {
+  operator_ids: number[]
   subscription_plan_id: string
   tenant: {
     name: string
