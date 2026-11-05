@@ -7,7 +7,7 @@ import { errorMessage } from '@/lib/feedback'
 import { ApiError, mutate } from '@/lib/http'
 import type { Page } from '../types'
 import { unitsApi, type AssignmentKind, type TenantUnit, type UnitAssignment } from '../units'
-const props = defineProps<{ tenantId: string; unit: TenantUnit; canCreateTeam: boolean }>()
+const props = withDefaults(defineProps<{ tenantId: string; unit: TenantUnit; canCreateTeam?: boolean }>(), { canCreateTeam: false })
 const emit = defineEmits<{ close: []; changed: [] }>()
 const kind = ref<AssignmentKind>('members')
 const mode = ref<'linked' | 'available'>('linked')
