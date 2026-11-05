@@ -82,7 +82,7 @@ function beginRemove(id: string) {
 async function save() {
   if (!props.teamId || busy.value || !props.canManage) return
   const memberId = removalId.value || selectedId.value
-  if (!memberId || reason.value.trim().length < 10) return
+  if (!memberId || reason.value.trim().length > 2000) return
   busy.value = true
   error.value = ''
   success.value = ''
@@ -90,7 +90,7 @@ async function save() {
   try {
     await mutate(
       '/api/v1/tenants/' + encodeURIComponent(props.tenantId) + '/members/' + encodeURIComponent(memberId) + '/team',
-      { team_id: targetTeam, reason: reason.value.trim() },
+      { team_id: targetTeam, reason: reason.value.trim() || null },
       'PATCH',
     )
     selectedId.value = ''
@@ -126,11 +126,11 @@ async function save() {
         <p class="text-xs text-slate-500">Se o usuário estiver em outra equipe, será transferido para esta. Cada usuário pode integrar apenas uma equipe por vez.</p>
         <p v-if="removing" class="text-sm font-semibold">Remover {{ removing.name }} desta equipe?</p>
         <template v-if="selectedId || removalId">
-          <label for="team-member-reason" class="text-sm font-medium">Justificativa da alteração</label>
-          <textarea id="team-member-reason" v-model="reason" class="field" rows="2" minlength="10" maxlength="2000" :disabled="busy" placeholder="Informe o motivo (mínimo 10 caracteres)" />
+          <label for="team-member-reason" class="text-sm font-medium">Justificativa (opcional)</label>
+          <textarea id="team-member-reason" v-model="reason" class="field" rows="2" maxlength="2000" :disabled="busy" placeholder="Informe um motivo, se desejar" />
           <div class="flex justify-end gap-2">
             <button type="button" class="secondary-button" :disabled="busy" @click="selectedId = ''; removalId = ''; reason = ''">Cancelar</button>
-            <button type="button" class="primary-button w-auto" :disabled="busy || reason.trim().length < 10" @click="save">
+            <button type="button" class="primary-button w-auto" :disabled="busy" @click="save">
               {{ busy ? 'Salvando…' : removalId ? 'Confirmar remoção' : 'Vincular usuário' }}
             </button>
           </div>
