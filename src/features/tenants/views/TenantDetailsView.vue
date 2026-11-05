@@ -16,6 +16,8 @@ const loadError = ref('')
 const error = ref('')
 const success = ref('')
 const busy = ref(false)
+const uploadingLogo = ref(false)
+const logoInput = ref<HTMLInputElement | null>(null)
 const errors = ref<Record<string, string>>({})
 const form = reactive({ name: '', trade_name: '', email: '', phone: '', timezone: '' })
 const editable = computed(
@@ -98,6 +100,29 @@ async function save() {
     busy.value = false
   }
 }
+async function uploadLogo(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file || !editable.value || uploadingLogo.value) return
+  error.value = ''
+  success.value = ''
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+    error.value = 'Selecione uma imagem PNG, JPG ou WebP de até 2 MB.'
+    input.value = ''
+    return
+  }
+  uploadingLogo.value = true
+  try {
+    const response = await tenantApi.uploadLogo(tenantId.value, file)
+    if (tenant.value) tenant.value = { ...tenant.value, logo_url: response.data.logo_url + '?v=' + Date.now() }
+    success.value = 'Logo atualizada com sucesso.'
+  } catch (failure) {
+    error.value = errorMessage(failure)
+  } finally {
+    uploadingLogo.value = false
+    input.value = ''
+  }
+}
 watch(tenantId, load, { immediate: true })
 </script>
 <template>
@@ -151,6 +176,16 @@ watch(tenantId, load, { immediate: true })
       >
         {{ error }}
       </p>
+      <div class="mb-8 grid gap-3">
+        <label class="text-sm font-semibold">Logo da empresa</label>
+        <img v-if="tenant.logo_url" :src="tenant.logo_url" alt="Logo da empresa" class="h-24 w-40 rounded-xl border border-stone-200 object-contain p-2" />
+        <p v-else class="text-sm text-slate-500">Nenhuma logo cadastrada.</p>
+        <input ref="logoInput" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" :disabled="!editable || uploadingLogo" @change="uploadLogo" />
+        <button v-if="editable" type="button" class="secondary-button w-fit" :disabled="uploadingLogo || busy" @click="logoInput?.click()">
+          {{ uploadingLogo ? 'Enviando imagem…' : tenant.logo_url ? 'Substituir logo' : 'Enviar logo' }}
+        </button>
+        <p class="text-xs text-slate-500">PNG, JPG ou WebP, até 2 MB. A mesma logo será utilizada pela matriz e filiais.</p>
+      </div>
       <form novalidate @submit.prevent="save">
         <fieldset :disabled="busy || !editable" class="grid gap-6">
           <legend class="sr-only">Informações da empresa</legend>
