@@ -46,5 +46,6 @@ async function load() {
  } catch (e) { if (id === tenantId.value) error.value = errorMessage(e) }
  finally { if (id === tenantId.value) loading.value = false }
 }
+watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: true })
 </script>
 <template><div>Tabelas de comissões</div></template>
