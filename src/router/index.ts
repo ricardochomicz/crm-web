@@ -72,6 +72,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Minhas operadoras' },
     },
     {
+      path: '/empresas/:tenantId/produtos',
+      component: () => import('@/features/products/views/ProductsView.vue'),
+      meta: { requiresAuth: true, title: 'Produtos e planos' },
+    },
+    {
       path: '/admin/operadoras',
       component: () => import('@/features/operators/views/PlatformOperatorsPage.vue'),
       meta: { requiresAuth: true, admin: true, title: 'Catálogo de operadoras' },
