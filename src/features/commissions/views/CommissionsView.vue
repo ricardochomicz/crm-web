@@ -80,6 +80,8 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
     <label class="block text-sm font-medium">Nome<input v-model="form.name" required maxlength="180" class="mt-1 w-full rounded-lg border p-2" /></label>
     <label class="block text-sm font-medium">Operadora<select v-model.number="form.operator_id" required class="mt-1 w-full rounded-lg border p-2"><option :value="0" disabled>Selecione</option><option v-for="op in operators" :key="op.id" :value="op.id">{{ op.name }}</option></select></label>
     <label>Comissão (%) <input v-model="form.percentage" required /></label>
+    <label>Desconto (%) <input v-model="form.deduction_percentage" placeholder="Padrão da empresa" /></label>
+    <label><input v-model="form.is_active" type="checkbox" /> Ativa</label>
    </form>
   </div>
  </AppShell>
