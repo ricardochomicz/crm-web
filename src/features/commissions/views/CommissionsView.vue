@@ -99,9 +99,9 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
     <h2 class="text-xl font-semibold">{{ editingId ? 'Editar tabela' : 'Nova tabela de comissão' }}</h2>
     <label class="block text-sm font-medium">Nome<input v-model="form.name" required maxlength="180" class="mt-1 w-full rounded-lg border p-2" /></label>
     <label class="block text-sm font-medium">Operadora<select v-model.number="form.operator_id" required class="mt-1 w-full rounded-lg border p-2"><option :value="0" disabled>Selecione</option><option v-for="op in operators" :key="op.id" :value="op.id">{{ op.name }}</option></select></label>
-    <label class="block text-sm font-medium">Comissão (%) <input v-model="form.percentage" required inputmode="decimal" class="mt-1 block w-full rounded-lg border p-2" /></label>
+    <label class="block text-sm font-medium">Comissão (%) <input v-model="form.percentage" required inputmode="decimal" class="mt-1.5 block w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-normal" /></label>
     <label class="block text-sm font-medium text-slate-700">Desconto (%)<input v-model="form.deduction_percentage" inputmode="decimal" class="mt-1.5 block w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-normal" placeholder="Vazio = padrão da empresa" /><span class="mt-1 block text-xs font-normal text-slate-500">Informe 0 para não aplicar desconto.</span></label>
-    <label><input v-model="form.is_active" type="checkbox" /> Ativa</label>
+    <label class="flex items-center gap-2 text-sm font-medium text-slate-700"><input v-model="form.is_active" type="checkbox" class="size-4 accent-orange-600" /> Tabela ativa</label>
     <div class="flex justify-end gap-3"><button type="button" class="rounded-lg border px-4 py-2" @click="modalOpen = false">Cancelar</button><button type="submit" :disabled="busy" class="primary-button w-auto">Salvar</button></div>
    </form>
   </div>
