@@ -11,7 +11,7 @@ const teamOpen = ref(false)
 const settingsOpen = ref(false)
 watch(() => route.path, (path) => {
   if (/\/(equipe|equipes)$/.test(path)) teamOpen.value = true
-  if (/\/(dados|unidades|permissoes|assinatura)$/.test(path)) settingsOpen.value = true
+  if (/\/(dados|unidades|permissoes|assinatura|operadoras)$/.test(path)) settingsOpen.value = true
 }, { immediate: true })
 </script>
 <template>
@@ -63,6 +63,13 @@ watch(() => route.path, (path) => {
             >Matriz e filiais</RouterLink
           >
           <RouterLink
+            v-if="tenant.role === 'OWNER'"
+            :to="`/empresas/${tenant.id}/operadoras`"
+            class="nav-item"
+            :class="{ 'nav-active': route.path.endsWith('/operadoras') }"
+            >Minhas operadoras</RouterLink
+          >
+          <RouterLink
             v-if="tenant.access?.can_manage_permissions"
             :to="`/empresas/${tenant.id}/permissoes`"
             class="nav-item"
@@ -92,6 +99,12 @@ watch(() => route.path, (path) => {
         <p class="px-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
           Plataforma
         </p>
+        <RouterLink
+          to="/admin/operadoras"
+          class="nav-item"
+          :class="{ 'nav-active': route.path === '/admin/operadoras' }"
+          >Catálogo de operadoras</RouterLink
+        >
         <RouterLink
           to="/admin"
           class="nav-item"
