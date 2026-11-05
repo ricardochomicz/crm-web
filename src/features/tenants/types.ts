@@ -72,6 +72,7 @@ export function canViewTeams(tenant: Tenant | undefined): boolean {
 }
 
 export interface CompanyDetails extends Tenant {
+  logo_url: string | null
   document: string
   trade_name: string | null
   email: string
