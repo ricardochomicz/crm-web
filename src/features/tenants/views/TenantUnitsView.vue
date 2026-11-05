@@ -22,7 +22,7 @@ const busy = ref(false)
 const editing = ref<string | null>(null)
 const assigning = ref<TenantUnit>()
 const errors = ref<Record<string, string>>({})
-const form = reactive({ name: '', email: '', phone: '', address: '' })
+const form = reactive({ name: '', email: '', phone: '', address: '', city: '', state: '' })
 const writable = computed(
   () => result.value?.meta.can_manage && tenant.value?.access?.allows_operational_writes,
 )
@@ -51,6 +51,8 @@ function edit(unit?: TenantUnit) {
     email: unit?.email ?? '',
     phone: unit?.phone ?? '',
     address: unit?.address ?? '',
+    city: unit?.city ?? '',
+    state: unit?.state ?? '',
   })
   errors.value = {}
   error.value = ''
@@ -76,6 +78,8 @@ async function save() {
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
       address: form.address.trim() || null,
+      city: form.city.trim() || null,
+      state: form.state || null,
     }
     if (editing.value) await unitsApi.update(id, editing.value, data)
     else await unitsApi.create(id, data)
@@ -195,6 +199,17 @@ watch(
             maxlength="500"
             :error="errors.address"
           />
+          <div class="grid gap-5 sm:grid-cols-2">
+            <FormField id="unit-city" v-model="form.city" label="Cidade (opcional)" maxlength="120" :error="errors.city" />
+            <div class="grid gap-2">
+              <label for="unit-state" class="text-sm font-semibold">Estado (UF)</label>
+              <select id="unit-state" v-model="form.state" class="field">
+                <option value="">Selecione</option>
+                <option v-for="uf in ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']" :key="uf" :value="uf">{{ uf }}</option>
+              </select>
+              <p v-if="errors.state" class="text-xs text-red-600">{{ errors.state }}</p>
+            </div>
+          </div>
           <div class="flex justify-end gap-3">
             <button type="button" class="secondary-button" @click="editing = null">Cancelar</button
             ><button class="primary-button w-auto" type="submit">
@@ -227,6 +242,10 @@ watch(
             <div>
               <dt class="text-xs text-slate-400">Telefone</dt>
               <dd>{{ unit.phone || 'Não informado' }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs text-slate-400">Cidade / Estado</dt>
+              <dd>{{ [unit.city, unit.state].filter(Boolean).join(' / ') || 'Não informado' }}</dd>
             </div>
             <div>
               <dt class="text-xs text-slate-400">Endereço</dt>
