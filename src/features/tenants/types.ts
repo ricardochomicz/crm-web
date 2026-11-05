@@ -67,6 +67,9 @@ export function can(tenant: Tenant | undefined, permission: string): boolean {
 export function canViewTeam(tenant: Tenant | undefined): boolean {
   return can(tenant, 'members.view') || can(tenant, 'invitations.view')
 }
+export function canViewTeams(tenant: Tenant | undefined): boolean {
+  return can(tenant, 'teams.view')
+}
 
 export interface CompanyDetails extends Tenant {
   document: string

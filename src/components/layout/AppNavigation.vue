@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
 import AppIcon from '@/components/ui/AppIcon.vue'
-import { can, canViewTeam, type Tenant } from '@/features/tenants/types'
+import { can, canViewTeam, canViewTeams, type Tenant } from '@/features/tenants/types'
 import { useAuthStore } from '@/features/auth/store'
 defineProps<{ tenant?: Tenant }>()
 const route = useRoute()
@@ -43,6 +43,14 @@ const auth = useAuthStore()
             :class="{ 'nav-active': route.path.endsWith('/equipe') }"
             :aria-current="route.path.endsWith('/equipe') ? 'page' : undefined"
             ><AppIcon name="mail" class="size-5" />Membros e convites</RouterLink
+          >
+          <RouterLink
+            v-if="canViewTeams(tenant)"
+            :to="`/empresas/${tenant.id}/equipes`"
+            class="nav-item"
+            :class="{ 'nav-active': route.path.endsWith('/equipes') }"
+            :aria-current="route.path.endsWith('/equipes') ? 'page' : undefined"
+            ><AppIcon name="grid" class="size-5" />Equipes</RouterLink
           >
         </div>
         <div class="space-y-2">
