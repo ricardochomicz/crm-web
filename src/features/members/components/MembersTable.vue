@@ -8,6 +8,7 @@ defineProps<{
   canWrite: boolean
   canChangeRole: boolean
   canChangeStatus: boolean
+  canRemove: boolean
   busy?: boolean
   userId?: number
 }>()
@@ -59,7 +60,7 @@ defineEmits<{ action: [action: TeamAction] }>()
           <td class="px-5 py-5 text-xs text-slate-500">{{ dateLabel(member.joined_at) }}</td>
           <td class="px-6 py-5">
             <div
-              v-if="member.can_manage && (canChangeRole || canChangeStatus)"
+              v-if="member.can_manage && (canChangeRole || canChangeStatus || canRemove)"
               class="flex justify-end gap-2"
             >
               <button
@@ -79,6 +80,13 @@ defineEmits<{ action: [action: TeamAction] }>()
               >
                 {{ member.status === 'ACTIVE' ? 'Suspender' : 'Reativar' }}
               </button>
+              <button
+                v-if="canRemove"
+                class="secondary-button px-3 py-2 text-red-700 hover:text-red-800"
+                :disabled="!canWrite || busy"
+                :aria-label="`Desvincular ${member.name} da empresa`"
+                @click="$emit('action', { kind: 'remove', member })"
+              >Desvincular</button>
             </div>
             <p v-else class="text-right text-xs text-slate-400">
               {{ member.role === 'OWNER' ? 'Acesso protegido' : 'Sem ações disponíveis' }}
