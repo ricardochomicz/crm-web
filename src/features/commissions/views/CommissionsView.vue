@@ -46,6 +46,18 @@ async function load() {
  } catch (e) { if (id === tenantId.value) error.value = errorMessage(e) }
  finally { if (id === tenantId.value) loading.value = false }
 }
+async function save() {
+ if (!writable.value || busy.value) return
+ busy.value = true
+ try {
+  const payload = { ...form.value, percentage: Number(form.value.percentage.replace(',', '.')), deduction_percentage: form.value.deduction_percentage === '' ? null : Number(form.value.deduction_percentage.replace(',', '.')) }
+  await mutate(editingId.value ? `${base.value}/${editingId.value}` : base.value, payload, editingId.value ? 'PATCH' : 'POST')
+  toast.success('Tabela de comissão salva.')
+  modalOpen.value = false
+  await load()
+ } catch (e) { toast.error(errorMessage(e)) }
+ finally { busy.value = false }
+}
 watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: true })
 </script>
 <template><div>Tabelas de comissões</div></template>
