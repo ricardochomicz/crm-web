@@ -82,6 +82,7 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
     <label>Comissão (%) <input v-model="form.percentage" required /></label>
     <label>Desconto (%) <input v-model="form.deduction_percentage" placeholder="Padrão da empresa" /></label>
     <label><input v-model="form.is_active" type="checkbox" /> Ativa</label>
+    <div class="flex justify-end gap-3"><button type="button" class="rounded-lg border px-4 py-2" @click="modalOpen = false">Cancelar</button><button type="submit" :disabled="busy" class="primary-button w-auto">Salvar</button></div>
    </form>
   </div>
  </AppShell>
