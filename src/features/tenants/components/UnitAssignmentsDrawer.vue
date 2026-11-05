@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
+import UnitTeamMembersDialog from './UnitTeamMembersDialog.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import { errorMessage } from '@/lib/feedback'
 import { ApiError, mutate } from '@/lib/http'
 import type { Page } from '../types'
 import { unitsApi, type AssignmentKind, type TenantUnit, type UnitAssignment } from '../units'
-const props = defineProps<{ tenantId: string; unit: TenantUnit; canCreateTeam: boolean }>()
+const props = withDefaults(defineProps<{ tenantId: string; unit: TenantUnit; canCreateTeam?: boolean; canManageTeamMembers?: boolean }>(), { canCreateTeam: false, canManageTeamMembers: false })
 const emit = defineEmits<{ close: []; changed: [] }>()
 const kind = ref<AssignmentKind>('members')
 const mode = ref<'linked' | 'available'>('linked')
@@ -25,6 +26,7 @@ const createTeamOpen = ref(false)
 const teamName = ref('')
 const teamNameError = ref('')
 const creatingTeam = ref(false)
+const managingTeam = ref<UnitAssignment | null>(null)
 const confirmation = ref<{ operation: 'add' | 'remove'; items: UnitAssignment[] }>()
 let sequence = 0
 let timer: ReturnType<typeof setTimeout> | undefined
@@ -295,6 +297,14 @@ onBeforeUnmount(() => {
                 >
               </p>
               <p v-if="item.email" class="break-all text-xs text-slate-500">{{ item.email }}</p>
+              <button
+                v-if="kind === 'teams' && mode === 'linked'"
+                type="button"
+                class="mt-2 text-xs font-semibold text-orange-700 hover:underline"
+                @click="managingTeam = item"
+              >
+                Gerenciar membros
+              </button>
               <p v-if="kind === 'teams'" class="text-xs text-slate-500">
                 Unidade: {{ item.unit_name || 'Sem unidade' }}
               </p>
@@ -356,6 +366,14 @@ onBeforeUnmount(() => {
       </footer>
     </div>
   </AppDialog>
+  <UnitTeamMembersDialog
+    :tenant-id="tenantId"
+    :team-id="managingTeam?.id ?? null"
+    :team-name="managingTeam?.name ?? ''"
+    :can-manage="canManageTeamMembers"
+    @close="managingTeam = null"
+    @changed="emit('changed')"
+  />
   <AppDialog
     :open="createTeamOpen"
     title="Nova equipe"

@@ -250,6 +250,7 @@ watch(
       :tenant-id="tenantId"
       :unit="assigning"
       :can-create-team="!!tenant?.access?.allows_operational_writes && can(tenant, 'teams.create')"
+      :can-manage-team-members="!!tenant?.access?.allows_operational_writes && can(tenant, 'members.team')"
       @close="assigning = undefined"
       @changed="refreshCounts"
     />
