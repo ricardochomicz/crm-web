@@ -52,7 +52,6 @@ watch([canViewMembers, canViewInvitations], () => {
 })
 const inviteOpen = ref(false)
 const action = ref<TeamAction | null>(null)
-const notice = ref<TeamNotice>()
 const actionAllowed = computed(() =>
   action.value
     ? has(
@@ -92,7 +91,6 @@ function filterInvitations() {
 async function completed(result: TeamNotice, created = false) {
   inviteOpen.value = false
   action.value = null
-  notice.value = undefined
   if (result.tone === 'success') toast.success(result.message)
   else toast.warning(result.message)
   if (created) {
