@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import FormField from '@/components/ui/FormField.vue'
+import UnitAssignmentsDrawer from '../components/UnitAssignmentsDrawer.vue'
 import { tenantApi } from '../api'
 import type { Tenant } from '../types'
 import { unitsApi, type TenantUnit, type UnitList } from '../units'
@@ -20,8 +21,6 @@ const success = ref('')
 const busy = ref(false)
 const editing = ref<string | null>(null)
 const assigning = ref<TenantUnit>()
-const membershipIds = ref<string[]>([])
-const teamIds = ref<string[]>([])
 const errors = ref<Record<string, string>>({})
 const form = reactive({ name: '', email: '', phone: '', address: '' })
 const writable = computed(
@@ -60,13 +59,11 @@ function edit(unit?: TenantUnit) {
 function assign(unit: TenantUnit) {
   assigning.value = unit
   editing.value = null
-  membershipIds.value = [...unit.membership_ids]
-  teamIds.value = [...unit.team_ids]
   errors.value = {}
   error.value = ''
   success.value = ''
 }
-async function save(assignments = false) {
+async function save() {
   if (busy.value || !writable.value) return
   const id = tenantId.value
   busy.value = true
@@ -74,21 +71,17 @@ async function save(assignments = false) {
   errors.value = {}
   success.value = ''
   try {
-    if (assignments && assigning.value) {
-      await unitsApi.assignments(id, assigning.value.id, membershipIds.value, teamIds.value)
-    } else {
-      const data = {
-        name: form.name.trim(),
-        email: form.email.trim() || null,
-        phone: form.phone.trim() || null,
-        address: form.address.trim() || null,
-      }
-      if (editing.value) await unitsApi.update(id, editing.value, data)
-      else await unitsApi.create(id, data)
+    const data = {
+      name: form.name.trim(),
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      address: form.address.trim() || null,
     }
+    if (editing.value) await unitsApi.update(id, editing.value, data)
+    else await unitsApi.create(id, data)
     if (id !== tenantId.value) return
     await load()
-    success.value = assignments ? 'Vínculos da unidade atualizados.' : 'Unidade salva com sucesso.'
+    success.value = 'Unidade salva com sucesso.'
   } catch (failure) {
     if (id !== tenantId.value) return
     error.value = errorMessage(failure)
@@ -101,6 +94,15 @@ async function save(assignments = false) {
       )
   } finally {
     busy.value = false
+  }
+}
+async function refreshCounts() {
+  const id = tenantId.value
+  try {
+    const updated = await unitsApi.list(id)
+    if (id === tenantId.value) result.value = updated
+  } catch (failure) {
+    if (id === tenantId.value) error.value = errorMessage(failure)
   }
 }
 watch(
@@ -201,68 +203,6 @@ watch(
           </div>
         </fieldset>
       </form>
-      <form
-        v-if="assigning && writable"
-        class="mb-8 rounded-2xl border border-stone-200 bg-white p-6"
-        @submit.prevent="save(true)"
-      >
-        <fieldset :disabled="busy" class="grid gap-6">
-          <legend class="mb-4 text-lg font-semibold">Vínculos · {{ assigning.name }}</legend>
-          <p class="text-sm text-slate-500">
-            Uma pessoa pode participar de várias unidades. As permissões administrativas dos cargos
-            continuam válidas para toda a empresa.
-          </p>
-          <div class="grid gap-6 sm:grid-cols-2">
-            <div>
-              <h2 class="mb-3 font-semibold">Membros</h2>
-              <div class="grid max-h-72 gap-3 overflow-y-auto">
-                <label
-                  v-for="member in result.meta.members"
-                  :key="member.id"
-                  class="flex items-center gap-3 text-sm"
-                  ><input
-                    v-model="membershipIds"
-                    type="checkbox"
-                    :value="member.id"
-                    class="size-4 accent-orange-600"
-                  />{{ member.name }}{{ member.status === 'SUSPENDED' ? ' (suspenso)' : '' }}</label
-                >
-              </div>
-            </div>
-            <div>
-              <h2 class="mb-3 font-semibold">Equipes</h2>
-              <p class="mb-4 text-xs leading-5 text-slate-500">
-                Selecionar uma equipe a transfere para esta unidade e inclui seu supervisor e
-                integrantes. Equipes desmarcadas retornam à matriz.
-              </p>
-              <p v-if="!result.meta.teams.length" class="text-sm text-slate-500">
-                Nenhuma equipe cadastrada.
-              </p>
-              <div class="grid max-h-72 gap-3 overflow-y-auto">
-                <label
-                  v-for="team in result.meta.teams"
-                  :key="team.id"
-                  class="flex items-center gap-3 text-sm"
-                  ><input
-                    v-model="teamIds"
-                    type="checkbox"
-                    :value="team.id"
-                    :disabled="assigning.is_headquarters && team.tenant_unit_id === assigning.id"
-                    class="size-4 accent-orange-600"
-                  />{{ team.name }}</label
-                >
-              </div>
-            </div>
-          </div>
-          <div class="flex justify-end gap-3">
-            <button type="button" class="secondary-button" @click="assigning = undefined">
-              Cancelar</button
-            ><button class="primary-button w-auto" type="submit">
-              {{ busy ? 'Salvando…' : 'Salvar vínculos' }}
-            </button>
-          </div>
-        </fieldset>
-      </form>
       <p
         v-if="!result.data.length"
         class="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-slate-500"
@@ -305,5 +245,12 @@ watch(
         </article>
       </div>
     </template>
+    <UnitAssignmentsDrawer
+      v-if="assigning && writable"
+      :tenant-id="tenantId"
+      :unit="assigning"
+      @close="assigning = undefined"
+      @changed="refreshCounts"
+    />
   </AppShell>
 </template>

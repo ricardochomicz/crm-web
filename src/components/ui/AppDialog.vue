@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import { nextTick, ref, useId, watch } from 'vue'
+import { nextTick, onBeforeUnmount, ref, useId, watch } from 'vue'
 const props = withDefaults(
-  defineProps<{ open: boolean; title: string; description?: string; busy?: boolean }>(),
+  defineProps<{
+    open: boolean
+    title: string
+    description?: string
+    busy?: boolean
+    drawer?: boolean
+  }>(),
   { busy: false },
 )
 const emit = defineEmits<{ close: [] }>()
@@ -25,6 +31,10 @@ watch(
   },
   { immediate: true },
 )
+onBeforeUnmount(() => {
+  if (dialog.value?.open) dialog.value.close()
+  if (returnFocus?.isConnected) returnFocus.focus()
+})
 function requestClose() {
   if (!props.busy) emit('close')
 }
@@ -36,7 +46,12 @@ function requestClose() {
       :aria-labelledby="titleId"
       :aria-describedby="description ? descriptionId : undefined"
       :aria-busy="busy"
-      class="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-3xl border border-stone-200 bg-white p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/45 backdrop:backdrop-blur-sm"
+      class="overflow-y-auto border border-stone-200 bg-white p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/45 backdrop:backdrop-blur-sm"
+      :class="
+        drawer
+          ? 'fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-full max-w-2xl rounded-none'
+          : 'm-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg rounded-3xl'
+      "
       @cancel.prevent="requestClose"
     >
       <header class="flex items-start justify-between gap-5 px-6 pt-7 sm:px-8">

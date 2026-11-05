@@ -1,4 +1,5 @@
 import { mutate, request } from '@/lib/http'
+import type { Page } from './types'
 export interface UnitData {
   name: string
   email: string | null
@@ -10,15 +11,11 @@ export interface TenantUnit extends UnitData {
   is_headquarters: boolean
   members_count: number
   teams_count: number
-  membership_ids: string[]
-  team_ids: string[]
 }
 export interface UnitList {
   data: TenantUnit[]
   meta: {
     can_manage: boolean
-    members: { id: string; name: string; status: string }[]
-    teams: { id: string; name: string; tenant_unit_id: string | null }[]
   }
 }
 const base = (tenantId: string) => `/api/v1/tenants/${encodeURIComponent(tenantId)}/units`
@@ -27,10 +24,36 @@ export const unitsApi = {
   create: (id: string, data: UnitData) => mutate(`${base(id)}`, data),
   update: (id: string, unitId: string, data: UnitData) =>
     mutate(`${base(id)}/${encodeURIComponent(unitId)}`, data, 'PATCH'),
-  assignments: (id: string, unitId: string, membership_ids: string[], team_ids: string[]) =>
+  assignments: (
+    id: string,
+    unitId: string,
+    kind: AssignmentKind,
+    mode: 'linked' | 'available',
+    q = '',
+    page = 1,
+  ) =>
+    request<Page<UnitAssignment>>(
+      `${base(id)}/${encodeURIComponent(unitId)}/assignments?${new URLSearchParams({ kind, mode, q, page: String(page) })}`,
+    ),
+  changeAssignments: (
+    id: string,
+    unitId: string,
+    kind: AssignmentKind,
+    operation: 'add' | 'remove',
+    ids: string[],
+  ) =>
     mutate(
       `${base(id)}/${encodeURIComponent(unitId)}/assignments`,
-      { membership_ids, team_ids },
-      'PUT',
+      { kind, operation, ids },
+      'PATCH',
     ),
+}
+export type AssignmentKind = 'members' | 'teams'
+export interface UnitAssignment {
+  id: string
+  name: string
+  email?: string
+  status?: string
+  unit_name?: string | null
+  removal_blocked_reason: string | null
 }

@@ -20,14 +20,10 @@ const result: UnitList = {
       address: null,
       members_count: 1,
       teams_count: 0,
-      membership_ids: ['member-a'],
-      team_ids: [],
     },
   ],
   meta: {
     can_manage: true,
-    members: [{ id: 'member-a', name: 'Ana', status: 'ACTIVE' }],
-    teams: [],
   },
 }
 beforeEach(() => {
@@ -49,7 +45,6 @@ beforeEach(() => {
   })
   vi.mocked(unitsApi.list).mockResolvedValue(structuredClone(result))
   vi.mocked(unitsApi.create).mockResolvedValue(undefined)
-  vi.mocked(unitsApi.assignments).mockResolvedValue(undefined)
 })
 async function render() {
   const router = createRouter({
@@ -58,7 +53,13 @@ async function render() {
   })
   await router.push('/empresas/company-a/unidades')
   const wrapper = mount(TenantUnitsView, {
-    global: { plugins: [router], stubs: { AppShell: { template: '<main><slot /></main>' } } },
+    global: {
+      plugins: [router],
+      stubs: {
+        AppShell: { template: '<main><slot /></main>' },
+        UnitAssignmentsDrawer: { props: ['unit'], template: '<aside>{{ unit.name }}</aside>' },
+      },
+    },
   })
   await flushPromises()
   return wrapper
@@ -94,13 +95,11 @@ describe('Matriz e filiais', () => {
     })
     wrapper.unmount()
   })
-  it('saves member assignments', async () => {
+  it('opens unit management in a separate panel', async () => {
     const wrapper = await render()
     await wrapper.findAll('article button')[1]!.trigger('click')
-    await wrapper.get('form').trigger('submit')
-    await flushPromises()
-    expect(unitsApi.assignments).toHaveBeenCalledWith('company-a', 'headquarters', ['member-a'], [])
-    expect(wrapper.text()).toContain('Vínculos da unidade atualizados.')
+    expect(wrapper.get('aside').text()).toBe('Matriz')
+    expect(wrapper.find('form').exists()).toBe(false)
     wrapper.unmount()
   })
   it('keeps form input when validation fails', async () => {
@@ -119,7 +118,7 @@ describe('Matriz e filiais', () => {
   it('hides management actions from members without permission', async () => {
     vi.mocked(unitsApi.list).mockResolvedValue({
       ...result,
-      meta: { can_manage: false, members: [], teams: [] },
+      meta: { can_manage: false },
     })
     const wrapper = await render()
     expect(wrapper.find('header button').exists()).toBe(false)
