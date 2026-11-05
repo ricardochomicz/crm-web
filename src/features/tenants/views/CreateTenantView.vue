@@ -9,10 +9,13 @@ import { useAuthStore } from '@/features/auth/store'
 import { ApiError } from '@/lib/http'
 import { currency, errorMessage } from '@/lib/feedback'
 import { tenantApi } from '../api'
+import { operatorsApi, type Operator } from '@/features/operators/api'
 import type { Plan } from '../types'
 const auth = useAuthStore()
 const router = useRouter()
 const plans = ref<Plan[]>([])
+const operators = ref<Operator[]>([])
+const selectedOperators = ref<number[]>([])
 const loading = ref(true)
 const loadError = ref('')
 const error = ref('')
@@ -37,7 +40,9 @@ async function load() {
   loading.value = true
   loadError.value = ''
   try {
-    plans.value = (await tenantApi.plans()).data
+    const [availablePlans, availableOperators] = await Promise.all([tenantApi.plans(), operatorsApi.available()])
+    plans.value = availablePlans.data
+    operators.value = availableOperators.data
     selected.value = plans.value[0]?.id ?? ''
   } catch (failure) {
     loadError.value = errorMessage(failure)
@@ -64,10 +69,25 @@ async function next() {
   await nextTick()
   window.document.getElementById('plan-heading')?.focus()
 }
+function nextOperators() {
+  if (!selected.value) {
+    error.value = 'Selecione um plano para continuar.'
+    return
+  }
+  error.value = ''
+  step.value = 3
+}
+function toggleOperator(id: number, checked: boolean) {
+  selectedOperators.value = checked ? [...selectedOperators.value, id] : selectedOperators.value.filter((value) => value !== id)
+}
 async function submit() {
   if (busy.value) return
   if (!selected.value) {
     error.value = 'Selecione um plano para continuar.'
+    return
+  }
+  if (!selectedOperators.value.length) {
+    error.value = 'Selecione pelo menos uma operadora para continuar.'
     return
   }
   busy.value = true
@@ -76,6 +96,7 @@ async function submit() {
   try {
     const result = await tenantApi.create({
       subscription_plan_id: selected.value,
+      operator_ids: selectedOperators.value,
       tenant: {
         ...form,
         name: form.name.trim(),
@@ -95,6 +116,7 @@ async function submit() {
         ]),
       )
       if (Object.keys(errors.value).some((key) => key.startsWith('tenant.'))) step.value = 1
+      else if (errors.value.operator_ids || errors.value['operator_ids.0']) step.value = 3
     }
     await nextTick()
     document.getElementById('create-error')?.focus()
@@ -135,6 +157,9 @@ onMounted(load)
         <span class="flex size-7 items-center justify-center rounded-full bg-stone-200 text-xs"
           >2</span
         >Seu plano
+      </li>
+      <li :aria-current="step === 3 ? 'step' : undefined" class="flex items-center gap-2" :class="step === 3 ? 'font-semibold text-orange-700' : 'text-slate-500'">
+        <span class="flex size-7 items-center justify-center rounded-full bg-stone-200 text-xs">3</span>Suas operadoras
       </li>
     </ol>
     <div
@@ -215,7 +240,7 @@ onMounted(load)
         </button>
       </fieldset>
     </form>
-    <section v-else>
+    <section v-else-if="step === 2">
       <h2 id="plan-heading" tabindex="-1" class="mb-2 text-xl font-semibold">
         Um plano para o seu momento.
       </h2>
@@ -291,13 +316,31 @@ onMounted(load)
           <button
             class="primary-button w-auto"
             :disabled="busy || !selectedPlan || !!loadError || loading"
-            @click="submit"
+            @click="nextOperators"
           >
             <span v-if="busy" class="spinner" />{{
-              busy ? 'Criando seu espaço…' : 'Criar empresa e iniciar teste'
+              'Continuar para operadoras'
             }}<AppIcon v-if="!busy" class="size-4" />
           </button>
         </div>
+      </div>
+    </section>
+    <section v-else class="max-w-3xl">
+      <h2 class="mb-2 text-xl font-semibold">Com quais operadoras sua empresa trabalha?</h2>
+      <p class="mb-6 text-sm text-slate-500">Selecione pelo menos uma. Você poderá alterar essa escolha depois, em Configurações → Minhas operadoras.</p>
+      <div class="rounded-2xl border border-stone-200 bg-white p-6">
+        <p v-if="!operators.length" class="text-sm text-slate-500">Nenhuma operadora disponível. Solicite ao administrador que configure o catálogo.</p>
+        <label v-for="operator in operators" :key="operator.id" class="flex cursor-pointer items-center justify-between gap-4 border-b border-stone-100 py-4">
+          <span class="font-semibold text-slate-800">{{ operator.name }}</span>
+          <input type="checkbox" class="size-5 accent-orange-600" :checked="selectedOperators.includes(operator.id)" :disabled="busy" @change="toggleOperator(operator.id, ($event.target as HTMLInputElement).checked)" />
+        </label>
+        <p class="mt-5 text-xs text-slate-500">{{ selectedOperators.length }} operadora(s) selecionada(s)</p>
+      </div>
+      <div class="mt-7 flex flex-wrap items-center justify-between gap-4">
+        <button type="button" class="secondary-button" :disabled="busy" @click="step = 2">Voltar ao plano</button>
+        <button class="primary-button w-auto" :disabled="busy || !selectedOperators.length" @click="submit">
+          {{ busy ? 'Criando seu espaço…' : 'Criar empresa e iniciar teste' }}
+        </button>
       </div>
     </section>
   </AppShell>
