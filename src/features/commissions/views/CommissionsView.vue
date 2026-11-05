@@ -79,6 +79,7 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
     <h2 class="text-xl font-semibold">{{ editingId ? 'Editar tabela' : 'Nova tabela de comissão' }}</h2>
     <label class="block text-sm font-medium">Nome<input v-model="form.name" required maxlength="180" class="mt-1 w-full rounded-lg border p-2" /></label>
     <label class="block text-sm font-medium">Operadora<select v-model.number="form.operator_id" required class="mt-1 w-full rounded-lg border p-2"><option :value="0" disabled>Selecione</option><option v-for="op in operators" :key="op.id" :value="op.id">{{ op.name }}</option></select></label>
+    <label>Comissão (%) <input v-model="form.percentage" required /></label>
    </form>
   </div>
  </AppShell>
