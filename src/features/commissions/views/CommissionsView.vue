@@ -43,6 +43,7 @@ async function load() {
   rows.value = list.data
   canManage.value = list.meta.can_manage
   operators.value = (await operatorsApi.tenantList(id)).data.filter(o => o.selected && o.is_active)
+  defaultDeduction.value = (await request<{data: {default_deduction_percentage: string}}>(base.value + '/settings')).data.default_deduction_percentage
  } catch (e) { if (id === tenantId.value) error.value = errorMessage(e) }
  finally { if (id === tenantId.value) loading.value = false }
 }
