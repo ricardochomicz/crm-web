@@ -160,9 +160,9 @@ onBeforeUnmount(() => {
   <AppDialog
     open
     drawer
-    :title="`Membros e equipes · ${unit.name}`"
+    :title="`Pessoas e equipes · ${unit.name}`"
     :busy="busy"
-    description="Gerencie os vínculos desta unidade. As permissões administrativas continuam válidas para toda a empresa."
+    description="Organize as pessoas e equipes desta unidade. As permissões administrativas continuam válidas para toda a empresa."
     @close="emit('close')"
   >
     <div class="grid gap-5">
@@ -176,7 +176,7 @@ onBeforeUnmount(() => {
           :disabled="busy"
           @click="navigate(tab, 'linked')"
         >
-          {{ tab === 'members' ? 'Membros' : 'Equipes' }}
+          {{ tab === 'members' ? `Pessoas (${unit.members_count})` : `Equipes (${unit.teams_count})` }}
         </button>
       </div>
       <div v-if="kind === 'teams' && canCreateTeam" class="flex justify-end">
@@ -186,7 +186,7 @@ onBeforeUnmount(() => {
       </div>
       <div class="flex flex-wrap items-center justify-between gap-3">
         <h3 class="font-semibold">
-          {{ mode === 'linked' ? 'Vinculados à unidade' : 'Disponíveis para adicionar' }}
+          {{ mode === 'linked' ? (kind === 'members' ? 'Pessoas da unidade' : 'Equipes da unidade') : 'Disponíveis para adicionar' }}
         </h3>
         <button
           class="secondary-button"
@@ -197,8 +197,8 @@ onBeforeUnmount(() => {
             mode === 'available'
               ? 'Voltar aos vinculados'
               : kind === 'members'
-                ? 'Adicionar membros'
-                : 'Adicionar equipes'
+                ? 'Adicionar pessoas'
+                : 'Transferir equipes'
           }}
         </button>
       </div>
@@ -274,7 +274,7 @@ onBeforeUnmount(() => {
             search
               ? 'Nenhum resultado para esta busca.'
               : mode === 'linked'
-                ? 'Nenhum vínculo nesta unidade.'
+                ? 'Nenhum registro vinculado a esta unidade.'
                 : 'Nenhum registro disponível para adicionar.'
           }}
         </p>
@@ -297,13 +297,22 @@ onBeforeUnmount(() => {
                 >
               </p>
               <p v-if="item.email" class="break-all text-xs text-slate-500">{{ item.email }}</p>
+              <p v-if="kind === 'members' && mode === 'linked'" class="mt-1 text-xs text-slate-600">
+                Equipe: {{ item.team_name || 'Não atribuída nesta unidade' }}
+              </p>
+              <p v-if="kind === 'members' && mode === 'linked' && item.supervised_team_names?.length" class="mt-1 text-xs text-slate-600">
+                Supervisiona: {{ item.supervised_team_names.join(', ') }}
+              </p>
+              <p v-if="kind === 'teams' && mode === 'linked'" class="mt-1 text-xs text-slate-600">
+                {{ item.members_count ?? 0 }} {{ item.members_count === 1 ? 'integrante' : 'integrantes' }}
+              </p>
               <button
                 v-if="kind === 'teams' && mode === 'linked'"
                 type="button"
                 class="mt-2 text-xs font-semibold text-orange-700 hover:underline"
                 @click="managingTeam = item"
               >
-                Gerenciar membros
+                Gerenciar equipe
               </button>
               <p v-if="kind === 'teams'" class="text-xs text-slate-500">
                 Unidade: {{ item.unit_name || 'Sem unidade' }}
@@ -322,7 +331,7 @@ onBeforeUnmount(() => {
               :disabled="busy || !!item.removal_blocked_reason"
               @click="confirmation = { operation: 'remove', items: [item] }"
             >
-              {{ kind === 'members' ? 'Remover vínculo' : 'Devolver à matriz' }}
+              {{ kind === 'members' ? 'Remover da unidade' : 'Transferir equipe' }}
             </button>
           </li>
         </ul>
