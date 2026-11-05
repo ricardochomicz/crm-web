@@ -32,5 +32,18 @@ function edit(row?: Commission) {
  form.value = row ? { name: row.name, operator_id: row.operator_id, percentage: String(row.percentage), deduction_percentage: row.deduction_percentage ?? '', is_active: row.is_active } : blank()
  modalOpen.value = true
 }
+async function load() {
+ const id = tenantId.value
+ loading.value = true
+ error.value = ''
+ try {
+  const [company, list] = await Promise.all([tenantApi.show(id), request<{data: Commission[]; meta: {can_manage: boolean}}>(`${base.value}`)])
+  if (id !== tenantId.value) return
+  tenant.value = company.data
+  rows.value = list.data
+  canManage.value = list.meta.can_manage
+ } catch (e) { if (id === tenantId.value) error.value = errorMessage(e) }
+ finally { if (id === tenantId.value) loading.value = false }
+}
 </script>
 <template><div>Tabelas de comissões</div></template>
