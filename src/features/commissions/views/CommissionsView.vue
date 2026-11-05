@@ -22,5 +22,15 @@ const canManage = ref(false)
 const defaultDeduction = ref('0')
 const base = computed(() => `/api/v1/tenants/${encodeURIComponent(tenantId.value)}/commissions`)
 const writable = computed(() => canManage.value && !!tenant.value?.access?.allows_operational_writes)
+const editingId = ref('')
+const modalOpen = ref(false)
+const blank = () => ({ name: '', operator_id: 0, percentage: '400', deduction_percentage: '', is_active: true })
+const form = ref(blank())
+const format = (n: unknown) => `${Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`
+function edit(row?: Commission) {
+ editingId.value = row?.id ?? ''
+ form.value = row ? { name: row.name, operator_id: row.operator_id, percentage: String(row.percentage), deduction_percentage: row.deduction_percentage ?? '', is_active: row.is_active } : blank()
+ modalOpen.value = true
+}
 </script>
 <template><div>Tabelas de comissões</div></template>
