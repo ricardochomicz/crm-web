@@ -60,4 +60,12 @@ async function save() {
 }
 watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: true })
 </script>
-<template><div>Tabelas de comissões</div></template>
+<template>
+ <AppShell :tenant="tenant" title="Tabelas de comissões" subtitle="Comissões recebidas das operadoras">
+  <header class="mb-7 flex flex-wrap items-center justify-between gap-4">
+   <div><p class="eyebrow">FINANCEIRO</p><h1 class="mt-3 text-3xl font-semibold">Tabelas de comissões</h1><p class="mt-2 text-sm text-slate-500">Percentuais recebidos das operadoras, com desconto individual.</p></div>
+   <button v-if="writable" class="primary-button w-auto" type="button" @click="edit()">+ Nova tabela</button>
+  </header>
+  <AsyncNotice :loading="loading" :error="error" @retry="load" />
+ </AppShell>
+</template>
