@@ -48,7 +48,10 @@ async function load() {
  finally { if (id === tenantId.value) loading.value = false }
 }
 async function saveSettings() {
- await mutate(base.value + '/settings', { default_deduction_percentage: Number(defaultDeduction.value) }, 'PUT')
+ try {
+  await mutate(base.value + '/settings', { default_deduction_percentage: Number(defaultDeduction.value.replace(',', '.')) }, 'PUT')
+  toast.success('Desconto padrão salvo.')
+ } catch (e) { toast.error(errorMessage(e)) }
 }
 async function save() {
  if (!writable.value || busy.value) return
