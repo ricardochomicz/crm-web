@@ -13,6 +13,12 @@ export const tenantApi = {
   show: (id: string) => request<{ data: Tenant }>(`/api/v1/tenants/${encodeURIComponent(id)}`),
   details: (id: string) =>
     request<{ data: CompanyDetails }>(`/api/v1/tenants/${encodeURIComponent(id)}`),
+  uploadLogo: async (id: string, file: File) => {
+    const body = new FormData()
+    body.append('logo', file)
+    await request('/sanctum/csrf-cookie')
+    return request<{ data: { logo_url: string } }>(`/api/v1/tenants/${encodeURIComponent(id)}/logo`, { method: 'POST', body })
+  },
   update: (id: string, data: CompanyUpdate) =>
     mutate(`/api/v1/tenants/${encodeURIComponent(id)}`, data, 'PATCH'),
   select: (id: string) => mutate('/api/v1/active-tenant', { tenant_id: id }, 'PUT'),
