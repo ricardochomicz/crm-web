@@ -31,6 +31,8 @@ const title = computed(() => {
       return 'Alterar papel na empresa'
     case 'status':
       return props.action.member.status === 'ACTIVE' ? 'Suspender acesso?' : 'Reativar acesso?'
+    case 'remove':
+      return 'Desvincular da empresa?'
     case 'resend':
       return 'Reenviar convite?'
     case 'revoke':
@@ -52,6 +54,8 @@ const description = computed(() => {
       return props.action.member.status === 'ACTIVE'
         ? 'A pessoa perderá o acesso a esta empresa. O vínculo será preservado e continuará ocupando uma vaga. Você poderá reativá-lo depois.'
         : 'A pessoa voltará a acessar esta empresa com o papel atual.'
+    case 'remove':
+      return 'A pessoa perderá o acesso a esta empresa e a vaga será liberada para outro convite. Esta ação não pode ser desfeita; para retornar, a pessoa precisará de um novo convite. Antes, remova-a das equipes e substitua eventuais supervisões.'
     case 'resend':
       return 'Um novo link será enviado, válido por 7 dias. O link anterior deixará de funcionar. Se o convite expirou, será necessário reservar uma vaga novamente.'
     case 'revoke':
@@ -75,6 +79,7 @@ const blocked = computed(() => {
 const destructive = computed(
   () =>
     props.action?.kind === 'revoke' ||
+    props.action?.kind === 'remove' ||
     (props.action?.kind === 'status' && props.action.member.status === 'ACTIVE'),
 )
 async function submit() {
@@ -94,6 +99,9 @@ async function submit() {
         status === 'SUSPENDED'
           ? 'Acesso suspenso. O vínculo continua ocupando uma vaga.'
           : 'Acesso reativado.'
+    } else if (action.kind === 'remove') {
+      await teamApi.remove(props.tenantId, action.member.id)
+      notice.message = 'Membro desvinculado. A vaga está disponível para outro convite.'
     } else if (action.kind === 'revoke') {
       await teamApi.revoke(props.tenantId, action.invitation.id)
       notice.message = 'Convite revogado. O link não pode mais ser utilizado.'
@@ -170,7 +178,9 @@ async function submit() {
                       : 'Reativar acesso'
                     : action?.kind === 'resend'
                       ? 'Reenviar convite'
-                      : 'Revogar convite'
+                      : action?.kind === 'remove'
+                        ? 'Desvincular e liberar vaga'
+                        : 'Revogar convite'
             }}
           </button>
         </div>
