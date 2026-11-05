@@ -49,11 +49,7 @@ async function load() {
     tenant.value = company.data
     products.value = result.data
     canManage.value = result.meta.can_manage
-    if (canManage.value && tenant.value?.role === 'OWNER') {
-      operators.value = (await operatorsApi.tenantList(id)).data.filter(o => o.selected && o.is_active)
-    } else {
-      operators.value = (await operatorsApi.available()).data.map(o => ({ ...o, selected: true }))
-    }
+    operators.value = (await operatorsApi.tenantList(id)).data.filter(o => o.selected && o.is_active)
   } catch (e) {
     if (id === tenantId.value) error.value = errorMessage(e)
   } finally {
