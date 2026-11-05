@@ -9,14 +9,13 @@ import { tenantApi } from '../api'
 import { roleLabels, type Tenant, type TenantRole, type Page } from '../types'
 import { permissionsApi, type PermissionSettings, type PermissionChange } from '../permissions'
 import { errorMessage } from '@/lib/feedback'
+import { toast } from '@/services/toast'
 import { ApiError } from '@/lib/http'
 const tenantId = String(useRoute().params.tenantId)
 const tenant = ref<Tenant>()
 const settings = ref<PermissionSettings>()
 const loading = ref(true)
 const error = ref('')
-const saveError = ref('')
-const success = ref('')
 const selectedRole = ref<TenantRole>('MANAGER')
 const draft = ref<string[]>([])
 const busy = ref(false)
@@ -52,7 +51,6 @@ const label = (key: string) =>
   settings.value?.catalog.find((item) => item.key === key)?.label ?? key
 function resetDraft() {
   draft.value = [...(current.value?.permissions ?? [])]
-  saveError.value = ''
 }
 function selectRole(role: TenantRole) {
   if (role === selectedRole.value) return
@@ -75,7 +73,6 @@ function toggle(key: string, checked: boolean) {
       .forEach((item) => selected.delete(item.key))
   }
   draft.value = [...selected]
-  success.value = ''
 }
 async function loadHistory(page = 1) {
   historyLoading.value = true
@@ -110,7 +107,6 @@ async function load() {
 async function save() {
   if (!current.value || locked.value || !dirty.value) return
   busy.value = true
-  saveError.value = ''
   const role = current.value
   const saved = [...draft.value]
   try {
@@ -118,10 +114,10 @@ async function save() {
     role.permissions = saved
     role.version += 1
     reviewing.value = false
-    success.value = `Permissões de ${roleLabels[role.role]} atualizadas nesta empresa.`
+    toast.success(`Permissões de ${roleLabels[role.role]} atualizadas nesta empresa.`)
     await loadHistory()
   } catch (failure) {
-    saveError.value = errorMessage(failure)
+    toast.error(errorMessage(failure))
     if (failure instanceof ApiError && failure.status === 409) conflicted.value = true
   } finally {
     busy.value = false
@@ -172,13 +168,6 @@ function dateTime(value: string) {
       </p>
     </section>
     <template v-if="!loading && settings">
-      <p
-        v-if="success"
-        role="status"
-        class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"
-      >
-        {{ success }}
-      </p>
       <p
         v-if="!settings.can_edit"
         role="status"
@@ -391,9 +380,6 @@ function dateTime(value: string) {
       :busy="busy"
       @close="reviewing = false"
     >
-      <p v-if="saveError" role="alert" class="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-800">
-        {{ saveError }}
-      </p>
       <div class="space-y-4 text-sm">
         <div v-if="added.length">
           <h3 class="font-semibold text-emerald-800">Permitir</h3>
