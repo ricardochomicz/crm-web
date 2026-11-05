@@ -12,7 +12,7 @@ export async function request<T = void>(path: string, options: RequestInit = {})
   const headers = new Headers(options.headers)
   headers.set('Accept', 'application/json')
   headers.set('X-Requested-With', 'XMLHttpRequest')
-  if (options.body) headers.set('Content-Type', 'application/json')
+  if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json')
   const csrf = document.cookie.split('; ').find((cookie) => cookie.startsWith('XSRF-TOKEN='))
   if (csrf) headers.set('X-XSRF-TOKEN', decodeURIComponent(csrf.slice('XSRF-TOKEN='.length)))
   let response: Response
