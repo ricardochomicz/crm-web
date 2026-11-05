@@ -7,6 +7,7 @@ import FormField from '@/components/ui/FormField.vue'
 import { tenantApi } from '../api'
 import { can, roleLabels, type CompanyDetails } from '../types'
 import { errorMessage } from '@/lib/feedback'
+import { toast } from '@/services/toast'
 import { ApiError } from '@/lib/http'
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
@@ -83,6 +84,7 @@ async function save() {
     tenant.value = { ...tenant.value, ...data }
     reset()
     success.value = 'Dados da empresa atualizados com sucesso.'
+    toast.success(success.value)
   } catch (failure) {
     if (id !== tenantId.value) return
     error.value = errorMessage(failure)
@@ -116,6 +118,7 @@ async function uploadLogo(event: Event) {
     const response = await tenantApi.uploadLogo(tenantId.value, file)
     if (tenant.value) tenant.value = { ...tenant.value, logo_url: response.data.logo_url + '?v=' + Date.now() }
     success.value = 'Logo atualizada com sucesso.'
+    toast.success(success.value)
   } catch (failure) {
     error.value = errorMessage(failure)
   } finally {
