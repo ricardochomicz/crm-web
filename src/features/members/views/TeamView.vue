@@ -12,6 +12,7 @@ import InvitationsTable from '../components/InvitationsTable.vue'
 import InviteMemberDialog from '../components/InviteMemberDialog.vue'
 import TeamActionDialog from '../components/TeamActionDialog.vue'
 import type { TeamAction, TeamNotice } from '../types'
+import { toast } from '@/services/toast'
 const tenantId = String(useRoute().params.tenantId)
 const auth = useAuthStore()
 const {
@@ -58,6 +59,7 @@ const actionAllowed = computed(() =>
         {
           role: 'members.role',
           status: 'members.status',
+          remove: 'members.remove',
           resend: 'invitations.resend',
           revoke: 'invitations.revoke',
         }[action.value.kind],
@@ -90,7 +92,9 @@ function filterInvitations() {
 async function completed(result: TeamNotice, created = false) {
   inviteOpen.value = false
   action.value = null
-  notice.value = result
+  notice.value = undefined
+  if (result.tone === 'success') toast.success(result.message)
+  else toast.warning(result.message)
   if (created) {
     tab.value = 'invitations'
     invitationFilter.value = ''
@@ -161,26 +165,6 @@ onMounted(load)
       >
     </section>
     <template v-if="!loading && canAccess">
-      <div
-        v-if="notice"
-        role="status"
-        aria-live="polite"
-        class="mb-6 flex items-start justify-between gap-4 rounded-2xl border p-4 text-sm leading-6"
-        :class="
-          notice.tone === 'success'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-            : 'border-amber-200 bg-amber-50 text-amber-900'
-        "
-      >
-        <p>{{ notice.message }}</p>
-        <button
-          class="shrink-0 rounded px-2 text-lg"
-          aria-label="Fechar mensagem"
-          @click="notice = undefined"
-        >
-          ×
-        </button>
-      </div>
       <AsyncNotice v-if="subscriptionError" :error="subscriptionError" @retry="loadSubscription" />
       <section
         v-if="subscription"
@@ -323,6 +307,7 @@ onMounted(load)
             :can-write="canWrite"
             :can-change-role="has('members.role')"
             :can-change-status="has('members.status')"
+            :can-remove="has('members.remove')"
             :busy="modalOpen"
             :user-id="auth.user?.id"
             @action="openAction" /><PagePagination
@@ -333,8 +318,7 @@ onMounted(load)
             @change="loadMembers"
         /></template>
         <p class="mt-4 text-xs leading-6 text-slate-400">
-          Suspender um acesso preserva o vínculo e não libera vaga. O acesso do proprietário é
-          protegido.
+          Suspender preserva o vínculo e não libera vaga. Desvincular libera a vaga, mas exige retirar a pessoa das equipes e supervisões. O proprietário é protegido.
         </p>
       </section>
       <section
