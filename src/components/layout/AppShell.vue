@@ -61,7 +61,21 @@ async function logout() {
     >
       <RouterLink to="/app" aria-label="TelecomHub, início" class="px-2"><BrandLogo /></RouterLink>
       <AppNavigation :tenant="tenant" class="mb-8 mt-9" />
-      <div class="mt-auto rounded-2xl bg-[#f8f6f2] p-4">
+      <div class="mt-auto mb-4">
+    <button
+      type="button"
+      class="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
+      :aria-label="wideLayout ? 'Usar largura normal' : 'Usar largura ampla'"
+      :aria-pressed="wideLayout"
+      :title="wideLayout ? 'Voltar à largura normal' : 'Expandir área de trabalho'"
+      @click="toggleLayoutWidth"
+    >
+      <svg v-if="wideLayout" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v5H3M16 3v5h5M8 21v-5H3M16 21v-5h5"/><path d="m3 3 5 5m13-5-5 5M3 21l5-5m13 5-5-5"/></svg>
+      <svg v-else xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/><path d="m3 8 5-5m8 0 5 5M3 16l5 5m8 0 5-5"/></svg>
+      {{ wideLayout ? 'Normal' : 'Wide' }}
+    </button>
+      </div>
+      <div class="rounded-2xl bg-[#f8f6f2] p-4">
         <span class="text-xs font-semibold text-slate-700">Cada conexão importa.</span>
         <p class="mt-2 text-xs leading-6 text-slate-500">
           Um lugar para sua equipe trabalhar mais próxima.
@@ -122,17 +136,6 @@ async function logout() {
       </p>
       <slot />
     </main>
-    <button
-      type="button"
-      class="fixed bottom-24 right-5 z-40 hidden items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-3 text-xs font-semibold text-slate-700 shadow-lg transition hover:border-orange-300 hover:text-orange-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600 lg:flex"
-      :aria-label="wideLayout ? 'Usar largura normal' : 'Usar largura ampla'"
-      :aria-pressed="wideLayout"
-      :title="wideLayout ? 'Voltar à largura normal' : 'Expandir área de trabalho'"
-      @click="toggleLayoutWidth"
-    >
-      <svg v-if="wideLayout" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v5H3M16 3v5h5M8 21v-5H3M16 21v-5h5"/><path d="m3 3 5 5m13-5-5 5M3 21l5-5m13 5-5-5"/></svg>
-      <svg v-else xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/><path d="m3 8 5-5m8 0 5 5M3 16l5 5m8 0 5-5"/></svg>
-      {{ wideLayout ? 'Normal' : 'Wide' }}
-    </button>
+
   </div>
 </template>
