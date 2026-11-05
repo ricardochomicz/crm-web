@@ -21,7 +21,7 @@ const invitedEmail = ref('')
 const invitationLoading = ref(false)
 const invitationError = ref('')
 const emailLocked = computed(() => !!invitationToken.value && !!invitedEmail.value && !invitationError.value)
-watch([invitationToken, invitationFlow], async ([token], _old, onCleanup) => (token, _old, onCleanup) => {
+watch([invitationToken, invitationFlow], async ([token], _old, onCleanup) => {
   invitedEmail.value = ''
   invitationError.value = ''
   if (!invitationFlow.value) return
