@@ -54,6 +54,9 @@ export interface UnitAssignment {
   name: string
   email?: string
   status?: string
+  team_name?: string | null
+  supervised_team_names?: string[]
+  members_count?: number
   unit_name?: string | null
   removal_blocked_reason: string | null
 }
