@@ -9,6 +9,8 @@ import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { toast } from '@/services/toast'
 import { ApiError } from '@/lib/http'
 import { validateClient } from '../validation'
+import { useFormValidation } from '@/composables/useFormValidation'
+import FormError from '@/components/ui/FormError.vue'
 import { clientsApi, type Client, type ClientInput, type Contact, type ContactInput, type Classification, type Seller } from '../api'
 import type { Tenant } from '@/features/tenants/types'
 const route=useRoute(), tenantId=computed(()=>String(route.params.tenantId))
@@ -19,6 +21,7 @@ const showSellerSelect=computed(()=>canAssignSeller.value||tenant.value?.role===
 const writable=computed(()=>canManage.value&&!!tenant.value?.access?.allows_operational_writes)
 const filtered=computed(()=>rows.value.filter(r=>(!operatorFilter.value||String(r.operator_id)===operatorFilter.value)&&(!search.value||[r.company_name,r.document,r.email??''].join(' ').toLocaleLowerCase('pt-BR').includes(search.value.toLocaleLowerCase('pt-BR')))))
 const blank=():ClientInput=>({person_type:'PJ',document:'',company_name:'',phone:null,email:null,zip_code:null,address:null,address_number:null,address_complement:null,neighborhood:null,city:null,state:null,operator_id:null,classification_id:null,contract_started_on:null,contract_ends_on:null,is_active:true,seller_membership_id:null,seller_reason:null})
+const validationState=useFormValidation<keyof ClientInput>()
 const form=ref<ClientInput>(blank()),editing=ref(''),modal=ref(false),selected=ref<Client|null>(null),tab=ref<'data'|'contacts'|'sellers'>('data')
 const contactBlank=():ContactInput=>({name:'',position:null,phone:null,email:null,is_primary:false,is_active:true,notes:null})
 const contact=ref<ContactInput>(contactBlank()),contactEditing=ref(''),contactModal=ref(false)
@@ -63,7 +66,7 @@ watch(()=>form.value.person_type,()=>{form.value.document=digits(form.value.docu
 const classesForOperator=computed(()=>classes.value.filter(c=>Number(c.operator_id)===Number(form.value.operator_id)&&c.is_active))
 const activeSeller=(c:Client)=>c.sellers?.find(s=>!s.ended_at)
 function start(c?:Client){
- editing.value=c?.id??'';form.value=c?{person_type:c.person_type,document:c.document,company_name:c.company_name,phone:c.phone,email:c.email,zip_code:c.zip_code,address:c.address,address_number:c.address_number,address_complement:c.address_complement,neighborhood:c.neighborhood,city:c.city,state:c.state,operator_id:c.operator_id,classification_id:c.classification_id,contract_started_on:c.contract_started_on,contract_ends_on:c.contract_ends_on,is_active:c.is_active,seller_membership_id:activeSeller(c)?.tenant_user_id??null,seller_reason:null}:blank();if(!c&&!showSellerSelect.value)form.value.seller_membership_id=currentSellerId.value;cepRequest++;cepMessage.value='';modal.value=true
+ validationState.clear();editing.value=c?.id??'';form.value=c?{person_type:c.person_type,document:c.document,company_name:c.company_name,phone:c.phone,email:c.email,zip_code:c.zip_code,address:c.address,address_number:c.address_number,address_complement:c.address_complement,neighborhood:c.neighborhood,city:c.city,state:c.state,operator_id:c.operator_id,classification_id:c.classification_id,contract_started_on:c.contract_started_on,contract_ends_on:c.contract_ends_on,is_active:c.is_active,seller_membership_id:activeSeller(c)?.tenant_user_id??null,seller_reason:null}:blank();if(!c&&!showSellerSelect.value)form.value.seller_membership_id=currentSellerId.value;cepRequest++;cepMessage.value='';modal.value=true
 }
 async function load(){
  const id=tenantId.value;loading.value=true;error.value=''
@@ -75,12 +78,12 @@ async function load(){
 }
 async function save(){
  if(busy.value)return
- const validation=validateClient(form.value)
- if(Object.keys(validation).length){toast.error(Object.values(validation).join(' · '));return}
+ validationState.clear();const validation=validateClient(form.value)
+ if(Object.keys(validation).length){validationState.set(validation);return}
  busy.value=true
  try{const data={...form.value,operator_id:form.value.operator_id||null,classification_id:form.value.classification_id||null,seller_membership_id:showSellerSelect.value?(form.value.seller_membership_id||null):(editing.value?null:currentSellerId.value),contract_started_on:form.value.contract_started_on||null,contract_ends_on:form.value.contract_ends_on||null,document:form.value.document.replace(/\D/g,''),zip_code:form.value.zip_code?.replace(/\D/g,'')||null,phone:form.value.phone?.replace(/\D/g,'')||null}
  const r=await clientsApi.save(tenantId.value,data,editing.value||undefined);modal.value=false;toast.success('Cliente salvo.');await load();if(selected.value?.id===r.data.id)await details(r.data.id)
- }catch(e){if(e instanceof ApiError && Object.keys(e.errors).length){toast.error(Object.values(e.errors).flat().join(' · '))}else{toast.error(e instanceof Error?e.message:'Erro ao salvar cliente.')}}finally{busy.value=false}
+ }catch(e){if(e instanceof ApiError && Object.keys(e.errors).length){validationState.fromApi(e.errors)}else{toast.error(e instanceof Error?e.message:'Erro ao salvar cliente.')}}finally{busy.value=false}
 }
 async function details(id:string){try{selected.value=(await clientsApi.show(tenantId.value,id)).data;tab.value='data'}catch(e){toast.error(e instanceof Error?e.message:'Erro ao carregar cliente.')}}
 function editContact(c?:Contact){contactEditing.value=c?.id??'';contact.value=c?{name:c.name,position:c.position,phone:c.phone,email:c.email,is_primary:c.is_primary,is_active:c.is_active,notes:c.notes}:contactBlank();contactModal.value=true}
@@ -105,15 +108,15 @@ watch(tenantId,()=>{selected.value=null;modal.value=false;void load()},{immediat
  <div v-if="modal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4"><form class="max-h-[94dvh] w-full max-w-6xl space-y-4 overflow-y-auto rounded-2xl bg-white p-6" @submit.prevent="save"><h2 class="text-xl font-semibold">{{editing?'Editar cliente':'Novo cliente'}}</h2>
   <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
    <label class="text-sm">Tipo de pessoa<SearchSelect v-model="form.person_type" :options="[{value:'PJ',label:'Pessoa jurídica'},{value:'PF',label:'Pessoa física'}]"/></label>
-   <label class="text-sm">CPF/CNPJ<input v-model="documentModel" required class="field" :maxlength="form.person_type==='PF'?14:18" inputmode="numeric"/></label>
-   <label class="text-sm md:col-span-2 xl:col-span-3">Razão social / nome completo<input v-model="form.company_name" required class="field"/></label>
-   <label class="text-sm">Telefone<input v-model="phoneModel" class="field" inputmode="tel" maxlength="15"/></label><label class="text-sm">E-mail<input v-model="form.email" type="email" class="field"/></label>
-   <label class="text-sm">CEP<div class="flex gap-2"><input v-model="cepModel" class="field min-w-0" inputmode="numeric" maxlength="9" placeholder="00000-000" @blur="digits(form.zip_code,8).length===8 && lookupCep()" /><button type="button" class="shrink-0 rounded-xl border border-stone-200 px-3 text-xs" :disabled="cepBusy" @click="lookupCep">{{cepBusy?'Buscando...':'Buscar CEP'}}</button></div><span v-if="cepMessage" class="mt-1 block text-xs text-slate-500" role="status">{{cepMessage}}</span></label><label class="text-sm">Endereço<input v-model="form.address" class="field"/></label>
+   <label class="text-sm">CPF/CNPJ<input v-model="documentModel" required class="field" :aria-invalid="validationState.invalid('document')" :class="validationState.invalid('document')?'ring-2 ring-red-400 bg-red-50':''" @input="validationState.clear('document')" :maxlength="form.person_type==='PF'?14:18" inputmode="numeric"/><FormError :message="validationState.errors.document"/></label>
+   <label class="text-sm md:col-span-2 xl:col-span-3">Razão social / nome completo<input v-model="form.company_name" required class="field" :aria-invalid="validationState.invalid('company_name')" :class="validationState.invalid('company_name')?'ring-2 ring-red-400 bg-red-50':''" @input="validationState.clear('company_name')"/><FormError :message="validationState.errors.company_name"/></label>
+   <label class="text-sm">Telefone<input v-model="phoneModel" class="field" :aria-invalid="validationState.invalid('phone')" :class="validationState.invalid('phone')?'ring-2 ring-red-400 bg-red-50':''" @input="validationState.clear('phone')" inputmode="tel" maxlength="15"/><FormError :message="validationState.errors.phone"/></label><label class="text-sm">E-mail<input v-model="form.email" type="email" class="field" :aria-invalid="validationState.invalid('email')" :class="validationState.invalid('email')?'ring-2 ring-red-400 bg-red-50':''" @input="validationState.clear('email')"/><FormError :message="validationState.errors.email"/></label>
+   <label class="text-sm">CEP<div class="flex gap-2"><input v-model="cepModel" class="field min-w-0" :aria-invalid="validationState.invalid('zip_code')" :class="validationState.invalid('zip_code')?'ring-2 ring-red-400 bg-red-50':''" @input="validationState.clear('zip_code')" inputmode="numeric" maxlength="9" placeholder="00000-000" @blur="digits(form.zip_code,8).length===8 && lookupCep()" /><button type="button" class="shrink-0 rounded-xl border border-stone-200 px-3 text-xs" :disabled="cepBusy" @click="lookupCep">{{cepBusy?'Buscando...':'Buscar CEP'}}</button></div><span v-if="cepMessage" class="mt-1 block text-xs text-slate-500" role="status">{{cepMessage}}</span><FormError :message="validationState.errors.zip_code"/></label><label class="text-sm">Endereço<input v-model="form.address" class="field"/></label>
    <label class="text-sm">Número<input v-model="form.address_number" class="field"/></label><label class="text-sm">Complemento<input v-model="form.address_complement" class="field"/></label>
    <label class="text-sm">Bairro<input v-model="form.neighborhood" class="field"/></label><label class="text-sm">Cidade<input v-model="form.city" class="field"/></label>
-   <label class="text-sm">Estado<input v-model="form.state" maxlength="2" class="field"/></label>
-   <label class="text-sm">Operadora atual<SearchSelect v-model="form.operator_id" :options="[{value:'',label:'Sem operadora'},...operators.map(o=>({value:o.id,label:o.name}))]" @update:model-value="form.classification_id=null"/></label>
-   <label class="text-sm">Classificação<SearchSelect v-model="form.classification_id" :options="[{value:'',label:'Sem classificação'},...classesForOperator.map(c=>({value:c.id,label:c.code+' · '+c.name}))]"/></label>
+   <label class="text-sm">Estado<input v-model="form.state" maxlength="2" class="field" :aria-invalid="validationState.invalid('state')" :class="validationState.invalid('state')?'ring-2 ring-red-400 bg-red-50':''" @input="validationState.clear('state')"/><FormError :message="validationState.errors.state"/></label>
+   <label class="text-sm">Operadora atual<SearchSelect v-model="form.operator_id" :options="[{value:'',label:'Sem operadora'},...operators.map(o=>({value:o.id,label:o.name}))]" @update:model-value="form.classification_id=null"/><FormError :message="validationState.errors.operator_id"/></label>
+   <label class="text-sm">Classificação<SearchSelect v-model="form.classification_id" :options="[{value:'',label:'Sem classificação'},...classesForOperator.map(c=>({value:c.id,label:c.code+' · '+c.name}))]"/><FormError :message="validationState.errors.classification_id"/></label>
    <label v-if="showSellerSelect" class="text-sm">Vendedor responsável<SearchSelect v-model="form.seller_membership_id" :options="[{value:'',label:'Sem vendedor'},...sellers.map(s=>({value:s.id,label:s.name}))]"/></label>
   </div>
   <label class="flex gap-2 text-sm"><input v-model="form.is_active" type="checkbox"/>Cliente ativo</label>
