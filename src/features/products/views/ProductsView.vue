@@ -2,9 +2,10 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import TableActionButton from '@/components/ui/TableActionButton.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
-import AppIcon from '@/components/ui/AppIcon.vue'
+import TableActionButton from '@/components/ui/TableActionButton.vue'
 import { tenantApi } from '@/features/tenants/api'
 import type { Tenant } from '@/features/tenants/types'
 import { operatorsApi, type TenantOperator } from '@/features/operators/api'
@@ -169,7 +170,7 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
                 <td class="whitespace-nowrap px-4 py-4 text-right font-semibold">{{ money(p.price) }}</td>
                 <td class="px-4 py-4"><span v-if="currentPromotion(p)" class="font-medium text-emerald-700">{{ money(currentPromotion(p).promotional_price) }}</span><span v-else class="text-slate-400">—</span></td>
                 <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="p.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-slate-500'">{{ p.is_active ? 'Ativo' : 'Inativo' }}</span></td>
-                <td v-if="canUpdateWritable || canPromoteWritable" class="whitespace-nowrap px-5 py-4 text-right"><button v-if="canUpdateWritable" type="button" class="mr-1 inline-flex size-9 items-center justify-center rounded-lg border border-orange-200 bg-white text-orange-700 shadow-sm transition hover:border-orange-400 hover:bg-orange-50 focus-visible:outline-2 focus-visible:outline-orange-600" title="Editar produto" aria-label="Editar produto" @click="edit(p)"><AppIcon name="edit" class="size-5" /></button><button v-if="canPromoteWritable" type="button" class="inline-flex size-9 items-center justify-center rounded-lg border border-stone-300 bg-white text-slate-600 shadow-sm transition hover:border-orange-300 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-orange-600" title="Gerenciar promoções" aria-label="Gerenciar promoções" @click="promotion(p)"><AppIcon name="tag" class="size-5" /></button></td>
+                <td v-if="canUpdateWritable || canPromoteWritable" class="whitespace-nowrap px-5 py-4 text-right"><TableActionButton v-if="canUpdateWritable" icon="edit" :label="`Editar ${p.name}`" :disabled="busy" @click="edit(p)" /><TableActionButton v-if="canPromoteWritable" icon="tag" :label="`Gerenciar promoções de ${p.name}`" :disabled="busy" @click="promotion(p)" /></td>
               </tr>
               <tr v-if="!filtered.length"><td :colspan="canUpdateWritable || canPromoteWritable ? 7 : 6" class="px-5 py-12 text-center text-slate-500">{{ products.length ? 'Nenhum produto corresponde aos filtros.' : 'Nenhum produto cadastrado.' }}</td></tr>
             </tbody>
