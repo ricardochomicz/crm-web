@@ -14,7 +14,7 @@ const settingsOpen = ref(false)
 watch(() => route.path, (path) => {
   if (/\/(equipe|equipes|participantes-comerciais)$/.test(path)) teamOpen.value = true
   if (/\/produtos$/.test(path)) commercialOpen.value = true
-  if (/\/(comissoes|comissoes-equipe)$/.test(path)) managementOpen.value = true
+  if (/\/(comissoes|comissoes-equipe|metas-comerciais)$/.test(path)) managementOpen.value = true
   if (/\/(dados|unidades|permissoes|assinatura|operadoras)$/.test(path)) settingsOpen.value = true
 }, { immediate: true })
 </script>
@@ -60,6 +60,7 @@ watch(() => route.path, (path) => {
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="managementOpen" @click="managementOpen = !managementOpen">Gerencial <span aria-hidden="true">{{ managementOpen ? '⌄' : '›' }}</span></button>
           <div v-show="managementOpen" class="space-y-1 border-l border-stone-200 pl-2">
             <RouterLink :to="`/empresas/${tenant.id}/comissoes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/comissoes') }" :aria-current="route.path.endsWith('/comissoes') ? 'page' : undefined">Tabelas de comissões</RouterLink>
+            <RouterLink :to="`/empresas/${tenant.id}/metas-comerciais`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/metas-comerciais') }">Metas comerciais</RouterLink>
             <RouterLink :to="`/empresas/${tenant.id}/comissoes-equipe`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/comissoes-equipe') }" :aria-current="route.path.endsWith('/comissoes-equipe') ? 'page' : undefined">Comissões da equipe</RouterLink>
           </div>
         </div>
