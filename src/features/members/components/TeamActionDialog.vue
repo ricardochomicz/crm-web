@@ -159,7 +159,7 @@ async function submit() {
         {{ error }}
       </p>
       <fieldset :disabled="busy" class="space-y-5">
-        <div v-if="action?.kind === 'role'"><label class="mb-2 block text-sm font-semibold text-slate-700">Cargo na empresa</label><SearchSelect v-model="selectedRoleId" :options="selectableRoles.map(item => ({ value: item.id, label: item.name }))" placeholder="Selecione o cargo" /></div>
+        <div v-if="action?.kind === 'role'"><label class="mb-2 block text-sm font-semibold text-slate-700">Cargo na empresa</label><SearchSelect :model-value="selectedRoleId" @update:model-value="selectedRoleId = String($event)" :options="selectableRoles.map(item => ({ value: item.id, label: item.name }))" placeholder="Selecione o cargo" /></div>
         <p v-if="blocked" role="status" class="text-xs leading-6 text-amber-800">{{ blocked }}</p>
         <div class="flex justify-end gap-3 border-t border-stone-100 pt-5">
           <button type="button" class="secondary-button" data-initial-focus @click="emit('close')">
