@@ -87,6 +87,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Comissões da equipe' },
     },
     {
+      path: '/empresas/:tenantId/metas-comerciais',
+      component: () => import('@/features/commercial-goals/views/CommercialGoalsView.vue'),
+      meta: { requiresAuth: true, title: 'Metas comerciais' },
+    },
+    {
       path: '/empresas/:tenantId/produtos',
       component: () => import('@/features/products/views/ProductsView.vue'),
       meta: { requiresAuth: true, title: 'Produtos e planos' },
