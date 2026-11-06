@@ -3,7 +3,7 @@ import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 
 withDefaults(defineProps<{
-  icon: 'eye' | 'edit' | 'trash' | 'users' | 'shield' | 'pause' | 'play' | 'user-x' | 'tag' | 'check'
+  icon: 'eye' | 'edit' | 'trash' | 'users' | 'shield' | 'pause' | 'play' | 'user-x' | 'tag' | 'check' | 'search' | 'clear' | 'lock' | 'mail' | 'grid' | (string & {})
   label: string
   tone?: 'neutral' | 'danger' | 'success'
   disabled?: boolean

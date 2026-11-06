@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
+import ListFilters from '@/components/ui/ListFilters.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
 import UnitAssignmentsDrawer from '../components/UnitAssignmentsDrawer.vue'
@@ -23,6 +24,39 @@ const editing = ref<string | null>(null)
 const assigning = ref<TenantUnit>()
 const errors = ref<Record<string, string>>({})
 const form = reactive({ name: '', email: '', phone: '', address: '', city: '', state: '' })
+const searchFilter = ref('')
+const typeFilter = ref('')
+const appliedFilters = ref({ search: '', type: '' })
+
+const filteredUnits = computed(() => {
+  return (result.value?.data ?? []).filter((u) => {
+    if (appliedFilters.value.search) {
+      const q = appliedFilters.value.search.toLowerCase()
+      const match =
+        u.name.toLowerCase().includes(q) ||
+        (u.city && u.city.toLowerCase().includes(q)) ||
+        (u.state && u.state.toLowerCase().includes(q)) ||
+        (u.email && u.email.toLowerCase().includes(q))
+      if (!match) return false
+    }
+    if (appliedFilters.value.type === 'hq' && !u.is_headquarters) return false
+    if (appliedFilters.value.type === 'branch' && u.is_headquarters) return false
+    return true
+  })
+})
+
+function applyFilters() {
+  appliedFilters.value = {
+    search: searchFilter.value.trim(),
+    type: typeFilter.value,
+  }
+}
+
+function clearFilters() {
+  searchFilter.value = ''
+  typeFilter.value = ''
+  applyFilters()
+}
 const writable = computed(
   () => result.value?.meta.can_manage && tenant.value?.access?.allows_operational_writes,
 )
@@ -197,15 +231,43 @@ watch(
           </div>
         </fieldset>
       </form>
+      <ListFilters
+        :columns="2"
+        :busy="loading"
+        :count-label="`${filteredUnits.length} unidade(s) encontrada(s)`"
+        @search="applyFilters"
+        @clear="clearFilters"
+      >
+        <label class="text-xs font-semibold text-slate-600">
+          Buscar unidade
+          <input
+            v-model="searchFilter"
+            type="search"
+            placeholder="Buscar por nome, cidade ou e-mail"
+            class="field"
+          />
+        </label>
+        <label class="text-xs font-semibold text-slate-600">
+          Tipo de unidade
+          <SearchSelect
+            v-model="typeFilter"
+            :options="[
+              { value: '', label: 'Todas as unidades' },
+              { value: 'hq', label: 'Matriz' },
+              { value: 'branch', label: 'Filial' },
+            ]"
+          />
+        </label>
+      </ListFilters>
       <p
-        v-if="!result.data.length"
+        v-if="!filteredUnits.length"
         class="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-slate-500"
       >
-        Você ainda não possui unidades vinculadas.
+        {{ (result.data || []).length ? 'Nenhuma unidade corresponde aos filtros.' : 'Você ainda não possui unidades vinculadas.' }}
       </p>
       <div class="grid gap-5 lg:grid-cols-2">
         <article
-          v-for="unit in result.data"
+          v-for="unit in filteredUnits"
           :key="unit.id"
           class="rounded-2xl border border-stone-200 bg-white p-6"
         >

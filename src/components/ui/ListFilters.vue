@@ -15,6 +15,7 @@ defineEmits<{ search: []; clear: [] }>()
     <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-3">
       <p class="text-sm text-slate-500">{{ countLabel || 'Filtre os resultados da listagem' }}</p>
       <div class="flex flex-wrap items-center gap-2">
+        <slot name="actions" />
         <button type="button" class="secondary-button inline-flex w-auto items-center gap-2" :disabled="busy" @click="$emit('clear')">
           <AppIcon name="clear" class="size-4" /> Limpar filtros
         </button>
