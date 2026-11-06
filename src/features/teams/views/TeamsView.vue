@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
+import ListFilters from '@/components/ui/ListFilters.vue'
 import { tenantApi } from '@/features/tenants/api'
 import { can } from '@/features/tenants/types'
 import type { Tenant, Page } from '@/features/tenants/types'
@@ -111,7 +112,6 @@ function openCreate() {
 }
 
 function openEdit(team: Team) {
-  notice.value = null
   editingTeam.value = team
 }
 
@@ -191,13 +191,11 @@ onMounted(load)
       />
 
       <template v-if="teams">
-        <form class="mb-4 flex flex-wrap items-end gap-3" role="search" @submit.prevent="searchTeams">
-          <label class="min-w-[220px] flex-1 text-sm font-medium text-slate-700">Buscar equipe pelo nome
-            <input v-model="teamNameFilter" type="search" class="field mt-2" placeholder="Digite o nome da equipe" aria-label="Buscar equipe pelo nome" />
+        <ListFilters :columns="1" :busy="teamsLoading || anyDialogOpen" :count-label="`${teams.total} equipe(s) encontrada(s)`" @search="searchTeams" @clear="clearTeamSearch">
+          <label class="text-xs font-semibold text-slate-600">Nome da equipe
+            <input v-model="teamNameFilter" type="search" class="field mt-2" placeholder="Digite o nome da equipe" />
           </label>
-          <button type="submit" class="primary-button w-auto" :disabled="teamsLoading || anyDialogOpen">Buscar</button>
-          <button v-if="appliedTeamName" type="button" class="secondary-button" :disabled="teamsLoading || anyDialogOpen" @click="clearTeamSearch">Limpar filtro</button>
-        </form>
+        </ListFilters>
         <TeamsTable
           :teams="teams.data"
           :can-update="canUpdate"
