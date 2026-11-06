@@ -1,163 +1,24 @@
 <script setup lang="ts">
-import PagePagination from '@/components/ui/PagePagination.vue'
-import { useListPagination } from '@/composables/useListPagination'
-import ListFilters from '@/components/ui/ListFilters.vue'
-import { useListFilters } from '@/composables/useListFilters'
-import ListTable from '@/components/ui/ListTable.vue'
-import { ref, computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import PagePagination from '@/components/ui/PagePagination.vue'
+import ListFilters from '@/components/ui/ListFilters.vue'
+import ListTable from '@/components/ui/ListTable.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import CommissionForm from '../components/CommissionForm.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
-import { tenantApi } from '@/features/tenants/api'
-import type { Tenant } from '@/features/tenants/types'
-import { operatorsApi, type TenantOperator } from '@/features/operators/api'
-import { request, mutate } from '@/lib/http'
-import { errorMessage } from '@/lib/feedback'
-import { toast } from '@/services/toast'
-type Commission = {
-  id: string
-  name: string
-  order_type: string | null
-  operator_id: number
-  operator?: { name: string }
-  percentage: string
-  deduction_percentage: string | null
-  is_active: boolean
-}
+import { useCommissionsPage } from '../composables/useCommissionsPage'
+
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
-const tenant = ref<Tenant>()
-const rows = ref<Commission[]>([])
-const operators = ref<TenantOperator[]>([])
-const orderTypes = ref<{ value: string; label: string }[]>([])
-const orderTypeLabel = (value: string | null) =>
-  orderTypes.value.find((type) => type.value === value)?.label ??
-  (value ? value : 'Não classificado')
-const loading = ref(true)
-const busy = ref(false)
-const error = ref('')
-const canManage = ref(false)
-const defaultDeduction = ref('0')
-const filterOperator = ref('')
-const filterOrderType = ref('')
 const {
-  applied,
-  apply: applyFilters,
-  clear: clearFilters,
-} = useListFilters({ filterOperator, filterOrderType })
-const filteredRows = computed(() =>
-  rows.value.filter(
-    (r) =>
-      (!applied.value.filterOperator || String(r.operator_id) === applied.value.filterOperator) &&
-      (!applied.value.filterOrderType || r.order_type === applied.value.filterOrderType),
-  ),
-)
-const base = computed(() => `/api/v1/tenants/${encodeURIComponent(tenantId.value)}/commissions`)
-const writable = computed(
-  () => canManage.value && !!tenant.value?.access?.allows_operational_writes,
-)
-const editingId = ref('')
-const modalOpen = ref(false)
-const blank = () => ({
-  order_type: '',
-  operator_id: 0,
-  percentage: '400',
-  deduction_percentage: '',
-  is_active: true,
-})
-const form = ref(blank())
-const format = (n: unknown) => `${Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`
-function edit(row?: Commission) {
-  editingId.value = row?.id ?? ''
-  form.value = row
-    ? {
-        order_type: row.order_type ?? '',
-        operator_id: row.operator_id,
-        percentage: String(row.percentage),
-        deduction_percentage: row.deduction_percentage ?? '',
-        is_active: row.is_active,
-      }
-    : blank()
-  modalOpen.value = true
-}
-async function load() {
-  const id = tenantId.value
-  loading.value = true
-  error.value = ''
-  try {
-    const [company, list] = await Promise.all([
-      tenantApi.show(id),
-      request<{ data: Commission[]; meta: { can_manage: boolean } }>(`${base.value}`),
-    ])
-    if (id !== tenantId.value) return
-    tenant.value = company.data
-    rows.value = list.data
-    canManage.value = list.meta.can_manage
-    operators.value = (await operatorsApi.tenantList(id)).data.filter(
-      (o) => o.selected && o.is_active,
-    )
-    orderTypes.value = (
-      await request<{ data: { value: string; label: string }[] }>(base.value + '/order-types')
-    ).data
-    defaultDeduction.value = (
-      await request<{ data: { default_deduction_percentage: string } }>(base.value + '/settings')
-    ).data.default_deduction_percentage
-  } catch (e) {
-    if (id === tenantId.value) error.value = errorMessage(e)
-  } finally {
-    if (id === tenantId.value) loading.value = false
-  }
-}
-async function saveSettings() {
-  try {
-    await mutate(
-      base.value + '/settings',
-      { default_deduction_percentage: Number(defaultDeduction.value.replace(',', '.')) },
-      'PUT',
-    )
-    toast.success('Desconto padrão salvo.')
-  } catch (e) {
-    toast.error(errorMessage(e))
-  }
-}
-async function save() {
-  if (!writable.value || busy.value) return
-  busy.value = true
-  try {
-    const payload = {
-      ...form.value,
-      percentage: Number(form.value.percentage.replace(',', '.')),
-      deduction_percentage:
-        form.value.deduction_percentage === ''
-          ? null
-          : Number(form.value.deduction_percentage.replace(',', '.')),
-    }
-    await mutate(
-      editingId.value ? `${base.value}/${editingId.value}` : base.value,
-      payload,
-      editingId.value ? 'PATCH' : 'POST',
-    )
-    toast.success('Tabela de comissão salva.')
-    modalOpen.value = false
-    await load()
-  } catch (e) {
-    toast.error(errorMessage(e))
-  } finally {
-    busy.value = false
-  }
-}
-watch(
-  tenantId,
-  () => {
-    modalOpen.value = false
-    void load()
-  },
-  { immediate: true },
-)
-const { page, total, lastPage, pageRows, changePage } = useListPagination(filteredRows)
+  tenant, operators, orderTypes, loading, busy, settingsBusy, error, writable,
+  defaultDeduction, filterOperator, filterOrderType, filteredRows,
+  applyFilters, clearFilters, page, total, lastPage, pageRows, changePage,
+  editingId, modalOpen, form, format, orderTypeLabel, edit, load, saveSettings, save,
+} = useCommissionsPage(tenantId)
 </script>
 <template>
   <AppShell
@@ -187,10 +48,10 @@ const { page, total, lastPage, pageRows, changePage } = useListPagination(filter
         <label class="block text-sm font-semibold text-slate-700"
           >Desconto padrão da empresa (%)<input
             v-model="defaultDeduction"
-            :disabled="!writable"
+            :disabled="!writable || settingsBusy"
             inputmode="decimal"
             class="mt-2 block w-44 rounded-xl border-0 bg-stone-100 px-4 py-3 text-sm font-normal outline-none focus:bg-white focus:ring-2 focus:ring-orange-400" /></label
-        ><button v-if="writable" type="submit" class="primary-button w-auto">Salvar padrão</button>
+        ><button v-if="writable" type="submit" class="primary-button w-auto" :disabled="settingsBusy">{{ settingsBusy ? 'Salvando…' : 'Salvar padrão' }}</button>
       </div>
       <p class="mt-3 text-xs text-slate-500">
         Aplicado à comissão bruta quando a tabela não possui desconto próprio. Use 0% para não
