@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import ParticipantForm from '../components/ParticipantForm.vue'
@@ -89,7 +90,7 @@ watch(tenantId,()=>{selected.value=null;modalOpen.value=false;overrideOpen.value
  <header class="mb-6 flex flex-wrap items-center justify-between gap-3"><div><p class="eyebrow">EQUIPE</p><h1 class="mt-3 text-3xl font-semibold">Parceiros e indicadores</h1><p class="mt-2 text-sm text-slate-500">Cadastro sem acesso obrigatório ao CRM, com tabela padrão e exceções individuais.</p></div><button v-if="writable" type="button" class="primary-button w-auto" @click="edit()">+ Novo participante</button></header>
  <AsyncNotice :loading="loading" :error="error" @retry="load"/>
  <section v-if="!loading && !error" class="rounded-2xl border border-stone-200 bg-white p-5">
-  <div class="mb-4 flex flex-wrap gap-3"><input v-model="search" placeholder="Buscar por nome" class="rounded-lg border px-3 py-2 text-sm"/><select v-model="filterRole" class="rounded-lg border px-3 py-2 text-sm"><option value="">Todos os perfis</option><option value="PARTNER">Parceiros</option><option value="REFERRER">Indicadores</option></select></div>
+  <div class="mb-4 flex flex-wrap gap-3"><input v-model="search" placeholder="Buscar por nome" class="rounded-xl border-0 bg-stone-100 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-400"/><div class="min-w-48"><SearchSelect v-model="filterRole" :options="[{value:'',label:'Todos os perfis'},{value:'PARTNER',label:'Parceiros'},{value:'REFERRER',label:'Indicadores'}]"/></div></div>
   <div class="overflow-x-auto"><table class="w-full min-w-[650px] text-left text-sm"><thead class="bg-stone-50"><tr><th class="p-3">Nome</th><th class="p-3">Perfil</th><th class="p-3">Pessoa</th><th class="p-3">Contato</th><th class="p-3">Situação</th><th class="p-3">Ações</th></tr></thead><tbody><tr v-for="row in filtered" :key="row.id" class="border-t"><td class="p-3 font-semibold">{{ row.name }}</td><td class="p-3">{{ row.role === 'PARTNER' ? 'Parceiro' : 'Indicador' }}</td><td class="p-3">{{ row.person_type }}</td><td class="p-3">{{ row.email || row.phone || '—' }}</td><td class="p-3">{{ row.is_active ? 'Ativo' : 'Inativo' }}</td><td class="p-3"><div class="flex gap-2"><button type="button" class="rounded-lg border px-3 py-1.5" @click="openCommissions(row)">Comissões</button><button v-if="writable" type="button" class="rounded-lg border px-3 py-1.5" @click="edit(row)">Editar</button></div></td></tr></tbody></table></div>
   <p v-if="!filtered.length" class="p-4 text-sm text-slate-500">Nenhum participante encontrado.</p>
  </section>
@@ -106,10 +107,10 @@ watch(tenantId,()=>{selected.value=null;modalOpen.value=false;overrideOpen.value
  <div v-if="modalOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><ParticipantForm v-model="form" :busy="busy" :editing="!!editingId" @submit="save" @cancel="modalOpen=false"/></div>
  <div v-if="overrideOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><form class="w-full max-w-lg space-y-3 rounded-2xl bg-white p-6 shadow-xl" @submit.prevent="saveOverride">
   <h2 class="text-xl font-semibold">{{ overrideEditingId ? 'Editar exceção' : 'Nova exceção' }}</h2>
-  <label class="block text-sm">Operadora<select v-model.number="overrideForm.operator_id" required class="mt-1 w-full rounded-lg border p-2"><option :value="0" disabled>Selecione</option><option v-for="o in operators" :key="o.id" :value="o.id">{{ o.name }}</option></select></label>
-  <label class="block text-sm">Tipo de pedido<select v-model="overrideForm.order_type" required class="mt-1 w-full rounded-lg border p-2"><option value="" disabled>Selecione</option><option v-for="o in orderTypes" :key="o.value" :value="o.value">{{ o.label }}</option></select></label>
-  <label class="block text-sm">Percentual individual sobre contrato<input v-model="overrideForm.percentage" required inputmode="decimal" class="mt-1 w-full rounded-lg border p-2"/></label>
-  <div class="grid grid-cols-2 gap-3"><label class="text-sm">Início<input v-model="overrideForm.starts_on" type="date" required class="mt-1 w-full rounded-lg border p-2"/></label><label class="text-sm">Fim (opcional)<input v-model="overrideForm.ends_on" type="date" class="mt-1 w-full rounded-lg border p-2"/></label></div>
+  <label class="block text-sm">Operadora<SearchSelect v-model="overrideForm.operator_id" :options="operators.map(o=>({value:o.id,label:o.name}))" required/></label>
+  <label class="block text-sm">Tipo de pedido<SearchSelect v-model="overrideForm.order_type" :options="orderTypes" required/></label>
+  <label class="block text-sm">Percentual individual sobre contrato<input v-model="overrideForm.percentage" required inputmode="decimal" class="mt-1 w-full rounded-xl border-0 bg-stone-100 px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-orange-400"/></label>
+  <div class="grid grid-cols-2 gap-3"><label class="text-sm">Início<input v-model="overrideForm.starts_on" type="date" required class="mt-1 w-full rounded-xl border-0 bg-stone-100 px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-orange-400"/></label><label class="text-sm">Fim (opcional)<input v-model="overrideForm.ends_on" type="date" class="mt-1 w-full rounded-xl border-0 bg-stone-100 px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-orange-400"/></label></div>
   <label class="flex gap-2 text-sm"><input v-model="overrideForm.is_active" type="checkbox"/>Ativa</label>
   <div class="flex justify-end gap-2"><button type="button" class="rounded-lg border px-4 py-2" @click="overrideOpen=false">Cancelar</button><button type="submit" :disabled="busy" class="primary-button w-auto">Salvar</button></div>
  </form></div>
