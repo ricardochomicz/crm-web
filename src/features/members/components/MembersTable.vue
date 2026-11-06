@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TableActionButton from '@/components/ui/TableActionButton.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { roleLabels } from '@/features/tenants/types'
 import { dateLabel } from '@/lib/feedback'
@@ -63,30 +64,9 @@ defineEmits<{ action: [action: TeamAction] }>()
               v-if="member.can_manage && (canChangeRole || canChangeStatus || canRemove)"
               class="flex justify-end gap-2"
             >
-              <button
-                class="secondary-button px-3 py-2"
-                :disabled="!canWrite || busy"
-                v-if="canChangeRole"
-                :aria-label="`Alterar papel de ${member.name}`"
-                @click="$emit('action', { kind: 'role', member })"
-              >
-                Alterar papel</button
-              ><button
-                class="secondary-button px-3 py-2"
-                :disabled="!canWrite || busy"
-                v-if="canChangeStatus"
-                :aria-label="`${member.status === 'ACTIVE' ? 'Suspender' : 'Reativar'} ${member.name}`"
-                @click="$emit('action', { kind: 'status', member })"
-              >
-                {{ member.status === 'ACTIVE' ? 'Suspender' : 'Reativar' }}
-              </button>
-              <button
-                v-if="canRemove"
-                class="secondary-button px-3 py-2 text-red-700 hover:text-red-800"
-                :disabled="!canWrite || busy"
-                :aria-label="`Desvincular ${member.name} da empresa`"
-                @click="$emit('action', { kind: 'remove', member })"
-              >Desvincular</button>
+              <TableActionButton v-if="canChangeRole" icon="shield" :label="`Alterar cargo de ${member.name}`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'role', member })" />
+              <TableActionButton v-if="canChangeStatus" :icon="member.status === 'ACTIVE' ? 'pause' : 'play'" :label="`${member.status === 'ACTIVE' ? 'Suspender' : 'Reativar'} ${member.name}`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'status', member })" />
+              <TableActionButton v-if="canRemove" icon="user-x" tone="danger" :label="`Desvincular ${member.name} da empresa`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'remove', member })" />
             </div>
             <p v-else class="text-right text-xs text-slate-400">
               {{ member.role === 'OWNER' ? 'Acesso protegido' : 'Sem ações disponíveis' }}
