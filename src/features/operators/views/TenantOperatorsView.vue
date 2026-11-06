@@ -1,61 +1,15 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
-import { tenantApi } from '@/features/tenants/api'
-import type { Tenant } from '@/features/tenants/types'
-import { operatorsApi, type TenantOperator } from '../api'
-import { errorMessage } from '@/lib/feedback'
-import { toast } from '@/services/toast'
+import { useTenantOperatorsPage } from '../composables/useTenantOperatorsPage'
 
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
-const tenant = ref<Tenant>()
-const operators = ref<TenantOperator[]>([])
-const selected = ref<number[]>([])
-const loading = ref(true)
-const error = ref('')
-const busy = ref(false)
-const writable = computed(() => !!tenant.value?.access?.allows_operational_writes)
-
-async function load() {
-  const id = tenantId.value
-  loading.value = true
-  error.value = ''
-  try {
-    const [company, list] = await Promise.all([tenantApi.show(id), operatorsApi.tenantList(id)])
-    if (tenantId.value !== id) return
-    tenant.value = company.data
-    operators.value = list.data
-    selected.value = list.data.filter((item) => item.selected).map((item) => item.id)
-  } catch (failure) {
-    if (tenantId.value === id) error.value = errorMessage(failure)
-  } finally {
-    if (tenantId.value === id) loading.value = false
-  }
-}
-
-function toggle(id: number, checked: boolean) {
-  selected.value = checked ? [...selected.value, id] : selected.value.filter((value) => value !== id)
-}
-
-async function save() {
-  if (!writable.value || busy.value) return
-  busy.value = true
-  try {
-    await operatorsApi.tenantSave(tenantId.value, selected.value)
-    toast.success('Operadoras da empresa atualizadas.')
-    await load()
-  } catch (failure) {
-    toast.error(errorMessage(failure))
-  } finally {
-    busy.value = false
-  }
-}
-watch(tenantId, () => { void load() }, { immediate: true })
+const { tenant, operators, selected, loading, error, busy, writable, dirty, load, toggle, save } =
+  useTenantOperatorsPage(tenantId)
 </script>
-
 <template>
   <AppShell :tenant="tenant" title="Minhas operadoras" subtitle="Configurações">
     <header class="mb-7">
@@ -79,7 +33,7 @@ watch(tenantId, () => { void load() }, { immediate: true })
       </div>
       <div class="flex flex-wrap items-center justify-between gap-4 bg-stone-50/50 px-5 py-4">
         <p class="text-sm text-slate-500">{{ selected.length }} operadora(s) selecionada(s)</p>
-        <button class="primary-button w-auto" :disabled="!writable || busy" @click="save">{{ busy ? 'Salvando…' : 'Salvar operadoras' }}</button>
+        <button class="primary-button w-auto" :disabled="!writable || busy || loading || !dirty" @click="save">{{ busy ? 'Salvando…' : 'Salvar operadoras' }}</button>
       </div>
     </section>
   </AppShell>
