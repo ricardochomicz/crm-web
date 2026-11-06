@@ -33,7 +33,7 @@ async function load(){
 }
 async function save(){
  if(busy.value)return;busy.value=true
- try{const data={...form.value,document:form.value.document.replace(/\D/g,''),zip_code:form.value.zip_code?.replace(/\D/g,'')||null,phone:form.value.phone?.replace(/\D/g,'')||null}
+ try{const data={...form.value,operator_id:form.value.operator_id||null,classification_id:form.value.classification_id||null,seller_membership_id:form.value.seller_membership_id||null,contract_started_on:form.value.contract_started_on||null,contract_ends_on:form.value.contract_ends_on||null,document:form.value.document.replace(/\D/g,''),zip_code:form.value.zip_code?.replace(/\D/g,'')||null,phone:form.value.phone?.replace(/\D/g,'')||null}
  const r=await clientsApi.save(tenantId.value,data,editing.value||undefined);modal.value=false;toast.success('Cliente salvo.');await load();if(selected.value?.id===r.data.id)await details(r.data.id)
  }catch(e){toast.error(e instanceof Error?e.message:'Erro ao salvar cliente.')}finally{busy.value=false}
 }
