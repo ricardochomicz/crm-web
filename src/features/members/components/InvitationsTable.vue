@@ -28,22 +28,22 @@ function expiration(value: string) {
 }
 </script>
 <template>
-  <div class="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
+  <div class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
     <ListTable min-width="780px">
       <caption class="sr-only">
         Convites da empresa. As datas usam o horário local do seu navegador.
       </caption>
-      <thead class="border-b border-stone-100 bg-stone-50 text-xs text-slate-500">
+      <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
         <tr>
-          <th scope="col" class="px-6 py-4 font-medium">Destinatário</th>
-          <th scope="col" class="px-5 py-4 font-medium">Papel</th>
-          <th scope="col" class="px-5 py-4 font-medium">Situação</th>
-          <th scope="col" class="px-5 py-4 font-medium">Validade</th>
+          <th scope="col" class="px-6 py-4 font-semibold">Destinatário</th>
+          <th scope="col" class="px-5 py-4 font-semibold">Papel</th>
+          <th scope="col" class="px-5 py-4 font-semibold">Situação</th>
+          <th scope="col" class="px-5 py-4 font-semibold">Validade</th>
           <th scope="col" class="px-6 py-4 text-right font-medium">Ações</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-stone-100">
-        <tr v-for="invitation in invitations" :key="invitation.id" class="hover:bg-stone-50/50">
+        <tr v-for="invitation in invitations" :key="invitation.id" class="hover:bg-stone-50/70">
           <th scope="row" class="px-6 py-5 font-medium">
             <p>{{ invitation.email }}</p>
             <p class="mt-1 text-[11px] font-normal text-slate-400">
