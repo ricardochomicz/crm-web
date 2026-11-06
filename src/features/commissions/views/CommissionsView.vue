@@ -2,9 +2,10 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import TableActionButton from '@/components/ui/TableActionButton.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import CommissionForm from '../components/CommissionForm.vue'
-import AppIcon from '@/components/ui/AppIcon.vue'
+import TableActionButton from '@/components/ui/TableActionButton.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import { tenantApi } from '@/features/tenants/api'
 import type { Tenant } from '@/features/tenants/types'
@@ -99,7 +100,7 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
        <td class="px-4 py-4 text-right font-semibold text-slate-800">{{ format(item.percentage) }}</td>
        <td class="px-4 py-4 text-right text-slate-600">{{ item.deduction_percentage === null ? 'Padrão (' + format(defaultDeduction) + ')' : format(item.deduction_percentage) }}</td>
        <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="item.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-slate-500'">{{ item.is_active ? 'Ativa' : 'Inativa' }}</span></td>
-       <td v-if="writable" class="px-5 py-4 text-right"><button type="button" class="inline-flex size-9 items-center justify-center rounded-lg border border-stone-200 text-slate-600 hover:border-orange-300 hover:text-orange-700" title="Editar tabela" aria-label="Editar tabela" @click="edit(item)"><AppIcon name="edit" class="size-4" /></button></td>
+       <td v-if="writable" class="px-5 py-4 text-right"><TableActionButton icon="edit" :label="`Editar tabela de ${item.operator?.name ?? 'comissões'}`" :disabled="busy" @click="edit(item)" /></td>
       </tr>
      </tbody>
     </table>
