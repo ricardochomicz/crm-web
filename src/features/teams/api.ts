@@ -5,8 +5,11 @@ import type { Team, TeamMember } from './types'
 const base = (tenantId: string) => `/api/v1/tenants/${encodeURIComponent(tenantId)}`
 
 export const teamsApi = {
-  list: (tenantId: string, page = 1) =>
-    request<Page<Team>>(`${base(tenantId)}/teams?page=${page}`),
+  list: (tenantId: string, page = 1, name = '') => {
+    const params = new URLSearchParams({ page: String(page) })
+    if (name.trim()) params.set('name', name.trim())
+    return request<Page<Team>>(`${base(tenantId)}/teams?${params}`)
+  },
 
   create: (tenantId: string, name: string, supervisorMembershipId: string) =>
     mutate<{ data: Pick<Team, 'id' | 'name' | 'supervisor'> }>(`${base(tenantId)}/teams`, {
