@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { toast } from '@/services/toast'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import TableActionButton from '@/components/ui/TableActionButton.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import TeamCommissionForm from '../components/TeamCommissionForm.vue'
@@ -86,7 +87,7 @@ function exportPdf() {
      <td class="px-4 py-4 text-right font-semibold">{{ Number(row.percentage).toLocaleString('pt-BR') }}%</td>
      <td class="px-4 py-4">{{ row.starts_on }} até {{ row.ends_on ?? 'indeterminado' }}</td>
      <td class="px-4 py-4">{{ row.is_active ? 'Ativa' : 'Inativa' }}</td>
-     <td v-if="writable" class="px-4 py-4"><button type="button" class="rounded-lg border px-3 py-1.5 hover:border-orange-300" @click="edit(row)">Editar</button></td>
+     <td v-if="writable" class="px-4 py-4"><TableActionButton icon="edit" :label="`Editar comissão de ${row.operator?.name ?? 'operadora'}`" :disabled="busy" @click="edit(row)" /></td>
     </tr></tbody>
    </table></div>
    <p v-if="!filteredRows.length" class="px-5 py-8 text-sm text-slate-500">Nenhuma regra encontrada para os filtros selecionados.</p>
