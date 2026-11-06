@@ -13,24 +13,17 @@ import type { Tenant } from '@/features/tenants/types'
 import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
+import { productsApi, type Product } from '../api'
+import { useProductsList } from '../composables/useProductsList'
 
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
 const tenant = ref<Tenant>()
-const products = ref<any[]>([])
-const productPage = ref(1)
-const lastPage = ref(1)
-const totalProducts = ref(0)
-const filtersLoading = ref(false)
-const appliedFilters = ref({search:'',operator_id:'',category:'',is_active:''})
+const { products, productPage, lastPage, totalProducts, filtersLoading, canManage, canCreate, canUpdate, canManagePromotions, nameFilter, operatorFilter, categoryFilter, statusFilter, loadProducts, applyFilters, clearFilters } = useProductsList(tenantId)
 const operators = ref<TenantOperator[]>([])
 const loading = ref(true)
 const busy = ref(false)
 const error = ref('')
-const canManage = ref(false)
-const canCreate = ref(false)
-const canUpdate = ref(false)
-const canManagePromotions = ref(false)
 const categories = [
   ['PREPAID','Pré-pago'], ['CONTROL','Controle'], ['POSTPAID','Pós-pago'],
   ['BROADBAND','Fibra / Banda larga'], ['BUSINESS_INTERNET','Internet empresarial'],
@@ -43,43 +36,21 @@ const editingId = ref('')
 const promoProductId = ref('')
 const promoEditingId = ref('')
 const promo = ref({ name: '', promotional_price: '', starts_at: '', ends_at: '', is_active: true })
-const nameFilter = ref('')
-const statusFilter = ref('')
 const productModalOpen = ref(false)
 const promotionModalOpen = ref(false)
-const operatorFilter = ref('')
-const categoryFilter = ref('')
-const filtered = computed(() => products.value)
 const money = (value: unknown) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const parseBrl = (value: string) => Number(value.replace(/[^0-9]/g, '')) / 100
 const formatBrlInput = (value: string) => money(parseBrl(value))
 const priceDisplay = computed({ get: () => form.value.price, set: (value: string) => { form.value.price = formatBrlInput(value) } })
 const promotionPriceDisplay = computed({ get: () => promo.value.promotional_price, set: (value: string) => { promo.value.promotional_price = formatBrlInput(value) } })
-const currentPromotion = (p: any) => p.promotions?.find((pr: any) => pr.is_active && pr.starts_at <= new Date().toISOString().slice(0, 10) && pr.ends_at >= new Date().toISOString().slice(0, 10))
+const currentPromotion = (p: Product) => p.promotions?.find((pr: any) => pr.is_active && pr.starts_at <= new Date().toISOString().slice(0, 10) && pr.ends_at >= new Date().toISOString().slice(0, 10))
 function newProduct() { reset(); productModalOpen.value = true }
 function closeProduct() { if (!busy.value) productModalOpen.value = false }
 function closePromotion() { if (!busy.value) promotionModalOpen.value = false }
-function clearFilters() { nameFilter.value = ''; operatorFilter.value = ''; categoryFilter.value = ''; statusFilter.value = ''; applyFilters() }
-function applyFilters() { appliedFilters.value = {search:nameFilter.value.trim(),operator_id:operatorFilter.value,category:categoryFilter.value,is_active:statusFilter.value}; void loadProducts(1) }
-async function loadProducts(page = productPage.value) {
-  filtersLoading.value = true
-  try {
-    const params = new URLSearchParams({page:String(page)})
-    if(appliedFilters.value.search)params.set('search',appliedFilters.value.search)
-    if(appliedFilters.value.operator_id)params.set('operator_id',appliedFilters.value.operator_id)
-    if(appliedFilters.value.category)params.set('category',appliedFilters.value.category)
-    if(appliedFilters.value.is_active)params.set('is_active',appliedFilters.value.is_active === 'active' ? '1' : '0')
-    const {request} = await import('@/lib/http')
-    const result = await request<{data:any[];meta:{current_page:number;last_page:number;total:number;can_manage:boolean;can_create:boolean;can_update:boolean;can_manage_promotions:boolean}}>(`${base.value}?${params}`)
-    products.value=result.data; productPage.value=result.meta.current_page;lastPage.value=result.meta.last_page;totalProducts.value=result.meta.total
-    canManage.value=result.meta.can_manage;canCreate.value=result.meta.can_create;canUpdate.value=result.meta.can_update;canManagePromotions.value=result.meta.can_manage_promotions
-  }catch(e){toast.error(errorMessage(e))}finally{filtersLoading.value=false}
-}
 const writable = computed(() => canManage.value && !!tenant.value?.access?.allows_operational_writes)
 const canCreateWritable = computed(() => canCreate.value && writable.value)
 const canUpdateWritable = computed(() => canUpdate.value && writable.value)
 const canPromoteWritable = computed(() => canManagePromotions.value && writable.value)
-const base = computed(() => `/api/v1/tenants/${encodeURIComponent(tenantId.value)}/products`)
 
 async function load() {
   const id = tenantId.value
@@ -95,7 +66,7 @@ async function load() {
     if (id === tenantId.value) loading.value = false
   }
 }
-function edit(p: any) {
+function edit(p: Product) {
   productModalOpen.value = true
   editingId.value = p.id
   form.value = { operator_id: p.operator_id, name: p.name, description: p.description ?? '', category: p.category, price: money(p.price), is_active: p.is_active }
@@ -105,9 +76,8 @@ async function save() {
   if (!(editingId.value ? canUpdateWritable.value : canCreateWritable.value) || busy.value) return
   busy.value = true
   try {
-    const { mutate } = await import('@/lib/http')
     const payload = { ...form.value, operator_id: Number(form.value.operator_id), price: parseBrl(form.value.price) }
-    await mutate(editingId.value ? `${base.value}/${editingId.value}` : base.value, payload, editingId.value ? 'PATCH' : 'POST')
+    await productsApi.save(tenantId.value, payload, editingId.value || undefined)
     toast.success('Produto salvo.')
     reset()
     productModalOpen.value = false
@@ -125,9 +95,7 @@ async function savePromotion() {
   if (!canPromoteWritable.value || busy.value) return
   busy.value = true
   try {
-    const { mutate } = await import('@/lib/http')
-    const url = `${base.value}/${promoProductId.value}/promotions${promoEditingId.value ? '/' + promoEditingId.value : ''}`
-    await mutate(url, { ...promo.value, promotional_price: parseBrl(promo.value.promotional_price) }, promoEditingId.value ? 'PATCH' : 'POST')
+    await productsApi.savePromotion(tenantId.value, promoProductId.value, { ...promo.value, promotional_price: parseBrl(promo.value.promotional_price) }, promoEditingId.value || undefined)
     toast.success('Promoção salva.')
     promoProductId.value = ''
     promotionModalOpen.value = false
@@ -135,7 +103,7 @@ async function savePromotion() {
   } catch (e) { toast.error(errorMessage(e)) }
   finally { busy.value = false }
 }
-watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value = false; nameFilter.value = ''; operatorFilter.value = ''; categoryFilter.value = ''; statusFilter.value = ''; appliedFilters.value = {search:'',operator_id:'',category:'',is_active:''}; productPage.value = 1; void load() }, { immediate: true })
+watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value = false; nameFilter.value = ''; operatorFilter.value = ''; categoryFilter.value = ''; statusFilter.value = ''; productPage.value = 1; void load() }, { immediate: true })
 </script>
 <template>
   <AppShell :tenant="tenant" title="Produtos e planos" subtitle="Catálogo comercial">
@@ -169,7 +137,7 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
               <tr><th class="px-5 py-4">Produto</th><th class="px-4 py-4">Operadora</th><th class="px-4 py-4">Categoria</th><th class="px-4 py-4 text-right">Preço</th><th class="px-4 py-4">Promoção vigente</th><th class="px-4 py-4">Situação</th><th v-if="canUpdateWritable || canPromoteWritable" class="px-5 py-4 text-right">Ações</th></tr>
             </thead>
             <tbody class="divide-y divide-stone-100">
-              <tr v-for="p in filtered" :key="p.id" class="hover:bg-stone-50/70">
+              <tr v-for="p in products" :key="p.id" class="hover:bg-stone-50/70">
                 <td class="px-5 py-4"><p class="font-semibold text-slate-800">{{ p.name }}</p><p v-if="p.description" class="mt-1 max-w-64 truncate text-xs text-slate-500" :title="p.description">{{ p.description }}</p></td>
                 <td class="px-4 py-4 text-slate-600">{{ p.operator?.name }}</td>
                 <td class="px-4 py-4 text-slate-600">{{ categories.find(c => c[0] === p.category)?.[1] }}</td>
@@ -178,7 +146,7 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
                 <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="p.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-slate-500'">{{ p.is_active ? 'Ativo' : 'Inativo' }}</span></td>
                 <td v-if="canUpdateWritable || canPromoteWritable" class="whitespace-nowrap px-5 py-4 text-right"><TableActionButton v-if="canUpdateWritable" icon="edit" :label="`Editar ${p.name}`" :disabled="busy" @click="edit(p)" /><TableActionButton v-if="canPromoteWritable" icon="tag" :label="`Gerenciar promoções de ${p.name}`" :disabled="busy" @click="promotion(p)" /></td>
               </tr>
-              <tr v-if="!filtered.length"><td :colspan="canUpdateWritable || canPromoteWritable ? 7 : 6" class="px-5 py-12 text-center text-slate-500">{{ products.length ? 'Nenhum produto corresponde aos filtros.' : 'Nenhum produto cadastrado.' }}</td></tr>
+              <tr v-if="!products.length"><td :colspan="canUpdateWritable || canPromoteWritable ? 7 : 6" class="px-5 py-12 text-center text-slate-500">{{ products.length ? 'Nenhum produto corresponde aos filtros.' : 'Nenhum produto cadastrado.' }}</td></tr>
             </tbody>
           </ListTable>
       </section>
