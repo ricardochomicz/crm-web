@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 type Option = { value: string | number; label: string }
-const props = defineProps<{ modelValue: string | number; options: Option[]; placeholder?: string; required?: boolean }>()
+const props = defineProps<{ modelValue: string | number; options: Option[]; placeholder?: string; required?: boolean; disabled?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string | number] }>()
 const open = ref(false)
 const query = ref('')
@@ -23,6 +23,7 @@ function close() { open.value = false; query.value = '' }
 <template>
  <div class="relative" @keydown="onKeydown" @focusout="(e) => { if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) close() }">
   <input
+   :disabled="disabled"
    :value="open ? query : (selected?.label ?? '')"
    :placeholder="placeholder ?? 'Selecione ou pesquise...'"
    :required="required && !selected"
