@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
@@ -183,10 +184,7 @@ onMounted(load)
           <div>
             <label for="tenant-type" class="mb-2 block text-sm font-semibold text-slate-700"
               >Tipo de cadastro</label
-            ><select id="tenant-type" v-model="form.type" class="field" @change="resetDocument">
-              <option value="PJ">Pessoa jurídica · CNPJ</option>
-              <option value="PF">Pessoa física · CPF</option>
-            </select>
+            ><SearchSelect v-model="form.type" :options="[{value:'PJ',label:'Pessoa jurídica · CNPJ'},{value:'PF',label:'Pessoa física · CPF'}]" @update:model-value="resetDocument"/>
           </div>
           <FormField
             id="document"
