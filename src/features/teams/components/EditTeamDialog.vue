@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
-import FormField from '@/components/ui/FormField.vue'
+import TeamsForm from './TeamsForm.vue'
 import { ApiError } from '@/lib/http'
 import { errorMessage } from '@/lib/feedback'
 import { teamsApi } from '../api'
@@ -48,8 +48,6 @@ watch(
   },
 )
 
-const activeMembers = () => props.members.filter((m) => m.status === 'ACTIVE')
-
 async function submit() {
   if (busy.value || !props.team) return
   error.value = ''
@@ -72,7 +70,7 @@ async function submit() {
         nameError.value = 'Informe um nome para a equipe.'
         busy.value = false
         await nextTick()
-        document.getElementById('edit-team-name')?.focus()
+        document.getElementById('team-name')?.focus()
         return
       }
       await teamsApi.update(props.tenantId, props.team.id, trimmedName)
@@ -115,34 +113,16 @@ async function submit() {
         {{ error }}
       </div>
 
-      <FormField
-        v-if="!supervisorMode"
-        id="edit-team-name"
-        v-model="name"
-        label="Nome da equipe"
-        :error="nameError"
-        data-initial-focus
+      <TeamsForm
+        v-model:name="name"
+        v-model:supervisor-membership-id="supervisorMembershipId"
+        :mode="supervisorMode ? 'supervisor' : 'name'"
+        :members="members"
+        :members-loading="membersLoading"
+        :busy="busy"
+        :name-error="nameError"
+        :supervisor-error="supervisorError"
       />
-
-      <div v-if="supervisorMode" class="space-y-2">
-        <label for="edit-supervisor" class="text-sm font-semibold text-slate-700">Supervisor</label>
-        <select
-          id="edit-supervisor"
-          v-model="supervisorMembershipId"
-          class="field"
-          :class="{ 'field-error': supervisorError }"
-          :disabled="busy || membersLoading"
-          data-initial-focus
-        >
-          <option value="">
-            {{ membersLoading ? 'Carregando membros…' : 'Selecione um membro ativo' }}
-          </option>
-          <option v-for="member in activeMembers()" :key="member.id" :value="member.id">
-            {{ member.name ?? member.email ?? member.id }}
-          </option>
-        </select>
-        <p v-if="supervisorError" class="text-xs text-red-600">{{ supervisorError }}</p>
-      </div>
 
       <div class="flex justify-end gap-3 pt-2">
         <button type="button" class="secondary-button" :disabled="busy" @click="$emit('close')">
