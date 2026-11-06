@@ -10,6 +10,7 @@ import { can } from '@/features/tenants/types'
 import type { Tenant, Page } from '@/features/tenants/types'
 import { teamApi } from '@/features/members/api'
 import { errorMessage } from '@/lib/feedback'
+import { toast } from '@/services/toast'
 import { teamsApi } from '../api'
 import type { Team } from '../types'
 import TeamsTable from '../components/TeamsTable.vue'
@@ -28,6 +29,8 @@ const teams = ref<Page<Team>>()
 const teamsLoading = ref(false)
 const teamsError = ref('')
 const teamsPage = ref(1)
+const teamNameFilter = ref('')
+const appliedTeamName = ref('')
 
 /** Lista de membros para selects de supervisor */
 type SupervisorOption = { id: string; name: string | null; email: string | null; status: string }
@@ -39,7 +42,6 @@ const editingTeam = ref<Team | null>(null)
 const supervisorTeam = ref<Team | null>(null)
 const viewingTeam = ref<Team | null>(null)
 
-const notice = ref<{ message: string; tone: 'success' | 'warning' } | null>(null)
 
 const canWrite = computed(() => !!tenant.value?.access?.allows_operational_writes)
 const canCreate = computed(() => can(tenant.value, 'teams.create'))
@@ -63,7 +65,7 @@ async function loadTeams(page = teamsPage.value) {
   teamsError.value = ''
   teamsPage.value = page
   try {
-    teams.value = await teamsApi.list(tenantId, page)
+    teams.value = await teamsApi.list(tenantId, page, appliedTeamName.value)
   } catch (failure) {
     teamsError.value = errorMessage(failure)
   } finally {
@@ -105,7 +107,6 @@ async function refresh() {
 }
 
 function openCreate() {
-  notice.value = null
   createOpen.value = true
 }
 
@@ -127,8 +128,19 @@ async function onCompleted(result: { message: string; tone: 'success' | 'warning
   createOpen.value = false
   editingTeam.value = null
   supervisorTeam.value = null
-  notice.value = result
+  if (result.tone === 'success') toast.success(result.message)
+  else toast.warning(result.message)
   await refresh()
+}
+
+function searchTeams() {
+  appliedTeamName.value = teamNameFilter.value.trim()
+  void loadTeams(1)
+}
+function clearTeamSearch() {
+  teamNameFilter.value = ''
+  appliedTeamName.value = ''
+  void loadTeams(1)
 }
 
 onMounted(load)
@@ -170,19 +182,6 @@ onMounted(load)
 
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
 
-    <div
-      v-if="notice"
-      role="status"
-      class="mb-5 rounded-xl border p-4 text-sm"
-      :class="
-        notice.tone === 'success'
-          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-          : 'border-amber-200 bg-amber-50 text-amber-800'
-      "
-    >
-      {{ notice.message }}
-    </div>
-
     <template v-if="!loading && !error">
       <AsyncNotice
         :loading="teamsLoading && !teams"
@@ -192,6 +191,13 @@ onMounted(load)
       />
 
       <template v-if="teams">
+        <form class="mb-4 flex flex-wrap items-end gap-3" role="search" @submit.prevent="searchTeams">
+          <label class="min-w-[220px] flex-1 text-sm font-medium text-slate-700">Buscar equipe pelo nome
+            <input v-model="teamNameFilter" type="search" class="field mt-2" placeholder="Digite o nome da equipe" aria-label="Buscar equipe pelo nome" />
+          </label>
+          <button type="submit" class="primary-button w-auto" :disabled="teamsLoading || anyDialogOpen">Buscar</button>
+          <button v-if="appliedTeamName" type="button" class="secondary-button" :disabled="teamsLoading || anyDialogOpen" @click="clearTeamSearch">Limpar filtro</button>
+        </form>
         <TeamsTable
           :teams="teams.data"
           :can-update="canUpdate"
