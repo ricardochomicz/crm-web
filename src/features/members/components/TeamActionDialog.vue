@@ -36,7 +36,7 @@ watch(
 const title = computed(() => {
   switch (props.action?.kind) {
     case 'role':
-      return 'Alterar papel na empresa'
+      return 'Alterar cargo do usuário'
     case 'status':
       return props.action.member.status === 'ACTIVE' ? 'Suspender acesso?' : 'Reativar acesso?'
     case 'remove':
@@ -57,7 +57,7 @@ const subject = computed(
 const description = computed(() => {
   switch (props.action?.kind) {
     case 'role':
-      return 'O novo papel será aplicado ao vínculo desta pessoa nesta empresa.'
+      return 'Escolha o cargo que definirá as permissões desta pessoa na empresa.'
     case 'status':
       return props.action.member.status === 'ACTIVE'
         ? 'A pessoa perderá o acesso a esta empresa. O vínculo será preservado e continuará ocupando uma vaga. Você poderá reativá-lo depois.'
@@ -78,10 +78,10 @@ const blocked = computed(() => {
   if (!props.canWrite) return 'A assinatura não permite esta alteração no momento.'
   if (props.action.kind === 'resend') return props.resendBlocked
   if (!props.action.member.can_manage) return 'O acesso do proprietário não pode ser alterado.'
-  if (props.action.kind === 'role' && !props.allowedRoles.includes(role.value))
+  if (props.action.kind === 'role' && (!selectedRoleId.value || !selectableRoles.value.some(item => item.id === selectedRoleId.value)))
     return 'Selecione um cargo disponível.'
   if (props.action.kind === 'role' && props.action.member.role === role.value && props.action.member.tenant_role_id === selectedRoleId.value)
-    return 'Selecione um papel diferente do atual.'
+    return 'Este já é o cargo atual do usuário.'
   return ''
 })
 const destructive = computed(
@@ -99,7 +99,7 @@ async function submit() {
     let notice: TeamNotice = { tone: 'success', message: '' }
     if (action.kind === 'role') {
       await teamApi.role(props.tenantId, action.member.id, role.value, selectedRoleId.value || undefined)
-      notice.message = 'Papel atualizado nesta empresa.'
+      notice.message = 'Cargo atualizado nesta empresa.'
     } else if (action.kind === 'status') {
       const status = action.member.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
       await teamApi.status(props.tenantId, action.member.id, status)
@@ -174,7 +174,7 @@ async function submit() {
               busy
                 ? 'Salvando…'
                 : action?.kind === 'role'
-                  ? 'Salvar papel'
+                  ? 'Salvar cargo'
                   : action?.kind === 'status'
                     ? action.member.status === 'ACTIVE'
                       ? 'Suspender acesso'
