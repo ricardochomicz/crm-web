@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TableActionButton from '@/components/ui/TableActionButton.vue'
 import type { Team } from '../types'
 
 defineProps<{
@@ -48,32 +49,9 @@ defineEmits<{
           </td>
           <td class="px-6 py-5">
             <div class="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                class="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-stone-100 disabled:opacity-50"
-                :disabled="busy"
-                @click="$emit('viewMembers', team)"
-              >
-                Ver membros
-              </button>
-              <button
-                v-if="canUpdateSupervisor"
-                type="button"
-                class="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-stone-100 disabled:opacity-50"
-                :disabled="busy"
-                @click="$emit('editSupervisor', team)"
-              >
-                Supervisor
-              </button>
-              <button
-                v-if="canUpdate"
-                type="button"
-                class="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-stone-100 disabled:opacity-50"
-                :disabled="busy"
-                @click="$emit('edit', team)"
-              >
-                Renomear
-              </button>
+              <TableActionButton icon="users" :label="`Ver membros de ${team.name}`" :disabled="busy" @click="$emit('viewMembers', team)" />
+              <TableActionButton v-if="canUpdateSupervisor" icon="shield" :label="`Alterar supervisor de ${team.name}`" :disabled="busy" @click="$emit('editSupervisor', team)" />
+              <TableActionButton v-if="canUpdate" icon="edit" :label="`Renomear ${team.name}`" :disabled="busy" @click="$emit('edit', team)" />
             </div>
           </td>
         </tr>
