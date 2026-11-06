@@ -1,28 +1,13 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
-import { tenantApi } from '../api'
-import { type Tenant } from '../types'
-import { errorMessage } from '@/lib/feedback'
-const tenantId = String(useRoute().params.tenantId)
-const tenant = ref<Tenant>()
-const loading = ref(true)
-const error = ref('')
-async function load() {
-  loading.value = true
-  error.value = ''
-  tenant.value = undefined
-  try {
-    tenant.value = (await tenantApi.show(tenantId)).data
-  } catch (failure) {
-    error.value = errorMessage(failure)
-  } finally {
-    loading.value = false
-  }
-}
-onMounted(load)
+import { useTenantDashboard } from '../composables/useTenantDashboard'
+
+const route = useRoute()
+const tenantId = computed(() => String(route.params.tenantId))
+const { tenant, loading, error, load } = useTenantDashboard(tenantId)
 </script>
 <template>
   <AppShell :tenant="tenant" :title="tenant?.name ?? 'Início'" subtitle="Visão geral">
