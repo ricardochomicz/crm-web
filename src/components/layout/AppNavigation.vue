@@ -126,6 +126,7 @@ watch(() => route.path, (path) => {
           :class="{ 'nav-active': route.path === '/admin/operadoras' }"
           >Catálogo de operadoras</RouterLink
         >
+        <RouterLink to="/admin/classificacoes" class="nav-item" :class="{ 'nav-active': route.path === '/admin/classificacoes' }">Classificações globais</RouterLink>
         <RouterLink
           to="/admin"
           class="nav-item"
