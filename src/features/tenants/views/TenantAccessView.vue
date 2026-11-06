@@ -1,49 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
-import { useAuthStore } from '@/features/auth/store'
-import { tenantApi } from '../api'
-import { roleLabels, type Page, type Tenant } from '../types'
-import { errorMessage } from '@/lib/feedback'
-const auth = useAuthStore()
-const router = useRouter()
-const route = useRoute()
-const result = ref<Page<Tenant>>()
-const loading = ref(true)
-const error = ref('')
-const selecting = ref('')
-const selectionError = ref('')
-async function enter(tenant: Tenant) {
-  if (selecting.value) return
-  selecting.value = tenant.id
-  selectionError.value = ''
-  try {
-    await tenantApi.select(tenant.id)
-    await router.push(`/empresas/${tenant.id}`)
-  } catch (failure) {
-    selectionError.value = errorMessage(failure)
-  } finally {
-    selecting.value = ''
-  }
-}
-async function load(page = 1) {
-  loading.value = true
-  error.value = ''
-  try {
-    result.value = await tenantApi.list(page)
-    if (route.meta.autoEnter && result.value.total === 1 && result.value.data[0])
-      await enter(result.value.data[0])
-  } catch (failure) {
-    error.value = errorMessage(failure)
-  } finally {
-    loading.value = false
-  }
-}
-onMounted(() => load())
+import { roleLabels } from '../types'
+import { useTenantAccess } from '../composables/useTenantAccess'
+
+const { auth, result, loading, error, selecting, selectionError, enter, load } = useTenantAccess()
 </script>
 <template>
   <AppShell title="Minhas empresas">
