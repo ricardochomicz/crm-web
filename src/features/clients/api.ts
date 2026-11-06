@@ -12,7 +12,7 @@ const base=(id:string)=>'/api/v1/tenants/'+encodeURIComponent(id)
 export const clientsApi={
  list:(id:string)=>request<{data:Client[];meta:{can_manage:boolean}}>(base(id)+'/clients'),
  show:(id:string,client:string)=>request<{data:Client}>(base(id)+'/clients/'+client),
- options:(id:string)=>request<{data:{sellers:Seller[]}}>(base(id)+'/clients/options'),
+ options:(id:string)=>request<{data:{sellers:Seller[];current_seller_id:string|null;can_assign_seller:boolean}}>(base(id)+'/clients/options'),
  save:(id:string,data:ClientInput,client?:string)=>mutate<{data:Client}>(base(id)+'/clients'+(client?'/'+client:''),data,client?'PATCH':'POST'),
  contact:(id:string,client:string,data:ContactInput,contact?:string)=>mutate(base(id)+'/clients/'+client+'/contacts'+(contact?'/'+contact:''),data,contact?'PATCH':'POST'),
  classifications:(id:string)=>request<{data:Classification[];meta:{can_manage:boolean}}>(base(id)+'/operator-classifications'),
