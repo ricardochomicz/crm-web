@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import PagePagination from '@/components/ui/PagePagination.vue'
-import { useListPagination } from '@/composables/useListPagination'
 import ListFilters from '@/components/ui/ListFilters.vue'
-import { useListFilters } from '@/composables/useListFilters'
 import ListTable from '@/components/ui/ListTable.vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -15,6 +13,7 @@ import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { toast } from '@/services/toast'
 import { ApiError } from '@/lib/http'
 import { validateClient } from '../validation'
+import { useClientsList } from '../composables/useClientsList'
 import { useFormValidation } from '@/composables/useFormValidation'
 import FormError from '@/components/ui/FormError.vue'
 import { clientsApi, type Client, type ClientInput, type Contact, type ContactInput, type Classification, type Seller } from '../api'
@@ -22,13 +21,12 @@ import type { Tenant } from '@/features/tenants/types'
 const route=useRoute(), tenantId=computed(()=>String(route.params.tenantId))
 const tenant=ref<Tenant>(),rows=ref<Client[]>([]),operators=ref<TenantOperator[]>([]),classes=ref<Classification[]>([]),sellers=ref<Seller[]>([])
 const canAssignSeller=ref(false),currentSellerId=ref<string|null>(null)
-const loading=ref(true),busy=ref(false),error=ref(''),canManage=ref(false),canCreate=ref(false),canDelete=ref(false),search=ref(''),operatorFilter=ref('')
+const loading=ref(true),busy=ref(false),error=ref(''),canManage=ref(false),canCreate=ref(false),canDelete=ref(false)
 const showSellerSelect=computed(()=>canAssignSeller.value||tenant.value?.role==='OWNER'||tenant.value?.role==='MANAGER')
 const writable=computed(()=>canManage.value&&!!tenant.value?.access?.allows_operational_writes)
 const canAdd=computed(()=>canCreate.value&&!!tenant.value?.access?.allows_operational_writes)
 const canRemove=computed(()=>canDelete.value&&!!tenant.value?.access?.allows_operational_writes)
-const { applied, apply: applyFilters, clear: clearFilters } = useListFilters({ search, operatorFilter })
-const filtered=computed(()=>rows.value.filter(r=>(!applied.value.operatorFilter||String(r.operator_id)===applied.value.operatorFilter)&&(!applied.value.search||[r.company_name,r.document,r.email??''].join(' ').toLocaleLowerCase('pt-BR').includes(applied.value.search.toLocaleLowerCase('pt-BR')))))
+const { search, operatorFilter, filtered, applyFilters, clearFilters, page, total, lastPage, pageRows, changePage } = useClientsList(rows)
 const blank=():ClientInput=>({person_type:'PJ',document:'',company_name:'',phone:null,email:null,zip_code:null,address:null,address_number:null,address_complement:null,neighborhood:null,city:null,state:null,operator_id:null,classification_id:null,contract_started_on:null,contract_ends_on:null,is_active:true,seller_membership_id:null,seller_reason:null})
 const validationState=useFormValidation<keyof ClientInput>()
 const form=ref<ClientInput>(blank()),editing=ref(''),modal=ref(false),selected=ref<Client|null>(null),tab=ref<'data'|'contacts'|'sellers'>('data')
@@ -105,7 +103,6 @@ async function details(id:string){try{selected.value=(await clientsApi.show(tena
 function editContact(c?:Contact){contactEditing.value=c?.id??'';contact.value=c?{name:c.name,position:c.position,phone:c.phone,email:c.email,is_primary:c.is_primary,is_active:c.is_active,notes:c.notes}:contactBlank();contactModal.value=true}
 async function saveContact(){if(!selected.value||busy.value)return;busy.value=true;try{await clientsApi.contact(tenantId.value,selected.value.id,{...contact.value,phone:digits(contact.value.phone,11)||null},contactEditing.value||undefined);contactModal.value=false;toast.success('Contato salvo.');await details(selected.value.id)}catch(e){toast.error(e instanceof Error?e.message:'Erro ao salvar contato.')}finally{busy.value=false}}
 watch(tenantId,()=>{selected.value=null;modal.value=false;void load()},{immediate:true})
-const { page, total, lastPage, pageRows, changePage } = useListPagination(filtered)
 </script>
 <template>
 <AppShell :tenant="tenant" title="Clientes" subtitle="Carteira comercial e contatos">
