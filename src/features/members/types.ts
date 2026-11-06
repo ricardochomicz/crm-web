@@ -7,6 +7,8 @@ export interface Member {
   name: string
   email: string
   role: TenantRole
+  tenant_role_id?: string | null
+  role_name?: string | null
   status: 'ACTIVE' | 'SUSPENDED'
   joined_at: string | null
 }
@@ -15,6 +17,8 @@ export interface Invitation {
   id: string
   email: string
   role: AssignableRole
+  tenant_role_id?: string | null
+  role_name?: string | null
   status: InvitationStatus
   is_expired: boolean
   reserves_seat: boolean
