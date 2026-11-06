@@ -4,6 +4,8 @@ import { useRoute } from 'vue-router'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
+import ListFilters from '@/components/ui/ListFilters.vue'
+import PagePagination from '@/components/ui/PagePagination.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import { tenantApi } from '@/features/tenants/api'
 import type { Tenant } from '@/features/tenants/types'
@@ -15,6 +17,11 @@ const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
 const tenant = ref<Tenant>()
 const products = ref<any[]>([])
+const productPage = ref(1)
+const lastPage = ref(1)
+const totalProducts = ref(0)
+const filtersLoading = ref(false)
+const appliedFilters = ref({search:'',operator_id:'',category:'',is_active:''})
 const operators = ref<TenantOperator[]>([])
 const loading = ref(true)
 const busy = ref(false)
@@ -41,7 +48,7 @@ const productModalOpen = ref(false)
 const promotionModalOpen = ref(false)
 const operatorFilter = ref('')
 const categoryFilter = ref('')
-const filtered = computed(() => products.value.filter(p => (!nameFilter.value || p.name.toLocaleLowerCase('pt-BR').includes(nameFilter.value.trim().toLocaleLowerCase('pt-BR'))) && (!operatorFilter.value || String(p.operator_id) === operatorFilter.value) && (!categoryFilter.value || p.category === categoryFilter.value) && (!statusFilter.value || (statusFilter.value === 'active' ? p.is_active : !p.is_active))))
+const filtered = computed(() => products.value)
 const money = (value: unknown) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const parseBrl = (value: string) => Number(value.replace(/[^0-9]/g, '')) / 100
 const formatBrlInput = (value: string) => money(parseBrl(value))
@@ -51,7 +58,22 @@ const currentPromotion = (p: any) => p.promotions?.find((pr: any) => pr.is_activ
 function newProduct() { reset(); productModalOpen.value = true }
 function closeProduct() { if (!busy.value) productModalOpen.value = false }
 function closePromotion() { if (!busy.value) promotionModalOpen.value = false }
-function clearFilters() { nameFilter.value = ''; operatorFilter.value = ''; categoryFilter.value = ''; statusFilter.value = '' }
+function clearFilters() { nameFilter.value = ''; operatorFilter.value = ''; categoryFilter.value = ''; statusFilter.value = ''; applyFilters() }
+function applyFilters() { appliedFilters.value = {search:nameFilter.value.trim(),operator_id:operatorFilter.value,category:categoryFilter.value,is_active:statusFilter.value}; void loadProducts(1) }
+async function loadProducts(page = productPage.value) {
+  filtersLoading.value = true
+  try {
+    const params = new URLSearchParams({page:String(page)})
+    if(appliedFilters.value.search)params.set('search',appliedFilters.value.search)
+    if(appliedFilters.value.operator_id)params.set('operator_id',appliedFilters.value.operator_id)
+    if(appliedFilters.value.category)params.set('category',appliedFilters.value.category)
+    if(appliedFilters.value.is_active)params.set('is_active',appliedFilters.value.is_active === 'active' ? '1' : '0')
+    const {request} = await import('@/lib/http')
+    const result = await request<{data:any[];meta:{current_page:number;last_page:number;total:number;can_manage:boolean;can_create:boolean;can_update:boolean;can_manage_promotions:boolean}}>(`${base.value}?${params}`)
+    products.value=result.data; productPage.value=result.meta.current_page;lastPage.value=result.meta.last_page;totalProducts.value=result.meta.total
+    canManage.value=result.meta.can_manage;canCreate.value=result.meta.can_create;canUpdate.value=result.meta.can_update;canManagePromotions.value=result.meta.can_manage_promotions
+  }catch(e){toast.error(errorMessage(e))}finally{filtersLoading.value=false}
+}
 const writable = computed(() => canManage.value && !!tenant.value?.access?.allows_operational_writes)
 const canCreateWritable = computed(() => canCreate.value && writable.value)
 const canUpdateWritable = computed(() => canUpdate.value && writable.value)
@@ -63,17 +85,8 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [company, result] = await Promise.all([
-      tenantApi.show(id),
-      import('@/lib/http').then(m => m.request<{ data: any[]; meta: { can_manage: boolean; can_create: boolean; can_update: boolean; can_manage_promotions: boolean } }>(`/api/v1/tenants/${encodeURIComponent(id)}/products`)),
-    ])
-    if (id !== tenantId.value) return
-    tenant.value = company.data
-    products.value = result.data
-    canManage.value = result.meta.can_manage
-    canCreate.value = result.meta.can_create
-    canUpdate.value = result.meta.can_update
-    canManagePromotions.value = result.meta.can_manage_promotions
+    tenant.value = (await tenantApi.show(id)).data
+    await loadProducts(productPage.value)
     operators.value = (await operatorsApi.tenantList(id)).data.filter(o => o.selected && o.is_active)
   } catch (e) {
     if (id === tenantId.value) error.value = errorMessage(e)
@@ -135,26 +148,20 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
     </header>
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
     <template v-if="!loading && !error">
-      <section class="mb-5 rounded-2xl border border-stone-200 bg-white p-4 sm:p-5">
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label class="text-xs font-semibold text-slate-600">Buscar por nome
-            <input v-model="nameFilter" type="search" placeholder="Nome do produto" class="field" />
-          </label>
-          <label class="text-xs font-semibold text-slate-600">Operadora
-            <SearchSelect v-model="operatorFilter" :options="[{value:'',label:'Todas as operadoras'}, ...operators.map(o=>({value:String(o.id),label:o.name}))]"/>
-          </label>
-          <label class="text-xs font-semibold text-slate-600">Categoria
-            <SearchSelect v-model="categoryFilter" :options="[{value:'',label:'Todas as categorias'}, ...categories.map(c=>({value:c[0]!,label:c[1]!}))]"/>
-          </label>
-          <label class="text-xs font-semibold text-slate-600">Situação
-            <SearchSelect v-model="statusFilter" :options="[{value:'',label:'Todos'},{value:'active',label:'Ativos'},{value:'inactive',label:'Inativos'}]"/>
-          </label>
-        </div>
-        <div class="mt-4 flex items-center justify-between gap-3 border-t border-stone-100 pt-3">
-          <p class="text-sm text-slate-500">{{ filtered.length }} de {{ products.length }} produto(s)</p>
-          <button type="button" class="text-sm font-medium text-orange-700 hover:underline" @click="clearFilters">Limpar filtros</button>
-        </div>
-      </section>
+      <ListFilters :busy="filtersLoading" :count-label="`${totalProducts} produto(s) encontrado(s)`" @search="applyFilters" @clear="clearFilters">
+        <label class="text-xs font-semibold text-slate-600">Buscar por nome
+          <input v-model="nameFilter" type="search" placeholder="Nome do produto" class="field" />
+        </label>
+        <label class="text-xs font-semibold text-slate-600">Operadora
+          <SearchSelect v-model="operatorFilter" :options="[{value:'',label:'Todas as operadoras'}, ...operators.map(o=>({value:String(o.id),label:o.name}))]"/>
+        </label>
+        <label class="text-xs font-semibold text-slate-600">Categoria
+          <SearchSelect v-model="categoryFilter" :options="[{value:'',label:'Todas as categorias'}, ...categories.map(c=>({value:c[0]!,label:c[1]!}))]"/>
+        </label>
+        <label class="text-xs font-semibold text-slate-600">Situação
+          <SearchSelect v-model="statusFilter" :options="[{value:'',label:'Todos'},{value:'active',label:'Ativos'},{value:'inactive',label:'Inativos'}]"/>
+        </label>
+      </ListFilters>
       <section class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
         <div class="overflow-x-auto">
           <table class="w-full min-w-[760px] text-left text-sm">
