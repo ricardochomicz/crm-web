@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
-import FormField from '@/components/ui/FormField.vue'
+import TeamsForm from './TeamsForm.vue'
 import { ApiError } from '@/lib/http'
 import { errorMessage } from '@/lib/feedback'
 import { teamsApi } from '../api'
@@ -41,8 +41,6 @@ watch(
     }
   },
 )
-
-const activeMembers = () => props.members.filter((m) => m.status === 'ACTIVE')
 
 async function submit() {
   if (busy.value) return
@@ -99,26 +97,16 @@ async function submit() {
         {{ error }}
       </div>
 
-      <FormField id="team-name" v-model="name" label="Nome da equipe" :error="nameError" data-initial-focus />
-
-      <div class="space-y-2">
-        <label for="team-supervisor" class="text-sm font-semibold text-slate-700">Supervisor</label>
-        <select
-          id="team-supervisor"
-          v-model="supervisorMembershipId"
-          class="field"
-          :class="{ 'field-error': supervisorError }"
-          :disabled="busy || membersLoading"
-        >
-          <option value="">
-            {{ membersLoading ? 'Carregando membros…' : 'Selecione um membro ativo' }}
-          </option>
-          <option v-for="member in activeMembers()" :key="member.id" :value="member.id">
-            {{ member.name ?? member.email ?? member.id }}
-          </option>
-        </select>
-        <p v-if="supervisorError" class="text-xs text-red-600">{{ supervisorError }}</p>
-      </div>
+      <TeamsForm
+        v-model:name="name"
+        v-model:supervisor-membership-id="supervisorMembershipId"
+        mode="create"
+        :members="members"
+        :members-loading="membersLoading"
+        :busy="busy"
+        :name-error="nameError"
+        :supervisor-error="supervisorError"
+      />
 
       <div class="flex justify-end gap-3 pt-2">
         <button
