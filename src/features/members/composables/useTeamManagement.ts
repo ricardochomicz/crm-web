@@ -3,7 +3,7 @@ import { tenantApi } from '@/features/tenants/api'
 import { can, canViewTeam, type Page, type Tenant } from '@/features/tenants/types'
 import { errorMessage } from '@/lib/feedback'
 import { teamApi } from '../api'
-import type { Invitation, InvitationStatus, Member } from '../types'
+import type { AssignableRole, Invitation, InvitationStatus, Member } from '../types'
 export function useTeamManagement(tenantId: string) {
   const tenant = ref<Tenant>()
   const loading = ref(true)
@@ -23,7 +23,13 @@ export function useTeamManagement(tenantId: string) {
   const canAccess = computed(() => canViewTeam(tenant.value))
   const canViewMembers = computed(() => has('members.view'))
   const canViewInvitations = computed(() => has('invitations.view'))
-  const allowedRoles = computed(() => tenant.value?.access?.assignable_roles ?? [])
+  const allowedRoles = computed<AssignableRole[]>(() => {
+    // The membership role is authoritative for these management choices. Avoid
+    // hiding valid roles when an older tenant response returns a partial list.
+    if (tenant.value?.role === 'OWNER') return ['MANAGER', 'CONSULTANT', 'ASSISTANT']
+    if (tenant.value?.role === 'MANAGER') return ['CONSULTANT', 'ASSISTANT']
+    return tenant.value?.access?.assignable_roles ?? []
+  })
   const subscription = computed(() =>
     tenant.value?.access?.capacity
       ? {
