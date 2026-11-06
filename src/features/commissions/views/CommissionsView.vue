@@ -14,10 +14,34 @@ import { useCommissionsPage } from '../composables/useCommissionsPage'
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
 const {
-  tenant, operators, orderTypes, loading, busy, settingsBusy, error, writable,
-  defaultDeduction, filterOperator, filterOrderType, filteredRows,
-  applyFilters, clearFilters, page, total, lastPage, pageRows, changePage,
-  editingId, modalOpen, form, format, orderTypeLabel, edit, load, saveSettings, save,
+  tenant,
+  operators,
+  orderTypes,
+  loading,
+  busy,
+  settingsBusy,
+  error,
+  writable,
+  defaultDeduction,
+  filterOperator,
+  filterOrderType,
+  filteredRows,
+  applyFilters,
+  clearFilters,
+  page,
+  total,
+  lastPage,
+  pageRows,
+  changePage,
+  editingId,
+  modalOpen,
+  form,
+  format,
+  orderTypeLabel,
+  edit,
+  load,
+  saveSettings,
+  save,
 } = useCommissionsPage(tenantId)
 </script>
 <template>
@@ -51,7 +75,14 @@ const {
             :disabled="!writable || settingsBusy"
             inputmode="decimal"
             class="mt-2 block w-44 rounded-xl border-0 bg-stone-100 px-4 py-3 text-sm font-normal outline-none focus:bg-white focus:ring-2 focus:ring-orange-400" /></label
-        ><button v-if="writable" type="submit" class="primary-button w-auto" :disabled="settingsBusy">{{ settingsBusy ? 'Salvando…' : 'Salvar padrão' }}</button>
+        ><button
+          v-if="writable"
+          type="submit"
+          class="primary-button w-auto"
+          :disabled="settingsBusy"
+        >
+          {{ settingsBusy ? 'Salvando…' : 'Salvar padrão' }}
+        </button>
       </div>
       <p class="mt-3 text-xs text-slate-500">
         Aplicado à comissão bruta quando a tabela não possui desconto próprio. Use 0% para não
