@@ -8,6 +8,7 @@ import { tenantApi } from '@/features/tenants/api'
 import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { toast } from '@/services/toast'
 import { ApiError } from '@/lib/http'
+import { validateClient } from '../validation'
 import { clientsApi, type Client, type ClientInput, type Contact, type ContactInput, type Classification, type Seller } from '../api'
 import type { Tenant } from '@/features/tenants/types'
 const route=useRoute(), tenantId=computed(()=>String(route.params.tenantId))
@@ -59,7 +60,7 @@ async function lookupCep(){
 }
 watch(()=>form.value.person_type,()=>{form.value.document=digits(form.value.document,form.value.person_type==='PF'?11:14)})
 
-const classesForOperator=computed(()=>classes.value.filter(c=>c.operator_id===form.value.operator_id&&c.is_active))
+const classesForOperator=computed(()=>classes.value.filter(c=>Number(c.operator_id)===Number(form.value.operator_id)&&c.is_active))
 const activeSeller=(c:Client)=>c.sellers?.find(s=>!s.ended_at)
 function start(c?:Client){
  editing.value=c?.id??'';form.value=c?{person_type:c.person_type,document:c.document,company_name:c.company_name,phone:c.phone,email:c.email,zip_code:c.zip_code,address:c.address,address_number:c.address_number,address_complement:c.address_complement,neighborhood:c.neighborhood,city:c.city,state:c.state,operator_id:c.operator_id,classification_id:c.classification_id,contract_started_on:c.contract_started_on,contract_ends_on:c.contract_ends_on,is_active:c.is_active,seller_membership_id:activeSeller(c)?.tenant_user_id??null,seller_reason:null}:blank();if(!c&&!showSellerSelect.value)form.value.seller_membership_id=currentSellerId.value;cepRequest++;cepMessage.value='';modal.value=true
@@ -67,13 +68,16 @@ function start(c?:Client){
 async function load(){
  const id=tenantId.value;loading.value=true;error.value=''
  try{
- const [t,list,op,cl,opts]=await Promise.all([tenantApi.show(id),clientsApi.list(id),operatorsApi.tenantList(id),clientsApi.classifications(id),clientsApi.options(id)])
+ const [t,list,op,cl,opts]=await Promise.all([tenantApi.show(id),clientsApi.list(id),operatorsApi.available(),clientsApi.classifications(id),clientsApi.options(id)])
  if(id!==tenantId.value)return
- tenant.value=t.data;rows.value=list.data;canManage.value=list.meta.can_manage;operators.value=op.data.filter(o=>o.selected);classes.value=cl.data;sellers.value=opts.data.sellers;canAssignSeller.value=opts.data.can_assign_seller;currentSellerId.value=opts.data.current_seller_id
+ tenant.value=t.data;rows.value=list.data;canManage.value=list.meta.can_manage;operators.value=op.data.map(o=>({...o,selected:true}));classes.value=cl.data;sellers.value=opts.data.sellers;canAssignSeller.value=opts.data.can_assign_seller;currentSellerId.value=opts.data.current_seller_id
  }catch(e){error.value=e instanceof Error?e.message:'Erro ao carregar clientes.'}finally{if(id===tenantId.value)loading.value=false}
 }
 async function save(){
- if(busy.value)return;busy.value=true
+ if(busy.value)return
+ const validation=validateClient(form.value)
+ if(Object.keys(validation).length){toast.error(Object.values(validation).join(' · '));return}
+ busy.value=true
  try{const data={...form.value,operator_id:form.value.operator_id||null,classification_id:form.value.classification_id||null,seller_membership_id:showSellerSelect.value?(form.value.seller_membership_id||null):(editing.value?null:currentSellerId.value),contract_started_on:form.value.contract_started_on||null,contract_ends_on:form.value.contract_ends_on||null,document:form.value.document.replace(/\D/g,''),zip_code:form.value.zip_code?.replace(/\D/g,'')||null,phone:form.value.phone?.replace(/\D/g,'')||null}
  const r=await clientsApi.save(tenantId.value,data,editing.value||undefined);modal.value=false;toast.success('Cliente salvo.');await load();if(selected.value?.id===r.data.id)await details(r.data.id)
  }catch(e){if(e instanceof ApiError && Object.keys(e.errors).length){toast.error(Object.values(e.errors).flat().join(' · '))}else{toast.error(e instanceof Error?e.message:'Erro ao salvar cliente.')}}finally{busy.value=false}
