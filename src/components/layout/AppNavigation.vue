@@ -13,8 +13,8 @@ const managementOpen = ref(false)
 const settingsOpen = ref(false)
 watch(() => route.path, (path) => {
   if (/\/(equipe|equipes|participantes-comerciais)$/.test(path)) teamOpen.value = true
-  if (/\/produtos$/.test(path)) commercialOpen.value = true
-  if (/\/(comissoes|comissoes-equipe|metas-comerciais)$/.test(path)) managementOpen.value = true
+  if (/\/(produtos|clientes)$/.test(path)) commercialOpen.value = true
+  if (/\/(comissoes|comissoes-equipe|metas-comerciais|classificacoes)$/.test(path)) managementOpen.value = true
   if (/\/(dados|unidades|permissoes|assinatura|operadoras)$/.test(path)) settingsOpen.value = true
 }, { immediate: true })
 </script>
@@ -53,6 +53,7 @@ watch(() => route.path, (path) => {
         <div v-if="can(tenant, 'products.view')" class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="commercialOpen" @click="commercialOpen = !commercialOpen">Comercial <span aria-hidden="true">{{ commercialOpen ? '⌄' : '›' }}</span></button>
           <div v-show="commercialOpen" class="space-y-1 border-l border-stone-200 pl-2">
+            <RouterLink :to="`/empresas/${tenant.id}/clientes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/clientes') }">Clientes</RouterLink>
             <RouterLink :to="`/empresas/${tenant.id}/produtos`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/produtos') }" :aria-current="route.path.endsWith('/produtos') ? 'page' : undefined">Produtos e planos</RouterLink>
           </div>
         </div>
@@ -60,6 +61,7 @@ watch(() => route.path, (path) => {
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="managementOpen" @click="managementOpen = !managementOpen">Gerencial <span aria-hidden="true">{{ managementOpen ? '⌄' : '›' }}</span></button>
           <div v-show="managementOpen" class="space-y-1 border-l border-stone-200 pl-2">
             <RouterLink :to="`/empresas/${tenant.id}/comissoes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/comissoes') }" :aria-current="route.path.endsWith('/comissoes') ? 'page' : undefined">Tabelas de comissões</RouterLink>
+            <RouterLink :to="`/empresas/${tenant.id}/classificacoes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/classificacoes') }">Classificações das operadoras</RouterLink>
             <RouterLink :to="`/empresas/${tenant.id}/metas-comerciais`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/metas-comerciais') }">Metas comerciais</RouterLink>
             <RouterLink :to="`/empresas/${tenant.id}/comissoes-equipe`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/comissoes-equipe') }" :aria-current="route.path.endsWith('/comissoes-equipe') ? 'page' : undefined">Comissões da equipe</RouterLink>
           </div>
