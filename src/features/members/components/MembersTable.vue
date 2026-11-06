@@ -51,7 +51,7 @@ defineEmits<{ action: [action: TeamAction] }>()
               </div>
             </div>
           </th>
-          <td class="px-5 py-5 text-xs text-slate-600">{{ roleLabels[member.role] }}</td>
+          <td class="px-5 py-5 text-xs text-slate-600">{{ (member.role_name || roleLabels[member.role]) }}</td>
           <td class="px-5 py-5">
             <StatusBadge :tone="member.status === 'ACTIVE' ? 'success' : 'warning'">{{
               member.status === 'ACTIVE' ? 'Ativo' : 'Suspenso'
