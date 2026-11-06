@@ -4,6 +4,9 @@ import { useRoute } from 'vue-router'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
+import ListFilters from '@/components/ui/ListFilters.vue'
+import PagePagination from '@/components/ui/PagePagination.vue'
+import TableActionButton from '@/components/ui/TableActionButton.vue'
 import ParticipantForm from '../components/ParticipantForm.vue'
 import { participantsApi, type Participant, type ParticipantInput, type Override, type OverrideInput } from '../api'
 import { tenantApi } from '@/features/tenants/api'
@@ -16,6 +19,12 @@ const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
 const tenant = ref<Tenant>()
 const rows = ref<Participant[]>([])
+const currentPage = ref(1)
+const lastPage = ref(1)
+const total = ref(0)
+const filtersBusy = ref(false)
+const appliedSearch = ref('')
+const appliedRole = ref('')
 const operators = ref<TenantOperator[]>([])
 const orderTypes = ref<CommissionOption[]>([])
 const loading = ref(true)
@@ -25,7 +34,10 @@ const canManage = ref(false)
 const writable = computed(() => canManage.value && !!tenant.value?.access?.allows_operational_writes)
 const filterRole = ref('')
 const search = ref('')
-const filtered = computed(() => rows.value.filter(p => (!filterRole.value || p.role === filterRole.value) && (!search.value || p.name.toLocaleLowerCase('pt-BR').includes(search.value.toLocaleLowerCase('pt-BR')))))
+const filtered = computed(() => rows.value)
+async function loadRows(page=1){filtersBusy.value=true;try{const result=await participantsApi.list(tenantId.value,page,appliedSearch.value,appliedRole.value);rows.value=result.data;currentPage.value=result.meta.current_page;lastPage.value=result.meta.last_page;total.value=result.meta.total;canManage.value=result.meta.can_manage}catch(e){toast.error(errorMessage(e))}finally{filtersBusy.value=false}}
+function applyFilters(){appliedSearch.value=search.value.trim();appliedRole.value=filterRole.value;void loadRows(1)}
+function clearFilters(){search.value='';filterRole.value='';applyFilters()}
 const blank = (): ParticipantInput => ({role:'PARTNER',person_type:'PJ',name:'',document:null,email:null,phone:null,notes:null,is_active:true})
 const form = ref<ParticipantInput>(blank())
 const editingId = ref('')
@@ -44,9 +56,9 @@ function edit(row?:Participant) { editingId.value = row?.id ?? ''; form.value = 
 async function load() {
  const id = tenantId.value; loading.value = true; error.value = ''
  try {
-  const [company,list,available,options] = await Promise.all([tenantApi.show(id),participantsApi.list(id),operatorsApi.tenantList(id),teamCommissionsApi.options(id)])
+  const [company,list,available,options] = await Promise.all([tenantApi.show(id),participantsApi.list(id,currentPage.value,appliedSearch.value,appliedRole.value),operatorsApi.tenantList(id),teamCommissionsApi.options(id)])
   if(id !== tenantId.value) return
-  tenant.value = company.data; rows.value = list.data; canManage.value = list.meta.can_manage
+  tenant.value = company.data; rows.value = list.data; canManage.value = list.meta.can_manage;currentPage.value=list.meta.current_page;lastPage.value=list.meta.last_page;total.value=list.meta.total
   operators.value = available.data.filter(o=>o.selected && o.is_active); orderTypes.value = options.data.order_types
  } catch(e) { if(id===tenantId.value) error.value=errorMessage(e) }
  finally { if(id===tenantId.value) loading.value=false }
@@ -90,9 +102,13 @@ watch(tenantId,()=>{selected.value=null;modalOpen.value=false;overrideOpen.value
  <header class="mb-6 flex flex-wrap items-center justify-between gap-3"><div><p class="eyebrow">EQUIPE</p><h1 class="mt-3 text-3xl font-semibold">Parceiros e indicadores</h1><p class="mt-2 text-sm text-slate-500">Cadastro sem acesso obrigatório ao CRM, com tabela padrão e exceções individuais.</p></div><button v-if="writable" type="button" class="primary-button w-auto" @click="edit()">+ Novo participante</button></header>
  <AsyncNotice :loading="loading" :error="error" @retry="load"/>
  <section v-if="!loading && !error" class="rounded-2xl border border-stone-200 bg-white p-5">
-  <div class="mb-4 flex flex-wrap gap-3"><input v-model="search" placeholder="Buscar por nome" class="rounded-xl border-0 bg-stone-100 px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-orange-400"/><div class="min-w-48"><SearchSelect v-model="filterRole" :options="[{value:'',label:'Todos os perfis'},{value:'PARTNER',label:'Parceiros'},{value:'REFERRER',label:'Indicadores'}]"/></div></div>
-  <div class="overflow-x-auto"><table class="w-full min-w-[650px] text-left text-sm"><thead class="bg-stone-50"><tr><th class="p-3">Nome</th><th class="p-3">Perfil</th><th class="p-3">Pessoa</th><th class="p-3">Contato</th><th class="p-3">Situação</th><th class="p-3">Ações</th></tr></thead><tbody><tr v-for="row in filtered" :key="row.id" class="border-t"><td class="p-3 font-semibold">{{ row.name }}</td><td class="p-3">{{ row.role === 'PARTNER' ? 'Parceiro' : 'Indicador' }}</td><td class="p-3">{{ row.person_type }}</td><td class="p-3">{{ row.email || row.phone || '—' }}</td><td class="p-3">{{ row.is_active ? 'Ativo' : 'Inativo' }}</td><td class="p-3"><div class="flex gap-2"><button type="button" class="rounded-lg border px-3 py-1.5" @click="openCommissions(row)">Comissões</button><button v-if="writable" type="button" class="rounded-lg border px-3 py-1.5" @click="edit(row)">Editar</button></div></td></tr></tbody></table></div>
+  <ListFilters :columns="2" :busy="filtersBusy" :count-label="`${total} participante(s) encontrado(s)`" @search="applyFilters" @clear="clearFilters">
+    <label class="text-xs font-semibold text-slate-600">Buscar por nome<input v-model="search" type="search" placeholder="Nome do participante" class="field" /></label>
+    <label class="text-xs font-semibold text-slate-600">Perfil<SearchSelect v-model="filterRole" :options="[{value:'',label:'Todos os perfis'},{value:'PARTNER',label:'Parceiros'},{value:'REFERRER',label:'Indicadores'}]"/></label>
+  </ListFilters>
+  <div class="overflow-x-auto"><table class="w-full min-w-[650px] text-left text-sm"><thead class="bg-stone-50"><tr><th class="p-3">Nome</th><th class="p-3">Perfil</th><th class="p-3">Pessoa</th><th class="p-3">Contato</th><th class="p-3">Situação</th><th class="p-3">Ações</th></tr></thead><tbody><tr v-for="row in filtered" :key="row.id" class="border-t"><td class="p-3 font-semibold">{{ row.name }}</td><td class="p-3">{{ row.role === 'PARTNER' ? 'Parceiro' : 'Indicador' }}</td><td class="p-3">{{ row.person_type }}</td><td class="p-3">{{ row.email || row.phone || '—' }}</td><td class="p-3">{{ row.is_active ? 'Ativo' : 'Inativo' }}</td><td class="p-3"><div class="flex gap-2"><TableActionButton icon="tag" :label="`Comissões de ${row.name}`" @click="openCommissions(row)" /><TableActionButton v-if="writable" icon="edit" :label="`Editar ${row.name}`" @click="edit(row)" /></div></td></tr></tbody></table></div>
   <p v-if="!filtered.length" class="p-4 text-sm text-slate-500">Nenhum participante encontrado.</p>
+  <PagePagination :page="currentPage" :last-page="lastPage" :total="total" :busy="filtersBusy" @change="loadRows" />
  </section>
  <section v-if="selected" class="mt-5 rounded-2xl border border-stone-200 bg-white p-5">
   <div class="mb-4 flex flex-wrap items-center justify-between gap-2"><div><h2 class="text-xl font-semibold">Comissões de {{ selected.name }}</h2><p class="text-sm text-slate-500">As exceções individuais substituem a regra padrão apenas na operadora, tipo e vigência correspondentes.</p></div><button type="button" class="rounded-lg border px-3 py-2" @click="selected=null">Fechar</button></div>
