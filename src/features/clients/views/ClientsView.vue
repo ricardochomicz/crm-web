@@ -18,10 +18,47 @@ const blank=():ClientInput=>({person_type:'PJ',document:'',company_name:'',phone
 const form=ref<ClientInput>(blank()),editing=ref(''),modal=ref(false),selected=ref<Client|null>(null),tab=ref<'data'|'contacts'|'sellers'>('data')
 const contactBlank=():ContactInput=>({name:'',position:null,phone:null,email:null,is_primary:false,is_active:true,notes:null})
 const contact=ref<ContactInput>(contactBlank()),contactEditing=ref(''),contactModal=ref(false)
+
+const digits=(v:string|null|undefined,max=20)=>(v??'').replace(/\D/g,'').slice(0,max)
+function maskDoc(v:string|null|undefined,p:'PF'|'PJ'){
+ const d=digits(v,p==='PF'?11:14)
+ return p==='PF'?d.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2'):d.replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})\.(\d{3})(\d)/,'.$1/$2').replace(/(\d{4})(\d)/,'$1-$2')
+}
+function maskPhone(v:string|null|undefined){
+ const d=digits(v,11);if(d.length<=2)return d
+ const n=d.slice(2),split=d.length>10?5:4
+ return '('+d.slice(0,2)+') '+n.slice(0,split)+(n.length>split?'-'+n.slice(split):'')
+}
+const documentModel=computed({get:()=>maskDoc(form.value.document,form.value.person_type),set:(v:string)=>form.value.document=digits(v,form.value.person_type==='PF'?11:14)})
+const phoneModel=computed({get:()=>maskPhone(form.value.phone),set:(v:string)=>form.value.phone=digits(v,11)})
+const contactPhoneModel=computed({get:()=>maskPhone(contact.value.phone),set:(v:string)=>contact.value.phone=digits(v,11)})
+const cepModel=computed({get:()=>{const d=digits(form.value.zip_code,8);return d.length>5?d.slice(0,5)+'-'+d.slice(5):d},set:(v:string)=>form.value.zip_code=digits(v,8)})
+const cepBusy=ref(false),cepMessage=ref('')
+let cepRequest=0
+async function lookupCep(){
+ const cep=digits(form.value.zip_code,8)
+ if(cep.length!==8){cepMessage.value='Informe os 8 dígitos do CEP.';return}
+ const request=++cepRequest;cepBusy.value=true;cepMessage.value=''
+ try{
+  const response=await fetch('https://viacep.com.br/ws/'+cep+'/json/')
+  if(!response.ok)throw new Error('CEP indisponível')
+  const data=await response.json() as {erro?:boolean;logradouro?:string;bairro?:string;localidade?:string;uf?:string}
+  if(request!==cepRequest||digits(form.value.zip_code,8)!==cep)return
+  if(data.erro){cepMessage.value='CEP não encontrado.';return}
+  form.value.address=data.logradouro??''
+  form.value.neighborhood=data.bairro??''
+  form.value.city=data.localidade??''
+  form.value.state=data.uf??''
+  cepMessage.value='Endereço preenchido pelo ViaCEP. Confira os dados.'
+ }catch{if(request===cepRequest)cepMessage.value='Consulta indisponível. Preencha o endereço manualmente.'}
+ finally{if(request===cepRequest)cepBusy.value=false}
+}
+watch(()=>form.value.person_type,()=>{form.value.document=digits(form.value.document,form.value.person_type==='PF'?11:14)})
+
 const classesForOperator=computed(()=>classes.value.filter(c=>c.operator_id===form.value.operator_id&&c.is_active))
 const activeSeller=(c:Client)=>c.sellers?.find(s=>!s.ended_at)
 function start(c?:Client){
- editing.value=c?.id??'';form.value=c?{person_type:c.person_type,document:c.document,company_name:c.company_name,phone:c.phone,email:c.email,zip_code:c.zip_code,address:c.address,address_number:c.address_number,address_complement:c.address_complement,neighborhood:c.neighborhood,city:c.city,state:c.state,operator_id:c.operator_id,classification_id:c.classification_id,contract_started_on:c.contract_started_on,contract_ends_on:c.contract_ends_on,is_active:c.is_active,seller_membership_id:activeSeller(c)?.tenant_user_id??null,seller_reason:null}:blank();modal.value=true
+ editing.value=c?.id??'';form.value=c?{person_type:c.person_type,document:c.document,company_name:c.company_name,phone:c.phone,email:c.email,zip_code:c.zip_code,address:c.address,address_number:c.address_number,address_complement:c.address_complement,neighborhood:c.neighborhood,city:c.city,state:c.state,operator_id:c.operator_id,classification_id:c.classification_id,contract_started_on:c.contract_started_on,contract_ends_on:c.contract_ends_on,is_active:c.is_active,seller_membership_id:activeSeller(c)?.tenant_user_id??null,seller_reason:null}:blank();cepRequest++;cepMessage.value='';modal.value=true
 }
 async function load(){
  const id=tenantId.value;loading.value=true;error.value=''
@@ -39,7 +76,7 @@ async function save(){
 }
 async function details(id:string){try{selected.value=(await clientsApi.show(tenantId.value,id)).data;tab.value='data'}catch(e){toast.error(e instanceof Error?e.message:'Erro ao carregar cliente.')}}
 function editContact(c?:Contact){contactEditing.value=c?.id??'';contact.value=c?{name:c.name,position:c.position,phone:c.phone,email:c.email,is_primary:c.is_primary,is_active:c.is_active,notes:c.notes}:contactBlank();contactModal.value=true}
-async function saveContact(){if(!selected.value||busy.value)return;busy.value=true;try{await clientsApi.contact(tenantId.value,selected.value.id,contact.value,contactEditing.value||undefined);contactModal.value=false;toast.success('Contato salvo.');await details(selected.value.id)}catch(e){toast.error(e instanceof Error?e.message:'Erro ao salvar contato.')}finally{busy.value=false}}
+async function saveContact(){if(!selected.value||busy.value)return;busy.value=true;try{await clientsApi.contact(tenantId.value,selected.value.id,{...contact.value,phone:digits(contact.value.phone,11)||null},contactEditing.value||undefined);contactModal.value=false;toast.success('Contato salvo.');await details(selected.value.id)}catch(e){toast.error(e instanceof Error?e.message:'Erro ao salvar contato.')}finally{busy.value=false}}
 watch(tenantId,()=>{selected.value=null;modal.value=false;void load()},{immediate:true})
 </script>
 <template>
@@ -57,13 +94,13 @@ watch(tenantId,()=>{selected.value=null;modal.value=false;void load()},{immediat
    <div v-if="tab==='sellers'" class="space-y-2"><p v-for="s in selected.sellers" :key="s.id" class="border-b py-2 text-sm">{{sellers.find(m=>m.id===s.tenant_user_id)?.name??s.membership?.user?.name??s.tenant_user_id}} · {{new Date(s.started_at).toLocaleDateString('pt-BR')}} até {{s.ended_at?new Date(s.ended_at).toLocaleDateString('pt-BR'):'Atual'}} {{s.reason?'· '+s.reason:''}}</p><p v-if="!selected.sellers?.length" class="text-sm text-slate-500">Nenhuma atribuição registrada.</p></div>
   </section>
  </template>
- <div v-if="modal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4"><form class="max-h-[90vh] w-full max-w-3xl space-y-4 overflow-y-auto rounded-2xl bg-white p-6" @submit.prevent="save"><h2 class="text-xl font-semibold">{{editing?'Editar cliente':'Novo cliente'}}</h2>
-  <div class="grid gap-3 md:grid-cols-2">
+ <div v-if="modal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4"><form class="max-h-[94dvh] w-full max-w-6xl space-y-4 overflow-y-auto rounded-2xl bg-white p-6" @submit.prevent="save"><h2 class="text-xl font-semibold">{{editing?'Editar cliente':'Novo cliente'}}</h2>
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
    <label class="text-sm">Tipo de pessoa<SearchSelect v-model="form.person_type" :options="[{value:'PJ',label:'Pessoa jurídica'},{value:'PF',label:'Pessoa física'}]"/></label>
-   <label class="text-sm">CPF/CNPJ<input v-model="form.document" required class="field" maxlength="18"/></label>
-   <label class="text-sm md:col-span-2">Razão social / nome completo<input v-model="form.company_name" required class="field"/></label>
-   <label class="text-sm">Telefone<input v-model="form.phone" class="field"/></label><label class="text-sm">E-mail<input v-model="form.email" type="email" class="field"/></label>
-   <label class="text-sm">CEP<input v-model="form.zip_code" class="field"/></label><label class="text-sm">Endereço<input v-model="form.address" class="field"/></label>
+   <label class="text-sm">CPF/CNPJ<input v-model="documentModel" required class="field" :maxlength="form.person_type==='PF'?14:18" inputmode="numeric"/></label>
+   <label class="text-sm md:col-span-2 xl:col-span-3">Razão social / nome completo<input v-model="form.company_name" required class="field"/></label>
+   <label class="text-sm">Telefone<input v-model="phoneModel" class="field" inputmode="tel" maxlength="15"/></label><label class="text-sm">E-mail<input v-model="form.email" type="email" class="field"/></label>
+   <label class="text-sm">CEP<div class="flex gap-2"><input v-model="cepModel" class="field min-w-0" inputmode="numeric" maxlength="9" placeholder="00000-000" @blur="digits(form.zip_code,8).length===8 && lookupCep()" /><button type="button" class="shrink-0 rounded-xl border border-stone-200 px-3 text-xs" :disabled="cepBusy" @click="lookupCep">{{cepBusy?'Buscando...':'Buscar CEP'}}</button></div><span v-if="cepMessage" class="mt-1 block text-xs text-slate-500" role="status">{{cepMessage}}</span></label><label class="text-sm">Endereço<input v-model="form.address" class="field"/></label>
    <label class="text-sm">Número<input v-model="form.address_number" class="field"/></label><label class="text-sm">Complemento<input v-model="form.address_complement" class="field"/></label>
    <label class="text-sm">Bairro<input v-model="form.neighborhood" class="field"/></label><label class="text-sm">Cidade<input v-model="form.city" class="field"/></label>
    <label class="text-sm">Estado<input v-model="form.state" maxlength="2" class="field"/></label>
@@ -76,6 +113,6 @@ watch(tenantId,()=>{selected.value=null;modal.value=false;void load()},{immediat
   <label class="flex gap-2 text-sm"><input v-model="form.is_active" type="checkbox"/>Cliente ativo</label>
   <div class="flex justify-end gap-3"><button type="button" class="rounded-lg border px-4 py-2" @click="modal=false">Cancelar</button><button type="submit" class="primary-button w-auto" :disabled="busy">{{busy?'Salvando...':'Salvar cliente'}}</button></div>
  </form></div>
- <div v-if="contactModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><form class="w-full max-w-lg space-y-3 rounded-2xl bg-white p-6" @submit.prevent="saveContact"><h2 class="text-xl font-semibold">Pessoa de contato</h2><label class="block text-sm">Nome<input v-model="contact.name" required class="field"/></label><label class="block text-sm">Cargo<input v-model="contact.position" class="field"/></label><label class="block text-sm">Telefone<input v-model="contact.phone" class="field"/></label><label class="block text-sm">E-mail<input v-model="contact.email" type="email" class="field"/></label><label class="flex gap-2 text-sm"><input v-model="contact.is_primary" type="checkbox"/>Contato principal</label><label class="flex gap-2 text-sm"><input v-model="contact.is_active" type="checkbox"/>Ativo</label><div class="flex justify-end gap-2"><button type="button" class="rounded-lg border px-4 py-2" @click="contactModal=false">Cancelar</button><button type="submit" class="primary-button w-auto" :disabled="busy">Salvar</button></div></form></div>
+ <div v-if="contactModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><form class="w-full max-w-2xl max-h-[94dvh] overflow-y-auto space-y-3 rounded-2xl bg-white p-6" @submit.prevent="saveContact"><h2 class="text-xl font-semibold">Pessoa de contato</h2><label class="block text-sm">Nome<input v-model="contact.name" required class="field"/></label><label class="block text-sm">Cargo<input v-model="contact.position" class="field"/></label><label class="block text-sm">Telefone<input v-model="contactPhoneModel" class="field" inputmode="tel" maxlength="15"/></label><label class="block text-sm">E-mail<input v-model="contact.email" type="email" class="field"/></label><label class="flex gap-2 text-sm"><input v-model="contact.is_primary" type="checkbox"/>Contato principal</label><label class="flex gap-2 text-sm"><input v-model="contact.is_active" type="checkbox"/>Ativo</label><div class="flex justify-end gap-2"><button type="button" class="rounded-lg border px-4 py-2" @click="contactModal=false">Cancelar</button><button type="submit" class="primary-button w-auto" :disabled="busy">Salvar</button></div></form></div>
 </AppShell>
 </template>
