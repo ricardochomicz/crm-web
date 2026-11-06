@@ -22,7 +22,8 @@ const contact=ref<ContactInput>(contactBlank()),contactEditing=ref(''),contactMo
 const digits=(v:string|null|undefined,max=20)=>(v??'').replace(/\D/g,'').slice(0,max)
 function maskDoc(v:string|null|undefined,p:'PF'|'PJ'){
  const d=digits(v,p==='PF'?11:14)
- return p==='PF'?d.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2'):d.replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})\.(\d{3})(\d)/,'.$1/$2').replace(/(\d{4})(\d)/,'$1-$2')
+ if(p==='PF')return [d.slice(0,3),d.slice(3,6),d.slice(6,9)].filter(Boolean).join('.')+(d.length>9?'-'+d.slice(9):'')
+ return d.slice(0,2)+(d.length>2?'.'+d.slice(2,5):'')+(d.length>5?'.'+d.slice(5,8):'')+(d.length>8?'/'+d.slice(8,12):'')+(d.length>12?'-'+d.slice(12):'')
 }
 function maskPhone(v:string|null|undefined){
  const d=digits(v,11);if(d.length<=2)return d
