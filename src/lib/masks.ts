@@ -32,3 +32,13 @@ export function maskBrazilianPhone(value: string | null | undefined): string {
   return '(' + d.slice(0, 2) + ') ' +
     (number.length <= split ? number : number.slice(0, split) + '-' + number.slice(split))
 }
+
+/** Retorna apenas dígitos, limitando o tamanho para campos de formulário. */
+export function digits(value: string | null | undefined, max = 20): string {
+  return onlyDigits(value).slice(0, max)
+}
+
+export function maskZipCode(value: string | null | undefined): string {
+  const d = digits(value, 8)
+  return d.length > 5 ? d.slice(0, 5) + '-' + d.slice(5) : d
+}
