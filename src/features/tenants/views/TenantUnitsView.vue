@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
 import UnitAssignmentsDrawer from '../components/UnitAssignmentsDrawer.vue'
 import { tenantApi } from '../api'
@@ -184,10 +185,7 @@ watch(
             <FormField id="unit-city" v-model="form.city" label="Cidade (opcional)" maxlength="120" :error="errors.city" />
             <div class="grid gap-2">
               <label for="unit-state" class="text-sm font-semibold">Estado (UF)</label>
-              <select id="unit-state" v-model="form.state" class="field">
-                <option value="">Selecione</option>
-                <option v-for="uf in ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']" :key="uf" :value="uf">{{ uf }}</option>
-              </select>
+              <SearchSelect v-model="form.state" :options="[{value:'',label:'Selecione'}, ...['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(uf=>({value:uf,label:uf}))]"/>
               <p v-if="errors.state" class="text-xs text-red-600">{{ errors.state }}</p>
             </div>
           </div>
