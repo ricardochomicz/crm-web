@@ -17,22 +17,22 @@ defineProps<{
 defineEmits<{ action: [action: TeamAction] }>()
 </script>
 <template>
-  <div class="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
+  <div class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
     <ListTable min-width="740px">
       <caption class="sr-only">
         Membros da empresa
       </caption>
-      <thead class="border-b border-stone-100 bg-stone-50 text-xs text-slate-500">
+      <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
         <tr>
-          <th scope="col" class="px-6 py-4 font-medium">Pessoa</th>
-          <th scope="col" class="px-5 py-4 font-medium">Papel</th>
-          <th scope="col" class="px-5 py-4 font-medium">Situação</th>
-          <th scope="col" class="px-5 py-4 font-medium">Desde</th>
+          <th scope="col" class="px-6 py-4 font-semibold">Pessoa</th>
+          <th scope="col" class="px-5 py-4 font-semibold">Papel</th>
+          <th scope="col" class="px-5 py-4 font-semibold">Situação</th>
+          <th scope="col" class="px-5 py-4 font-semibold">Desde</th>
           <th scope="col" class="px-6 py-4 text-right font-medium">Ações</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-stone-100">
-        <tr v-for="member in members" :key="member.id" class="hover:bg-stone-50/50">
+        <tr v-for="member in members" :key="member.id" class="hover:bg-stone-50/70">
           <th scope="row" class="px-6 py-5 font-normal">
             <div class="flex items-center gap-3">
               <span
