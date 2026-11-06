@@ -31,9 +31,7 @@ watch(
     if (open) {
       email.value = ''
       selectedRoleId.value = selectableRoles.value.find(item => item.code === 'TELEMARKETING')?.id ?? selectableRoles.value[0]?.id ?? ''
-      role.value = props.allowedRoles.includes('CONSULTANT')
-        ? 'CONSULTANT'
-        : (props.allowedRoles[0] ?? 'CONSULTANT')
+      role.value = (selectableRoles.value.find(item => item.id === selectedRoleId.value)?.legacy_role ?? props.allowedRoles[0] ?? 'CONSULTANT') as AssignableRole
       error.value = ''
       emailError.value = ''
     }
@@ -43,7 +41,7 @@ async function submit() {
   if (busy.value) return
   error.value = ''
   emailError.value = ''
-  if (props.blockedReason || !props.allowedRoles.includes(role.value)) {
+  if (props.blockedReason || !selectedRoleId.value || !props.allowedRoles.includes(role.value)) {
     error.value = props.blockedReason || 'Selecione um cargo disponível.'
     return
   }
