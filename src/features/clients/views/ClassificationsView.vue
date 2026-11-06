@@ -17,7 +17,7 @@ const filtered=computed(()=>rows.value.filter(c=>!filter.value||String(c.operato
 const blank=():ClassificationInput=>({operator_id:0,code:'',name:'',description:null,is_active:true,sort_order:0})
 const form=ref<ClassificationInput>(blank()),editing=ref<number|null>(null),modal=ref(false)
 const rule=ref<RuleInput>({minimum_months:18,valid_from:new Date().toISOString().slice(0,10),valid_until:null,is_active:true,notes:null})
-const ruleFor=ref<Classification|null>(null),ruleEditing=ref<string|null>(null),ruleEditing=ref<string|null>(null)
+const ruleFor=ref<Classification|null>(null),ruleEditing=ref<string|null>(null)
 async function load(){const id=tenantId.value;loading.value=true;error.value='';try{const [t,o,c]=await Promise.all([tenantApi.show(id),operatorsApi.tenantList(id),clientsApi.classifications(id)]);if(id!==tenantId.value)return;tenant.value=t.data;operators.value=o.data.filter(x=>x.selected);rows.value=c.data;canManage.value=c.meta.can_manage}catch(e){error.value=e instanceof Error?e.message:'Erro ao carregar classificações.'}finally{if(id===tenantId.value)loading.value=false}}
 function edit(c?:Classification){editing.value=c?.id??null;form.value=c?{operator_id:c.operator_id,code:c.code,name:c.name,description:c.description,is_active:c.is_active,sort_order:c.sort_order}:{...blank(),operator_id:operators.value[0]?.id??0};modal.value=true}
 async function save(){busy.value=true;try{await clientsApi.saveClassification(tenantId.value,form.value,editing.value??undefined);modal.value=false;toast.success('Classificação salva.');await load()}catch(e){toast.error(e instanceof Error?e.message:'Erro ao salvar.')}finally{busy.value=false}}
