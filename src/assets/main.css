@@ -28,10 +28,10 @@
 }
 @layer components {
   .field {
-    @apply block w-full rounded-xl border border-stone-200 bg-white px-4 py-3.5 text-sm text-slate-800 shadow-xs transition placeholder:text-slate-400 hover:border-stone-300 focus:border-orange-500 focus:outline-none focus:ring-4 focus:ring-orange-500/10;
+    @apply block w-full rounded-xl border-0 bg-stone-100 px-4 py-3 text-sm text-slate-800 shadow-none transition placeholder:text-slate-400 hover:bg-stone-200/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-400;
   }
   .field-error {
-    @apply border-red-400 focus:border-red-500 focus:ring-red-500/10;
+    @apply bg-red-50 ring-1 ring-red-400 focus:ring-2 focus:ring-red-500;
   }
   .primary-button {
     @apply flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-orange-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 hover:shadow-md active:translate-y-px disabled:cursor-wait disabled:opacity-60;
