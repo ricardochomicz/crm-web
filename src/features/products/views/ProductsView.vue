@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
@@ -137,24 +138,16 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
       <section class="mb-5 rounded-2xl border border-stone-200 bg-white p-4 sm:p-5">
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label class="text-xs font-semibold text-slate-600">Buscar por nome
-            <input v-model="nameFilter" type="search" placeholder="Nome do produto" class="mt-1.5 w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-normal" />
+            <input v-model="nameFilter" type="search" placeholder="Nome do produto" class="field" />
           </label>
           <label class="text-xs font-semibold text-slate-600">Operadora
-            <select v-model="operatorFilter" class="mt-1.5 w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-normal">
-              <option value="">Todas as operadoras</option>
-              <option v-for="o in operators" :key="o.id" :value="String(o.id)">{{ o.name }}</option>
-            </select>
+            <SearchSelect v-model="operatorFilter" :options="[{value:'',label:'Todas as operadoras'}, ...operators.map(o=>({value:String(o.id),label:o.name}))]"/>
           </label>
           <label class="text-xs font-semibold text-slate-600">Categoria
-            <select v-model="categoryFilter" class="mt-1.5 w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-normal">
-              <option value="">Todas as categorias</option>
-              <option v-for="c in categories" :key="c[0]" :value="c[0]">{{ c[1] }}</option>
-            </select>
+            <SearchSelect v-model="categoryFilter" :options="[{value:'',label:'Todas as categorias'}, ...categories.map(c=>({value:c[0]!,label:c[1]!}))]"/>
           </label>
           <label class="text-xs font-semibold text-slate-600">Situação
-            <select v-model="statusFilter" class="mt-1.5 w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-normal">
-              <option value="">Todos</option><option value="active">Ativos</option><option value="inactive">Inativos</option>
-            </select>
+            <SearchSelect v-model="statusFilter" :options="[{value:'',label:'Todos'},{value:'active',label:'Ativos'},{value:'inactive',label:'Inativos'}]"/>
           </label>
         </div>
         <div class="mt-4 flex items-center justify-between gap-3 border-t border-stone-100 pt-3">
@@ -189,11 +182,11 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
       <section role="dialog" aria-modal="true" aria-labelledby="product-modal-title" class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
         <div class="mb-6 flex items-center justify-between"><h2 id="product-modal-title" class="text-xl font-semibold">{{ editingId ? 'Editar produto' : 'Novo produto' }}</h2><button type="button" class="rounded-lg px-3 py-1 text-xl text-slate-500 hover:bg-stone-100" aria-label="Fechar" @click="closeProduct">×</button></div>
         <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="save">
-          <label class="text-sm">Nome<input v-model="form.name" required maxlength="180" class="mt-1 w-full rounded-lg border p-2.5" /></label>
-          <label class="text-sm">Operadora<select v-model.number="form.operator_id" required class="mt-1 w-full rounded-lg border p-2.5"><option :value="0" disabled>Selecione</option><option v-for="o in operators" :key="o.id" :value="o.id">{{ o.name }}</option></select></label>
-          <label class="text-sm">Categoria<select v-model="form.category" class="mt-1 w-full rounded-lg border p-2.5"><option v-for="c in categories" :key="c[0]" :value="c[0]">{{ c[1] }}</option></select></label>
-          <label class="text-sm">Preço (R$)<input v-model="priceDisplay" type="text" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00" required class="mt-1 w-full rounded-lg border p-2.5" /></label>
-          <label class="text-sm sm:col-span-2">Descrição<textarea v-model="form.description" class="mt-1 w-full rounded-lg border p-2.5" rows="3" /></label>
+          <label class="text-sm">Nome<input v-model="form.name" required maxlength="180" class="field" /></label>
+          <label class="text-sm">Operadora<SearchSelect v-model="form.operator_id" :options="operators.map(o=>({value:o.id,label:o.name}))" required/></label>
+          <label class="text-sm">Categoria<SearchSelect v-model="form.category" :options="categories.map(c=>({value:c[0]!,label:c[1]!}))"/></label>
+          <label class="text-sm">Preço (R$)<input v-model="priceDisplay" type="text" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00" required class="field" /></label>
+          <label class="text-sm sm:col-span-2">Descrição<textarea v-model="form.description" class="field" rows="3" /></label>
           <label class="flex items-center gap-2 text-sm"><input v-model="form.is_active" type="checkbox" /> Produto ativo</label>
           <div class="flex justify-end gap-3 sm:col-span-2"><button type="button" class="rounded-lg border px-5 py-2.5" :disabled="busy" @click="closeProduct">Cancelar</button><button class="primary-button w-auto" :disabled="busy">{{ busy ? 'Salvando…' : 'Salvar produto' }}</button></div>
         </form>
@@ -205,10 +198,10 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
         <div class="mb-5 flex items-center justify-between"><h2 id="promotion-modal-title" class="text-xl font-semibold">{{ promoEditingId ? 'Editar promoção' : 'Promoções do produto' }}</h2><button type="button" class="rounded-lg px-3 py-1 text-xl text-slate-500 hover:bg-stone-100" aria-label="Fechar" @click="closePromotion">×</button></div>
         <div v-for="pr in products.find(p => p.id === promoProductId)?.promotions ?? []" :key="pr.id" class="mb-2 flex items-center justify-between gap-3 rounded-lg bg-stone-50 px-3 py-2 text-sm"><span>{{ pr.name }} · {{ money(pr.promotional_price) }} · {{ pr.starts_at }} a {{ pr.ends_at }}</span><button type="button" class="text-orange-700" @click="promotion(products.find(p => p.id === promoProductId), pr)">Editar</button></div>
         <form class="mt-5 grid gap-4 sm:grid-cols-2" @submit.prevent="savePromotion">
-          <label class="text-sm">Nome<input v-model="promo.name" required class="mt-1 w-full rounded-lg border p-2.5" /></label>
-          <label class="text-sm">Preço promocional<input v-model="promotionPriceDisplay" type="text" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00" required class="mt-1 w-full rounded-lg border p-2.5" /></label>
-          <label class="text-sm">Início<input v-model="promo.starts_at" type="date" required class="mt-1 w-full rounded-lg border p-2.5" /></label>
-          <label class="text-sm">Término<input v-model="promo.ends_at" type="date" required class="mt-1 w-full rounded-lg border p-2.5" /></label>
+          <label class="text-sm">Nome<input v-model="promo.name" required class="field" /></label>
+          <label class="text-sm">Preço promocional<input v-model="promotionPriceDisplay" type="text" inputmode="numeric" autocomplete="off" placeholder="R$ 0,00" required class="field" /></label>
+          <label class="text-sm">Início<input v-model="promo.starts_at" type="date" required class="field" /></label>
+          <label class="text-sm">Término<input v-model="promo.ends_at" type="date" required class="field" /></label>
           <label class="flex items-center gap-2 text-sm"><input v-model="promo.is_active" type="checkbox" /> Promoção ativa</label>
           <div class="flex justify-end gap-3 sm:col-span-2"><button type="button" class="rounded-lg border px-5 py-2.5" :disabled="busy" @click="closePromotion">Cancelar</button><button class="primary-button w-auto" :disabled="busy">{{ busy ? 'Salvando…' : 'Salvar promoção' }}</button></div>
         </form>
