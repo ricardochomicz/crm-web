@@ -14,6 +14,9 @@ import { toast } from '@/services/toast'
 import { ApiError } from '@/lib/http'
 import { validateClient } from '../validation'
 import { useClientsList } from '../composables/useClientsList'
+import { useClientMasks } from '../composables/useClientMasks'
+import { useClientAddress } from '../composables/useClientAddress'
+import { digits } from '@/lib/masks'
 import { useFormValidation } from '@/composables/useFormValidation'
 import FormError from '@/components/ui/FormError.vue'
 import {
@@ -103,96 +106,8 @@ const contact = ref<ContactInput>(contactBlank()),
   contactEditing = ref(''),
   contactModal = ref(false)
 
-const digits = (v: string | null | undefined, max = 20) =>
-  (v ?? '').replace(/\D/g, '').slice(0, max)
-function maskDoc(v: string | null | undefined, p: 'PF' | 'PJ') {
-  const d = digits(v, p === 'PF' ? 11 : 14)
-  if (p === 'PF')
-    return (
-      [d.slice(0, 3), d.slice(3, 6), d.slice(6, 9)].filter(Boolean).join('.') +
-      (d.length > 9 ? '-' + d.slice(9) : '')
-    )
-  return (
-    d.slice(0, 2) +
-    (d.length > 2 ? '.' + d.slice(2, 5) : '') +
-    (d.length > 5 ? '.' + d.slice(5, 8) : '') +
-    (d.length > 8 ? '/' + d.slice(8, 12) : '') +
-    (d.length > 12 ? '-' + d.slice(12) : '')
-  )
-}
-function maskPhone(v: string | null | undefined) {
-  const d = digits(v, 11)
-  if (d.length <= 2) return d
-  const n = d.slice(2),
-    split = d.length > 10 ? 5 : 4
-  return (
-    '(' + d.slice(0, 2) + ') ' + n.slice(0, split) + (n.length > split ? '-' + n.slice(split) : '')
-  )
-}
-const documentModel = computed({
-  get: () => maskDoc(form.value.document, form.value.person_type),
-  set: (v: string) => (form.value.document = digits(v, form.value.person_type === 'PF' ? 11 : 14)),
-})
-const phoneModel = computed({
-  get: () => maskPhone(form.value.phone),
-  set: (v: string) => (form.value.phone = digits(v, 11)),
-})
-const contactPhoneModel = computed({
-  get: () => maskPhone(contact.value.phone),
-  set: (v: string) => (contact.value.phone = digits(v, 11)),
-})
-const cepModel = computed({
-  get: () => {
-    const d = digits(form.value.zip_code, 8)
-    return d.length > 5 ? d.slice(0, 5) + '-' + d.slice(5) : d
-  },
-  set: (v: string) => (form.value.zip_code = digits(v, 8)),
-})
-const cepBusy = ref(false),
-  cepMessage = ref('')
-let cepRequest = 0
-async function lookupCep() {
-  const cep = digits(form.value.zip_code, 8)
-  if (cep.length !== 8) {
-    cepMessage.value = 'Informe os 8 dígitos do CEP.'
-    return
-  }
-  const request = ++cepRequest
-  cepBusy.value = true
-  cepMessage.value = ''
-  try {
-    const response = await fetch('https://viacep.com.br/ws/' + cep + '/json/')
-    if (!response.ok) throw new Error('CEP indisponível')
-    const data = (await response.json()) as {
-      erro?: boolean
-      logradouro?: string
-      bairro?: string
-      localidade?: string
-      uf?: string
-    }
-    if (request !== cepRequest || digits(form.value.zip_code, 8) !== cep) return
-    if (data.erro) {
-      cepMessage.value = 'CEP não encontrado.'
-      return
-    }
-    form.value.address = data.logradouro ?? ''
-    form.value.neighborhood = data.bairro ?? ''
-    form.value.city = data.localidade ?? ''
-    form.value.state = data.uf ?? ''
-    cepMessage.value = 'Endereço preenchido pelo ViaCEP. Confira os dados.'
-  } catch {
-    if (request === cepRequest)
-      cepMessage.value = 'Consulta indisponível. Preencha o endereço manualmente.'
-  } finally {
-    if (request === cepRequest) cepBusy.value = false
-  }
-}
-watch(
-  () => form.value.person_type,
-  () => {
-    form.value.document = digits(form.value.document, form.value.person_type === 'PF' ? 11 : 14)
-  },
-)
+const { documentModel, phoneModel, contactPhoneModel } = useClientMasks(form, contact)
+const { cepModel, cepBusy, cepMessage, lookupCep, cancelLookup } = useClientAddress(form)
 
 const classesForOperator = computed(() =>
   classes.value.filter(
@@ -227,8 +142,7 @@ function start(c?: Client) {
       }
     : blank()
   if (!c && !showSellerSelect.value) form.value.seller_membership_id = currentSellerId.value
-  cepRequest++
-  cepMessage.value = ''
+  cancelLookup()
   modal.value = true
 }
 async function load() {
@@ -368,6 +282,7 @@ watch(
   () => {
     selected.value = null
     modal.value = false
+    cancelLookup()
     void load()
   },
   { immediate: true },
