@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { GoalInput } from '../api'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import type { CommissionOption } from '@/features/team-commissions/api'
 import type { TenantOperator } from '@/features/operators/api'
 const props = defineProps<{ modelValue: GoalInput; operators: TenantOperator[]; orderTypes: CommissionOption[]; roles: CommissionOption[]; busy: boolean; editing: boolean }>()
@@ -15,18 +16,18 @@ function removeTier(index: number) { change('tiers', props.modelValue.tiers.filt
 <template>
  <form class="w-full max-w-xl space-y-4 rounded-2xl bg-white p-6 shadow-xl" @submit.prevent="emit('submit')">
   <h2 class="text-xl font-semibold">{{ editing ? 'Editar meta comercial' : 'Nova meta comercial' }}</h2>
-  <label class="block text-sm">Operadora<select required class="mt-1 w-full rounded-lg border p-2" :value="modelValue.operator_id" @change="change('operator_id', Number(($event.target as HTMLSelectElement).value))"><option :value="0" disabled>Selecione</option><option v-for="o in operators" :key="o.id" :value="o.id">{{ o.name }}</option></select></label>
-  <label class="block text-sm">Tipo de pedido<select required class="mt-1 w-full rounded-lg border p-2" :value="modelValue.order_type" @change="change('order_type', ($event.target as HTMLSelectElement).value)"><option v-for="o in orderTypes" :key="o.value" :value="o.value">{{ o.label }}</option></select></label>
-  <label class="block text-sm">Perfil<select required class="mt-1 w-full rounded-lg border p-2" :value="modelValue.commercial_role" @change="change('commercial_role', ($event.target as HTMLSelectElement).value)"><option v-for="r in roles" :key="r.value" :value="r.value">{{ r.label }}</option></select></label>
-  <label class="block text-sm">Métrica<select class="mt-1 w-full rounded-lg border p-2" :value="modelValue.metric" @change="change('metric', ($event.target as HTMLSelectElement).value as 'QUANTITY' | 'REVENUE')"><option value="QUANTITY">Quantidade de linhas</option><option value="REVENUE">Valor vendido (R$)</option></select></label>
+  <label class="block text-sm">Operadora<SearchSelect :model-value="modelValue.operator_id" :options="operators.map(o => ({value:o.id,label:o.name}))" required @update:model-value="change('operator_id', Number($event))"/></label>
+  <label class="block text-sm">Tipo de pedido<SearchSelect :model-value="modelValue.order_type" :options="orderTypes" required @update:model-value="change('order_type', String($event))"/></label>
+  <label class="block text-sm">Perfil<SearchSelect :model-value="modelValue.commercial_role" :options="roles" required @update:model-value="change('commercial_role', String($event))"/></label>
+  <label class="block text-sm">Métrica<SearchSelect :model-value="modelValue.metric" :options="[{value:'QUANTITY',label:'Quantidade de linhas'},{value:'REVENUE',label:'Valor vendido (R$)'}]" @update:model-value="change('metric', String($event) as 'QUANTITY' | 'REVENUE')"/></label>
   <div class="grid grid-cols-2 gap-3">
-   <label class="block text-sm">Vigência inicial<input type="date" required class="mt-1 w-full rounded-lg border p-2" :value="modelValue.starts_on" @input="change('starts_on', ($event.target as HTMLInputElement).value)"/></label>
-   <label class="block text-sm">Vigência final<input type="date" class="mt-1 w-full rounded-lg border p-2" :value="modelValue.ends_on ?? ''" @input="change('ends_on', ($event.target as HTMLInputElement).value || null)"/></label>
+   <label class="block text-sm">Vigência inicial<input type="date" required class="mt-1 w-full rounded-xl border-0 bg-stone-100 px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-orange-400" :value="modelValue.starts_on" @input="change('starts_on', ($event.target as HTMLInputElement).value)"/></label>
+   <label class="block text-sm">Vigência final<input type="date" class="mt-1 w-full rounded-xl border-0 bg-stone-100 px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-orange-400" :value="modelValue.ends_on ?? ''" @input="change('ends_on', ($event.target as HTMLInputElement).value || null)"/></label>
   </div>
   <div class="space-y-2"><div class="flex items-center justify-between"><strong>Faixas de comissão</strong><button type="button" class="rounded-lg border px-3 py-1" @click="addTier">Adicionar faixa</button></div>
    <div v-for="(t, i) in modelValue.tiers" :key="i" class="flex items-end gap-2">
-    <label class="flex-1 text-sm">A partir de<input type="number" required :step="modelValue.metric === 'QUANTITY' ? 1 : '0.01'" min="0" class="mt-1 w-full rounded-lg border p-2" :value="t.minimum" @input="tier(i, 'minimum', Number(($event.target as HTMLInputElement).value))"/></label>
-    <label class="flex-1 text-sm">Comissão (%)<input type="number" required step="0.01" min="0" max="9999.99" class="mt-1 w-full rounded-lg border p-2" :value="t.percentage" @input="tier(i, 'percentage', Number(($event.target as HTMLInputElement).value))"/></label>
+    <label class="flex-1 text-sm">A partir de<input type="number" required :step="modelValue.metric === 'QUANTITY' ? 1 : '0.01'" min="0" class="mt-1 w-full rounded-xl border-0 bg-stone-100 px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-orange-400" :value="t.minimum" @input="tier(i, 'minimum', Number(($event.target as HTMLInputElement).value))"/></label>
+    <label class="flex-1 text-sm">Comissão (%)<input type="number" required step="0.01" min="0" max="9999.99" class="mt-1 w-full rounded-xl border-0 bg-stone-100 px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-orange-400" :value="t.percentage" @input="tier(i, 'percentage', Number(($event.target as HTMLInputElement).value))"/></label>
     <button type="button" class="rounded-lg border px-3 py-2" :disabled="modelValue.tiers.length === 1" @click="removeTier(i)">Remover</button>
    </div>
   </div>
