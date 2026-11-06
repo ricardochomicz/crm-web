@@ -17,6 +17,7 @@ const tenantId = String(useRoute().params.tenantId)
 const auth = useAuthStore()
 const {
   tenant,
+  companyRoles,
   loading,
   error,
   members,
@@ -354,6 +355,7 @@ onMounted(load)
     <InviteMemberDialog
       :open="inviteOpen"
       :allowed-roles="allowedRoles"
+      :company-roles="companyRoles"
       :tenant-id="tenantId"
       :blocked-reason="inviteBlockedReason"
       @close="inviteOpen = false"
@@ -362,6 +364,7 @@ onMounted(load)
       :action="action"
       :allowed="actionAllowed"
       :allowed-roles="allowedRoles"
+      :company-roles="companyRoles"
       :tenant-id="tenantId"
       :can-write="canWrite"
       :resend-blocked="actionResendBlocked"
