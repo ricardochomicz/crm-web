@@ -8,11 +8,10 @@ import PagePagination from '@/components/ui/PagePagination.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
 import { tenantApi } from '@/features/tenants/api'
 import { can } from '@/features/tenants/types'
-import type { Tenant, Page } from '@/features/tenants/types'
-import { teamApi } from '@/features/members/api'
+import type { Tenant } from '@/features/tenants/types'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
-import { teamsApi } from '../api'
+import { useTeamsList } from '../composables/useTeamsList'
 import type { Team } from '../types'
 import TeamsTable from '../components/TeamsTable.vue'
 import CreateTeamDialog from '../components/CreateTeamDialog.vue'
@@ -20,23 +19,13 @@ import EditTeamDialog from '../components/EditTeamDialog.vue'
 import TeamMembersDrawer from '../components/TeamMembersDrawer.vue'
 
 const route = useRoute()
-const tenantId = String(route.params.tenantId)
+const tenantId = computed(() => String(route.params.tenantId))
 
 const tenant = ref<Tenant>()
 const loading = ref(true)
 const error = ref('')
 
-const teams = ref<Page<Team>>()
-const teamsLoading = ref(false)
-const teamsError = ref('')
-const teamsPage = ref(1)
-const teamNameFilter = ref('')
-const appliedTeamName = ref('')
-
-/** Lista de membros para selects de supervisor */
-type SupervisorOption = { id: string; name: string | null; email: string | null; status: string }
-const allMembers = ref<SupervisorOption[]>([])
-const membersLoading = ref(false)
+const { teams, teamsLoading, teamsError, teamsPage, teamNameFilter, allMembers, membersLoading, loadTeams, loadMembers, searchTeams, clearTeamSearch } = useTeamsList(tenantId)
 
 const createOpen = ref(false)
 const editingTeam = ref<Team | null>(null)
@@ -55,41 +44,9 @@ const anyDialogOpen = computed(
 
 async function loadTenant() {
   try {
-    tenant.value = (await tenantApi.show(tenantId)).data
+    tenant.value = (await tenantApi.show(tenantId.value)).data
   } catch (failure) {
     error.value = errorMessage(failure)
-  }
-}
-
-async function loadTeams(page = teamsPage.value) {
-  teamsLoading.value = true
-  teamsError.value = ''
-  teamsPage.value = page
-  try {
-    teams.value = await teamsApi.list(tenantId, page, appliedTeamName.value)
-  } catch (failure) {
-    teamsError.value = errorMessage(failure)
-  } finally {
-    teamsLoading.value = false
-  }
-}
-
-async function loadMembers() {
-  membersLoading.value = true
-  allMembers.value = []
-  try {
-    const firstPage = await teamApi.members(tenantId, 1)
-    const members = [...firstPage.data]
-    for (let page = 2; page <= firstPage.last_page; page++) {
-      const result = await teamApi.members(tenantId, page)
-      members.push(...result.data)
-    }
-    allMembers.value = members
-  } catch (failure) {
-    allMembers.value = []
-    teamsError.value = errorMessage(failure)
-  } finally {
-    membersLoading.value = false
   }
 }
 
@@ -130,16 +87,6 @@ async function onCompleted(result: { message: string; tone: 'success' | 'warning
   if (result.tone === 'success') toast.success(result.message)
   else toast.warning(result.message)
   await refresh()
-}
-
-function searchTeams() {
-  appliedTeamName.value = teamNameFilter.value.trim()
-  void loadTeams(1)
-}
-function clearTeamSearch() {
-  teamNameFilter.value = ''
-  appliedTeamName.value = ''
-  void loadTeams(1)
 }
 
 onMounted(load)
