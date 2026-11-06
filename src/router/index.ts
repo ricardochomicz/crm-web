@@ -107,6 +107,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Produtos e planos' },
     },
     {
+      path: '/admin/classificacoes',
+      component: () => import('@/features/clients/views/AdminClassificationsView.vue'),
+      meta: { requiresAuth: true, admin: true, title: 'Classificações globais' },
+    },
+    {
       path: '/admin/operadoras',
       component: () => import('@/features/operators/views/PlatformOperatorsPage.vue'),
       meta: { requiresAuth: true, admin: true, title: 'Catálogo de operadoras' },
