@@ -1,0 +1,13 @@
+import { mutate, request } from '@/lib/http'
+export type GoalTier = { minimum: number; percentage: number }
+export type CommercialGoal = {
+ id: string; operator_id: number; operator?: { id: number; name: string };
+ order_type: string; commercial_role: string; metric: 'QUANTITY' | 'REVENUE';
+ starts_on: string; ends_on: string | null; is_active: boolean; tiers: GoalTier[]
+}
+export type GoalInput = Omit<CommercialGoal, 'id' | 'operator'>
+const base = (tenantId: string) => `/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-goals`
+export const commercialGoalsApi = {
+ list: (tenantId: string) => request<{data: CommercialGoal[]; meta: {can_manage: boolean}}>(base(tenantId)),
+ save: (tenantId: string, data: GoalInput, id?: string) => mutate(base(tenantId) + (id ? '/' + id : ''), data, id ? 'PATCH' : 'POST'),
+}
