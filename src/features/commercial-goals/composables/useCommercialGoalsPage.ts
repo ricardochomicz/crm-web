@@ -44,8 +44,8 @@ async function load() {
  loading.value = true; error.value = ''
  try {
   const [t, g, o, options] = await Promise.all([
-   request<{data:Tenant}>(`/api/v1/tenants/${tenantId.value}`),
-   commercialGoalsApi.list(tenantId.value),
+   tenantApi.show(id),
+   commercialGoalsApi.list(id),
    operatorsApi.tenantList(id),
    teamCommissionsApi.options(id),
   ])
