@@ -1,42 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
-import { tenantApi } from '../api'
-import { can, type Tenant, type Subscription } from '../types'
-import { dateLabel, errorMessage } from '@/lib/feedback'
+import { can } from '../types'
+import { useTenantSubscription } from '../composables/useTenantSubscription'
+
 const route = useRoute()
-const tenant = ref<Tenant>()
-const subscription = ref<Subscription>()
-const loading = ref(true)
-const error = ref('')
-const subscriptionError = ref('')
-async function loadSubscription() {
-  if (!can(tenant.value, 'subscription.view') || !tenant.value) return
-  subscriptionError.value = ''
-  subscription.value = undefined
-  try {
-    subscription.value = (await tenantApi.subscription(tenant.value.id)).data
-  } catch (failure) {
-    subscriptionError.value = errorMessage(failure)
-  }
-}
-async function load() {
-  loading.value = true
-  error.value = ''
-  tenant.value = undefined
-  subscription.value = undefined
-  try {
-    tenant.value = (await tenantApi.show(String(route.params.tenantId))).data
-    await loadSubscription()
-  } catch (failure) {
-    error.value = errorMessage(failure)
-  } finally {
-    loading.value = false
-  }
-}
-onMounted(load)
+const tenantId = computed(() => String(route.params.tenantId))
+const { tenant, subscription, loading, error, subscriptionError, metrics, load, loadSubscription } =
+  useTenantSubscription(tenantId)
 </script>
 <template>
   <AppShell :tenant="tenant" title="Plano e assinatura" subtitle="Configurações">
@@ -66,35 +39,7 @@ onMounted(load)
         </div>
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <article
-            v-for="metric in [
-              {
-                label: 'Pessoas na empresa',
-                value: subscription.usage.users,
-                detail: `de ${subscription.limits.users} vagas no plano`,
-              },
-              {
-                label: 'Convites reservados',
-                value: subscription.usage.reserved_invitations,
-                detail: 'aguardando aceite',
-              },
-              {
-                label: 'Vagas disponíveis',
-                value: subscription.remaining.users,
-                detail: 'para novas conexões',
-              },
-              {
-                label: 'Plano atual',
-                value: subscription.plan.name ?? 'Não informado',
-                detail:
-                  subscription.status === 'TRIALING'
-                    ? `Teste até ${dateLabel(subscription.trial_ends_at)}`
-                    : ({
-                        ACTIVE: 'Assinatura ativa',
-                        PAST_DUE: 'Pagamento pendente',
-                        CANCELLED: 'Assinatura cancelada',
-                      }[subscription.status] ?? subscription.status),
-              },
-            ]"
+            v-for="metric in metrics"
             :key="metric.label"
             class="rounded-2xl border border-stone-200 bg-white p-6"
           >
