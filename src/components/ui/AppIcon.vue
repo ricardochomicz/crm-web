@@ -1,6 +1,10 @@
 <script setup lang="ts">
 defineProps<{ name?: string }>()
 const paths: Record<string, string> = {
+  search: 'm21 21-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0z',
+  clear: 'M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v7m4-7v7',
+  chevronLeft: 'm15 18-6-6 6-6',
+  chevronRight: 'm9 18 6-6-6-6',
   trash: 'M3 6h18m-2 0-1 14H6L5 6m3 0V4h8v2m-6 4v7m4-7v7',
   users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8m13 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
   shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
