@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import { toast } from '@/services/toast'
@@ -83,9 +84,9 @@ onMounted(load)
   <AsyncNotice :loading="loading" :error="error" @retry="load"/>
   <template v-if="!loading && !error">
    <section class="mb-5 grid gap-3 rounded-2xl border border-stone-200 bg-white p-5 md:grid-cols-3">
-    <label class="text-sm">Operadora<select v-model="filterOperator" class="mt-1 w-full rounded-lg border p-2"><option value="">Todas</option><option v-for="o in operators" :key="o.id" :value="String(o.id)">{{ o.name }}</option></select></label>
-    <label class="text-sm">Tipo de pedido<select v-model="filterType" class="mt-1 w-full rounded-lg border p-2"><option value="">Todos</option><option v-for="o in orderTypes" :key="o.value" :value="o.value">{{ o.label }}</option></select></label>
-    <label class="text-sm">Perfil<select v-model="filterRole" class="mt-1 w-full rounded-lg border p-2"><option value="">Todos</option><option v-for="r in roles" :key="r.value" :value="r.value">{{ r.label }}</option></select></label>
+    <label class="text-sm">Operadora<SearchSelect v-model="filterOperator" :options="[{value:'',label:'Todas'}, ...operators.map(o=>({value:String(o.id),label:o.name}))]"/></label>
+    <label class="text-sm">Tipo de pedido<SearchSelect v-model="filterType" :options="[{value:'',label:'Todos'}, ...orderTypes]"/></label>
+    <label class="text-sm">Perfil<SearchSelect v-model="filterRole" :options="[{value:'',label:'Todos'}, ...roles]"/></label>
    </section>
    <section class="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
     <table class="w-full min-w-[850px] text-left text-sm">
