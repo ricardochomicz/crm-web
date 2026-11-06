@@ -2,6 +2,7 @@
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
+import CompanyRolesManager from '../components/CompanyRolesManager.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
@@ -173,6 +174,7 @@ function dateTime(value: string) {
         Solicite ao proprietário os ajustes necessários para o seu cargo.
       </p>
     </section>
+    <CompanyRolesManager v-if="!loading && settings" :tenant-id="tenantId" :catalog="settings.catalog" :can-edit="settings.can_edit" />
     <template v-if="!loading && settings">
       <p
         v-if="!settings.can_edit"
