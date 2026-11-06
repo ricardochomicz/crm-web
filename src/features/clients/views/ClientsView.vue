@@ -11,6 +11,7 @@ import { clientsApi, type Client, type ClientInput, type Contact, type ContactIn
 import type { Tenant } from '@/features/tenants/types'
 const route=useRoute(), tenantId=computed(()=>String(route.params.tenantId))
 const tenant=ref<Tenant>(),rows=ref<Client[]>([]),operators=ref<TenantOperator[]>([]),classes=ref<Classification[]>([]),sellers=ref<Seller[]>([])
+const canAssignSeller=ref(false),currentSellerId=ref<string|null>(null)
 const loading=ref(true),busy=ref(false),error=ref(''),canManage=ref(false),search=ref(''),operatorFilter=ref('')
 const writable=computed(()=>canManage.value&&!!tenant.value?.access?.allows_operational_writes)
 const filtered=computed(()=>rows.value.filter(r=>(!operatorFilter.value||String(r.operator_id)===operatorFilter.value)&&(!search.value||[r.company_name,r.document,r.email??''].join(' ').toLocaleLowerCase('pt-BR').includes(search.value.toLocaleLowerCase('pt-BR')))))
@@ -59,19 +60,19 @@ watch(()=>form.value.person_type,()=>{form.value.document=digits(form.value.docu
 const classesForOperator=computed(()=>classes.value.filter(c=>c.operator_id===form.value.operator_id&&c.is_active))
 const activeSeller=(c:Client)=>c.sellers?.find(s=>!s.ended_at)
 function start(c?:Client){
- editing.value=c?.id??'';form.value=c?{person_type:c.person_type,document:c.document,company_name:c.company_name,phone:c.phone,email:c.email,zip_code:c.zip_code,address:c.address,address_number:c.address_number,address_complement:c.address_complement,neighborhood:c.neighborhood,city:c.city,state:c.state,operator_id:c.operator_id,classification_id:c.classification_id,contract_started_on:c.contract_started_on,contract_ends_on:c.contract_ends_on,is_active:c.is_active,seller_membership_id:activeSeller(c)?.tenant_user_id??null,seller_reason:null}:blank();cepRequest++;cepMessage.value='';modal.value=true
+ editing.value=c?.id??'';form.value=c?{person_type:c.person_type,document:c.document,company_name:c.company_name,phone:c.phone,email:c.email,zip_code:c.zip_code,address:c.address,address_number:c.address_number,address_complement:c.address_complement,neighborhood:c.neighborhood,city:c.city,state:c.state,operator_id:c.operator_id,classification_id:c.classification_id,contract_started_on:c.contract_started_on,contract_ends_on:c.contract_ends_on,is_active:c.is_active,seller_membership_id:activeSeller(c)?.tenant_user_id??null,seller_reason:null}:blank();if(!c&&!canAssignSeller.value)form.value.seller_membership_id=currentSellerId.value;cepRequest++;cepMessage.value='';modal.value=true
 }
 async function load(){
  const id=tenantId.value;loading.value=true;error.value=''
  try{
  const [t,list,op,cl,opts]=await Promise.all([tenantApi.show(id),clientsApi.list(id),operatorsApi.tenantList(id),clientsApi.classifications(id),clientsApi.options(id)])
  if(id!==tenantId.value)return
- tenant.value=t.data;rows.value=list.data;canManage.value=list.meta.can_manage;operators.value=op.data.filter(o=>o.selected);classes.value=cl.data;sellers.value=opts.data.sellers
+ tenant.value=t.data;rows.value=list.data;canManage.value=list.meta.can_manage;operators.value=op.data.filter(o=>o.selected);classes.value=cl.data;sellers.value=opts.data.sellers;canAssignSeller.value=opts.data.can_assign_seller;currentSellerId.value=opts.data.current_seller_id
  }catch(e){error.value=e instanceof Error?e.message:'Erro ao carregar clientes.'}finally{if(id===tenantId.value)loading.value=false}
 }
 async function save(){
  if(busy.value)return;busy.value=true
- try{const data={...form.value,operator_id:form.value.operator_id||null,classification_id:form.value.classification_id||null,seller_membership_id:form.value.seller_membership_id||null,contract_started_on:form.value.contract_started_on||null,contract_ends_on:form.value.contract_ends_on||null,document:form.value.document.replace(/\D/g,''),zip_code:form.value.zip_code?.replace(/\D/g,'')||null,phone:form.value.phone?.replace(/\D/g,'')||null}
+ try{const data={...form.value,operator_id:form.value.operator_id||null,classification_id:form.value.classification_id||null,seller_membership_id:canAssignSeller.value?(form.value.seller_membership_id||null):(editing.value?null:currentSellerId.value),contract_started_on:form.value.contract_started_on||null,contract_ends_on:form.value.contract_ends_on||null,document:form.value.document.replace(/\D/g,''),zip_code:form.value.zip_code?.replace(/\D/g,'')||null,phone:form.value.phone?.replace(/\D/g,'')||null}
  const r=await clientsApi.save(tenantId.value,data,editing.value||undefined);modal.value=false;toast.success('Cliente salvo.');await load();if(selected.value?.id===r.data.id)await details(r.data.id)
  }catch(e){toast.error(e instanceof Error?e.message:'Erro ao salvar cliente.')}finally{busy.value=false}
 }
@@ -107,9 +108,7 @@ watch(tenantId,()=>{selected.value=null;modal.value=false;void load()},{immediat
    <label class="text-sm">Estado<input v-model="form.state" maxlength="2" class="field"/></label>
    <label class="text-sm">Operadora atual<SearchSelect v-model="form.operator_id" :options="[{value:'',label:'Sem operadora'},...operators.map(o=>({value:o.id,label:o.name}))]" @update:model-value="form.classification_id=null"/></label>
    <label class="text-sm">Classificação<SearchSelect v-model="form.classification_id" :options="[{value:'',label:'Sem classificação'},...classesForOperator.map(c=>({value:c.id,label:c.code+' · '+c.name}))]"/></label>
-   <label class="text-sm">Início do contrato<input v-model="form.contract_started_on" type="date" class="field"/></label><label class="text-sm">Fim do contrato<input v-model="form.contract_ends_on" type="date" class="field"/></label>
-   <label class="text-sm">Vendedor responsável<SearchSelect v-model="form.seller_membership_id" :options="[{value:'',label:'Sem vendedor'},...sellers.map(s=>({value:s.id,label:s.name}))]"/></label>
-   <label class="text-sm">Motivo da transferência<input v-model="form.seller_reason" class="field" placeholder="Opcional"/></label>
+   <label v-if="canAssignSeller" class="text-sm">Vendedor responsável<SearchSelect v-model="form.seller_membership_id" :options="[{value:'',label:'Sem vendedor'},...sellers.map(s=>({value:s.id,label:s.name}))]"/></label>
   </div>
   <label class="flex gap-2 text-sm"><input v-model="form.is_active" type="checkbox"/>Cliente ativo</label>
   <div class="flex justify-end gap-3"><button type="button" class="rounded-lg border px-4 py-2" @click="modal=false">Cancelar</button><button type="submit" class="primary-button w-auto" :disabled="busy">{{busy?'Salvando...':'Salvar cliente'}}</button></div>
