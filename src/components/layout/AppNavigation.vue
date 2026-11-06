@@ -12,7 +12,7 @@ const commercialOpen = ref(false)
 const managementOpen = ref(false)
 const settingsOpen = ref(false)
 watch(() => route.path, (path) => {
-  if (/\/(equipe|equipes)$/.test(path)) teamOpen.value = true
+  if (/\/(equipe|equipes|participantes-comerciais)$/.test(path)) teamOpen.value = true
   if (/\/produtos$/.test(path)) commercialOpen.value = true
   if (/\/(comissoes|comissoes-equipe)$/.test(path)) managementOpen.value = true
   if (/\/(dados|unidades|permissoes|assinatura|operadoras)$/.test(path)) settingsOpen.value = true
@@ -47,6 +47,7 @@ watch(() => route.path, (path) => {
             :aria-current="route.path.endsWith('/equipes') ? 'page' : undefined"
             ><AppIcon name="grid" class="size-5" />Equipes</RouterLink
           >
+            <RouterLink v-if="can(tenant, 'commissions.view')" :to="`/empresas/${tenant.id}/participantes-comerciais`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/participantes-comerciais') }">Parceiros e indicadores</RouterLink>
           </div>
         </div>
         <div v-if="can(tenant, 'products.view')" class="space-y-2">
