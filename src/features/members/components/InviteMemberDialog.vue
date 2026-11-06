@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
-import RoleSelect from './RoleSelect.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
+import type { CompanyRole } from '../api'
 import { ApiError } from '@/lib/http'
 import { errorMessage } from '@/lib/feedback'
 import { teamApi } from '../api'
@@ -12,10 +13,14 @@ const props = defineProps<{
   tenantId: string
   blockedReason: string
   allowedRoles: AssignableRole[]
+  companyRoles: CompanyRole[]
 }>()
 const emit = defineEmits<{ close: []; completed: [notice: TeamNotice] }>()
 const email = ref('')
 const role = ref<AssignableRole>('CONSULTANT')
+const selectedRoleId = ref('')
+const selectableRoles = computed(() => props.companyRoles.filter(item => item.is_active && item.code !== 'OWNER' && props.allowedRoles.includes(item.legacy_role as AssignableRole)))
+watch(selectedRoleId, id => { const found = selectableRoles.value.find(item => item.id === id); if (found) role.value = found.legacy_role as AssignableRole })
 const busy = ref(false)
 const error = ref('')
 const emailError = ref('')
@@ -25,6 +30,7 @@ watch(
   (open) => {
     if (open) {
       email.value = ''
+      selectedRoleId.value = selectableRoles.value.find(item => item.code === 'TELEMARKETING')?.id ?? selectableRoles.value[0]?.id ?? ''
       role.value = props.allowedRoles.includes('CONSULTANT')
         ? 'CONSULTANT'
         : (props.allowedRoles[0] ?? 'CONSULTANT')
@@ -53,6 +59,7 @@ async function submit() {
       props.tenantId,
       email.value.trim().toLowerCase(),
       role.value,
+      selectedRoleId.value || undefined,
     )
     emit(
       'completed',
@@ -107,7 +114,7 @@ async function submit() {
           maxlength="254"
           data-initial-focus
           :error="emailError"
-        /><RoleSelect id="invite-role" v-model="role" :allowed-roles="allowedRoles" />
+        /><div><label class="mb-2 block text-sm font-semibold text-slate-700">Cargo na empresa</label><SearchSelect v-model="selectedRoleId" :options="selectableRoles.map(item => ({ value: item.id, label: item.name }))" placeholder="Selecione o cargo" /><p class="mt-2 text-xs text-slate-500">As permissões são configuradas pelo proprietário.</p></div>
         <div class="rounded-xl bg-orange-50 p-4 text-xs leading-6 text-orange-900">
           O convite vale por 7 dias e reserva uma vaga do plano. A pessoa precisa aceitar com o
           mesmo e-mail informado.
