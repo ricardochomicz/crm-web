@@ -1,9 +1,21 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 type Option = { value: string | number; label: string }
 const props = defineProps<{ modelValue: string | number | null; options: Option[]; placeholder?: string; required?: boolean; disabled?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string | number] }>()
 const open = ref(false)
+const root=ref<HTMLElement|null>(null)
+const menuStyle=ref<Record<string,string>>({})
+function placeMenu(){
+ const r=root.value?.getBoundingClientRect();if(!r)return
+ const below=window.innerHeight-r.bottom,above=r.top
+ const height=Math.min(224,Math.max(100,(below>=160||below>=above?below:above)-12))
+ menuStyle.value={position:'fixed',left:r.left+'px',width:r.width+'px',maxHeight:height+'px',zIndex:'9999',...(below>=160||below>=above?{top:(r.bottom+4)+'px'}:{bottom:(window.innerHeight-r.top+4)+'px'})}
+}
+function refreshMenu(){if(open.value)placeMenu()}
+onMounted(()=>{window.addEventListener('scroll',refreshMenu,true);window.addEventListener('resize',refreshMenu)})
+onUnmounted(()=>{window.removeEventListener('scroll',refreshMenu,true);window.removeEventListener('resize',refreshMenu)})
+watch(open,async v=>{if(v){await nextTick();placeMenu()}})
 const query = ref('')
 const active = ref(0)
 const selected = computed(() => props.options.find(o => String(o.value) === String(props.modelValue)))
@@ -21,7 +33,7 @@ function onKeydown(event: KeyboardEvent) {
 function close() { open.value = false; query.value = '' }
 </script>
 <template>
- <div class="relative" @keydown="onKeydown" @focusout="(e) => { if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) close() }">
+ <div ref="root" class="relative" @keydown="onKeydown" @focusout="(e) => { if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) close() }">
   <input
    :disabled="disabled"
    :value="open ? query : (selected?.label ?? '')"
@@ -34,11 +46,11 @@ function close() { open.value = false; query.value = '' }
    @input="query = ($event.target as HTMLInputElement).value; open = true"
   />
   <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">⌄</span>
-  <div v-if="open" role="listbox" class="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-stone-100 bg-white p-1 shadow-xl">
+  <Teleport to="body"><div v-if="open" role="listbox" :style="menuStyle" class="overflow-y-auto rounded-xl border border-stone-100 bg-white p-1 shadow-xl">
    <button v-for="(option, i) in filtered" :key="option.value" type="button" role="option" :aria-selected="String(option.value) === String(modelValue)" class="block w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-orange-50" :class="i === active ? 'bg-orange-50 text-orange-800' : 'text-slate-700'" @mousedown.prevent="choose(option)">
     {{ option.label }}
    </button>
    <p v-if="!filtered.length" class="px-3 py-3 text-sm text-slate-500">Nenhum resultado encontrado.</p>
-  </div>
+  </div></Teleport>
  </div>
 </template>
