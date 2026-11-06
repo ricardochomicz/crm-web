@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
+import CommissionForm from '../components/CommissionForm.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import { tenantApi } from '@/features/tenants/api'
@@ -98,15 +99,7 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
    <p v-if="!rows.length" class="px-5 py-8 text-center text-sm text-slate-500">Nenhuma tabela cadastrada.</p>
   </section>
   <div v-if="modalOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-   <form class="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-xl" @submit.prevent="save">
-    <h2 class="text-xl font-semibold">{{ editingId ? 'Editar tabela' : 'Nova tabela de comissão' }}</h2>
-    <label class="block text-sm font-medium">Tipo de pedido<select v-model="form.order_type" required class="mt-1 w-full rounded-lg border p-2"><option value="" disabled>Selecione</option><option v-for="type in orderTypes" :key="type.value" :value="type.value">{{ type.label }}</option></select></label>
-    <label class="block text-sm font-medium">Operadora<select v-model.number="form.operator_id" required class="mt-1 w-full rounded-lg border p-2"><option :value="0" disabled>Selecione</option><option v-for="op in operators" :key="op.id" :value="op.id">{{ op.name }}</option></select></label>
-    <label class="block text-sm font-medium">Comissão (%) <input v-model="form.percentage" required inputmode="decimal" class="mt-1.5 block w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-normal" /></label>
-    <label class="block text-sm font-medium text-slate-700">Desconto (%)<input v-model="form.deduction_percentage" inputmode="decimal" class="mt-1.5 block w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-normal" placeholder="Vazio = padrão da empresa" /><span class="mt-1 block text-xs font-normal text-slate-500">Informe 0 para não aplicar desconto.</span></label>
-    <label class="flex items-center gap-2 text-sm font-medium text-slate-700"><input v-model="form.is_active" type="checkbox" class="size-4 accent-orange-600" /> Tabela ativa</label>
-    <div class="flex justify-end gap-3"><button type="button" class="rounded-lg border px-4 py-2" @click="modalOpen = false">Cancelar</button><button type="submit" :disabled="busy" class="primary-button w-auto">Salvar</button></div>
-   </form>
+   <CommissionForm v-model="form" :operators="operators" :order-types="orderTypes" :busy="busy" :editing="!!editingId" @submit="save" @cancel="modalOpen = false" />
   </div>
  </AppShell>
 </template>
