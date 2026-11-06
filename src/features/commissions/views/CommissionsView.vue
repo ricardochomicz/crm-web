@@ -92,8 +92,8 @@ const { page, total, lastPage, pageRows, changePage } = useListPagination(filter
   <AsyncNotice :loading="loading" :error="error" @retry="load" />
   <form v-if="!loading && !error" class="mb-5 rounded-2xl border border-stone-200 bg-white p-5" @submit.prevent="saveSettings"><div class="flex flex-wrap items-end gap-4"><label class="block text-sm font-semibold text-slate-700">Desconto padrão da empresa (%)<input v-model="defaultDeduction" :disabled="!writable" inputmode="decimal" class="mt-2 block w-44 rounded-xl border-0 bg-stone-100 px-4 py-3 text-sm font-normal outline-none focus:bg-white focus:ring-2 focus:ring-orange-400" /></label><button v-if="writable" type="submit" class="primary-button w-auto">Salvar padrão</button></div><p class="mt-3 text-xs text-slate-500">Aplicado à comissão bruta quando a tabela não possui desconto próprio. Use 0% para não descontar.</p></form>
   <ListFilters :columns="2" v-if="!loading && !error" :count-label="`${filteredRows.length} resultado(s) encontrado(s)`" @search="applyFilters" @clear="clearFilters">
-   <label class="text-sm">Operadora<SearchSelect v-model="filterOperator" :options="[{value:'',label:'Todas'}, ...operators.map(o=>({value:String(o.id),label:o.name}))]"/></label>
-   <label class="text-sm">Tipo de pedido<SearchSelect v-model="filterOrderType" :options="[{value:'',label:'Todos'}, ...orderTypes]"/></label>
+   <label class="text-xs font-semibold text-slate-600">Operadora<SearchSelect v-model="filterOperator" :options="[{value:'',label:'Todas as operadoras'}, ...operators.map(o=>({value:String(o.id),label:o.name}))]"/></label>
+   <label class="text-xs font-semibold text-slate-600">Tipo de pedido<SearchSelect v-model="filterOrderType" :options="[{value:'',label:'Todos os tipos'}, ...orderTypes]"/></label>
   </ListFilters>
   <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
    <ListTable min-width="720px">
@@ -110,7 +110,8 @@ const { page, total, lastPage, pageRows, changePage } = useListPagination(filter
      </tbody>
     </ListTable>
    <p v-if="!filteredRows.length" class="px-5 py-8 text-center text-sm text-slate-500">Nenhuma tabela cadastrada.</p>
-  <PagePagination :page="page" :last-page="lastPage" :total="total" @change="changePage" /></section>
+  </section>
+  <PagePagination v-if="!loading && !error" :page="page" :last-page="lastPage" :total="total" :busy="loading || busy" @change="changePage" />
   <div v-if="modalOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
    <CommissionForm v-model="form" :operators="operators" :order-types="orderTypes" :busy="busy" :editing="!!editingId" @submit="save" @cancel="modalOpen = false" />
   </div>
