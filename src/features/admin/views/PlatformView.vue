@@ -6,7 +6,6 @@ import ListFilters from '@/components/ui/ListFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
-import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { adminApi, type PlatformTenant } from '../api'
 import type { Page } from '@/features/tenants/types'
 import { errorMessage } from '@/lib/feedback'
@@ -15,7 +14,6 @@ const result = ref<Page<PlatformTenant>>()
 const name = ref('')
 const status = ref('')
 const loading = ref(true)
-const busy = ref(false)
 const error = ref('')
 
 const labels: Record<string, string> = {
@@ -108,13 +106,19 @@ onMounted(() => void load())
               <td class="px-6 py-4">
                 <span
                   class="rounded-full px-2.5 py-1 text-xs font-semibold"
-                  :class="tenant.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'"
+                  :class="
+                    tenant.status === 'ACTIVE'
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'bg-amber-50 text-amber-800'
+                  "
                 >
                   {{ labels[tenant.status] ?? tenant.status }}
                 </span>
               </td>
               <td class="px-6 py-4 text-slate-600">{{ tenant.users_count }}</td>
-              <td class="px-6 py-4 text-slate-600">{{ tenant.subscription?.plan_name ?? 'Sem assinatura' }}</td>
+              <td class="px-6 py-4 text-slate-600">
+                {{ tenant.subscription?.plan_name ?? 'Sem assinatura' }}
+              </td>
               <td class="px-6 py-4 text-xs text-slate-500">
                 {{
                   tenant.status === 'ACTIVE' && tenant.subscription?.allows_operational_writes
