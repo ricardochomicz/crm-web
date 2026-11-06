@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ListTable from '@/components/ui/ListTable.vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
@@ -134,7 +135,7 @@ async function savePromotion() {
   } catch (e) { toast.error(errorMessage(e)) }
   finally { busy.value = false }
 }
-watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value = false; clearFilters(); void load() }, { immediate: true })
+watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value = false; nameFilter.value = ''; operatorFilter.value = ''; categoryFilter.value = ''; statusFilter.value = ''; appliedFilters.value = {search:'',operator_id:'',category:'',is_active:''}; productPage.value = 1; void load() }, { immediate: true })
 </script>
 <template>
   <AppShell :tenant="tenant" title="Produtos e planos" subtitle="Catálogo comercial">
@@ -163,8 +164,7 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
         </label>
       </ListFilters>
       <section class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[760px] text-left text-sm">
+        <ListTable min-width="760px">
             <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr><th class="px-5 py-4">Produto</th><th class="px-4 py-4">Operadora</th><th class="px-4 py-4">Categoria</th><th class="px-4 py-4 text-right">Preço</th><th class="px-4 py-4">Promoção vigente</th><th class="px-4 py-4">Situação</th><th v-if="canUpdateWritable || canPromoteWritable" class="px-5 py-4 text-right">Ações</th></tr>
             </thead>
@@ -180,9 +180,9 @@ watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value
               </tr>
               <tr v-if="!filtered.length"><td :colspan="canUpdateWritable || canPromoteWritable ? 7 : 6" class="px-5 py-12 text-center text-slate-500">{{ products.length ? 'Nenhum produto corresponde aos filtros.' : 'Nenhum produto cadastrado.' }}</td></tr>
             </tbody>
-          </table>
-        </div>
+          </ListTable>
       </section>
+      <PagePagination :page="productPage" :last-page="lastPage" :total="totalProducts" :busy="filtersLoading" @change="loadProducts" />
     </template>
 
     <div v-if="productModalOpen && (editingId ? canUpdateWritable : canCreateWritable)" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" @click.self="closeProduct">

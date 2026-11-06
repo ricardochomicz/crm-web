@@ -8,7 +8,7 @@ withDefaults(defineProps<{
 defineEmits<{ search: []; clear: [] }>()
 </script>
 <template>
-  <form role="search" class="mb-5 rounded-2xl border border-stone-200 bg-white p-4 sm:p-5" @submit.prevent="$emit('search')">
+  <form role="search" :aria-busy="busy" class="mb-5 rounded-2xl border border-stone-200 bg-white p-4 sm:p-5" @submit.prevent="!busy && $emit('search')">
     <div class="grid gap-3" :class="columns === 1 ? 'grid-cols-1' : columns === 2 ? 'sm:grid-cols-2' : columns === 3 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2 lg:grid-cols-4'">
       <slot />
     </div>

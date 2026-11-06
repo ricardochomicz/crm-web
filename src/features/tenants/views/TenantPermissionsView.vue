@@ -150,6 +150,7 @@ function dateTime(value: string) {
     new Date(value),
   )
 }
+const showLegacyPermissions = ref(false)
 </script>
 <template>
   <AppShell :tenant="tenant" :title="tenant?.name ?? 'Configurações'" subtitle="Controle de acesso">
@@ -175,7 +176,7 @@ function dateTime(value: string) {
       </p>
     </section>
     <CompanyRolesManager v-if="!loading && settings" :tenant-id="tenantId" :catalog="settings.catalog" :can-edit="settings.can_edit" />
-    <template v-if="false">
+    <template v-if="showLegacyPermissions && settings">
       <div class="mb-5 mt-10 border-t border-stone-200 pt-7"><h2 class="text-lg font-semibold">Configuração legada de papéis</h2><p class="mt-2 text-sm text-slate-500">As configurações abaixo são mantidas para vínculos antigos sem cargo personalizado. Para os sete cargos novos e para cargos criados pela empresa, use a seção Cargos personalizados acima.</p></div>
       <p
         v-if="!settings.can_edit"

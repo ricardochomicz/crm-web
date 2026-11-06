@@ -5,6 +5,8 @@ import TenantUnitsView from '../views/TenantUnitsView.vue'
 import { tenantApi } from '../api'
 import { unitsApi, type UnitList } from '../units'
 import { ApiError } from '@/lib/http'
+import { toast } from '@/services/toast'
+vi.mock('@/services/toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('../api', () => ({ tenantApi: { show: vi.fn() } }))
 vi.mock('../units', () => ({
   unitsApi: { list: vi.fn(), create: vi.fn(), update: vi.fn(), assignments: vi.fn() },
@@ -77,8 +79,10 @@ describe('Matriz e filiais', () => {
       address: 'Rua Central, 10',
       email: null,
       phone: null,
+      city: null,
+      state: null,
     })
-    expect(wrapper.text()).toContain('Unidade salva com sucesso.')
+    expect(toast.success).toHaveBeenCalledWith('Unidade salva com sucesso.')
     wrapper.unmount()
   })
   it('edits a unit without changing its type', async () => {
@@ -92,6 +96,8 @@ describe('Matriz e filiais', () => {
       email: null,
       phone: null,
       address: null,
+      city: null,
+      state: null,
     })
     wrapper.unmount()
   })

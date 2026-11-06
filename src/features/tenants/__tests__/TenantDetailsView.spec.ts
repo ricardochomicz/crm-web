@@ -4,6 +4,8 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import TenantDetailsView from '../views/TenantDetailsView.vue'
 import { tenantApi } from '../api'
 import { ApiError } from '@/lib/http'
+import { toast } from '@/services/toast'
+vi.mock('@/services/toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 import type { CompanyDetails } from '../types'
 vi.mock('../api', () => ({ tenantApi: { details: vi.fn(), update: vi.fn() } }))
 const company: CompanyDetails = {
@@ -58,13 +60,16 @@ describe('Company details', () => {
       phone: null,
       timezone: 'America/Sao_Paulo',
     })
-    expect(wrapper.text()).toContain('Dados da empresa atualizados com sucesso.')
+    expect(toast.success).toHaveBeenCalledWith('Dados da empresa atualizados com sucesso.')
     wrapper.unmount()
   })
   it('restores saved values when discarding edits', async () => {
     const wrapper = await render()
     await wrapper.get('#company-name').setValue('Rascunho')
-    await wrapper.get('button[type="button"]').trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Descartar alterações')!
+      .trigger('click')
     expect(wrapper.get<HTMLInputElement>('#company-name').element.value).toBe('Empresa original')
     expect(tenantApi.update).not.toHaveBeenCalled()
     wrapper.unmount()
@@ -98,7 +103,7 @@ describe('Company details', () => {
     expect(wrapper.get('#company-timezone').attributes('aria-invalid')).toBe('true')
     expect(wrapper.get<HTMLInputElement>('#company-timezone').element.value).toBe('Invalid/Zone')
     expect(wrapper.text()).toContain('Fuso horário inválido.')
-    expect(wrapper.text()).not.toContain('atualizados com sucesso')
+    expect(toast.success).not.toHaveBeenCalled()
     wrapper.unmount()
   })
   it('does not submit missing required values', async () => {

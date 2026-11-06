@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import PagePagination from '@/components/ui/PagePagination.vue'
+import { useListPagination } from '@/composables/useListPagination'
+import ListFilters from '@/components/ui/ListFilters.vue'
+import { useListFilters } from '@/composables/useListFilters'
+import ListTable from '@/components/ui/ListTable.vue'
 import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
@@ -27,7 +32,8 @@ const canManage = ref(false)
 const defaultDeduction = ref('0')
 const filterOperator = ref('')
 const filterOrderType = ref('')
-const filteredRows = computed(() => rows.value.filter(r => (!filterOperator.value || String(r.operator_id) === filterOperator.value) && (!filterOrderType.value || r.order_type === filterOrderType.value)))
+const { applied, apply: applyFilters, clear: clearFilters } = useListFilters({ filterOperator, filterOrderType })
+const filteredRows = computed(() => rows.value.filter(r => (!applied.value.filterOperator || String(r.operator_id) === applied.value.filterOperator) && (!applied.value.filterOrderType || r.order_type === applied.value.filterOrderType)))
 const base = computed(() => `/api/v1/tenants/${encodeURIComponent(tenantId.value)}/commissions`)
 const writable = computed(() => canManage.value && !!tenant.value?.access?.allows_operational_writes)
 const editingId = ref('')
@@ -75,6 +81,7 @@ async function save() {
  finally { busy.value = false }
 }
 watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: true })
+const { page, total, lastPage, pageRows, changePage } = useListPagination(filteredRows)
 </script>
 <template>
  <AppShell :tenant="tenant" title="Tabelas de comissões" subtitle="Comissões recebidas das operadoras">
@@ -84,16 +91,15 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
   </header>
   <AsyncNotice :loading="loading" :error="error" @retry="load" />
   <form v-if="!loading && !error" class="mb-5 rounded-2xl border border-stone-200 bg-white p-5" @submit.prevent="saveSettings"><div class="flex flex-wrap items-end gap-4"><label class="block text-sm font-semibold text-slate-700">Desconto padrão da empresa (%)<input v-model="defaultDeduction" :disabled="!writable" inputmode="decimal" class="mt-2 block w-44 rounded-xl border-0 bg-stone-100 px-4 py-3 text-sm font-normal outline-none focus:bg-white focus:ring-2 focus:ring-orange-400" /></label><button v-if="writable" type="submit" class="primary-button w-auto">Salvar padrão</button></div><p class="mt-3 text-xs text-slate-500">Aplicado à comissão bruta quando a tabela não possui desconto próprio. Use 0% para não descontar.</p></form>
-  <section v-if="!loading && !error" class="mb-5 grid gap-3 rounded-2xl border border-stone-200 bg-white p-5 md:grid-cols-2">
+  <ListFilters :columns="2" v-if="!loading && !error" :count-label="`${filteredRows.length} resultado(s) encontrado(s)`" @search="applyFilters" @clear="clearFilters">
    <label class="text-sm">Operadora<SearchSelect v-model="filterOperator" :options="[{value:'',label:'Todas'}, ...operators.map(o=>({value:String(o.id),label:o.name}))]"/></label>
    <label class="text-sm">Tipo de pedido<SearchSelect v-model="filterOrderType" :options="[{value:'',label:'Todos'}, ...orderTypes]"/></label>
-  </section>
+  </ListFilters>
   <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-   <div class="overflow-x-auto">
-    <table class="w-full min-w-[720px] text-left text-sm">
+   <ListTable min-width="720px">
      <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-4">Tipo de pedido</th><th class="px-4 py-4">Operadora</th><th class="px-4 py-4 text-right">Comissão</th><th class="px-4 py-4 text-right">Desconto</th><th class="px-4 py-4">Situação</th><th v-if="writable" class="px-5 py-4 text-right">Ações</th></tr></thead>
      <tbody class="divide-y divide-stone-100">
-      <tr v-for="item in filteredRows" :key="item.id" class="hover:bg-stone-50/70">
+      <tr v-for="item in pageRows" :key="item.id" class="hover:bg-stone-50/70">
        <td class="px-5 py-4 font-semibold text-slate-800">{{ orderTypeLabel(item.order_type) }}</td>
        <td class="px-4 py-4 text-slate-600">{{ item.operator?.name }}</td>
        <td class="px-4 py-4 text-right font-semibold text-slate-800">{{ format(item.percentage) }}</td>
@@ -102,10 +108,9 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
        <td v-if="writable" class="px-5 py-4 text-right"><TableActionButton icon="edit" :label="`Editar tabela de ${item.operator?.name ?? 'comissões'}`" :disabled="busy" @click="edit(item)" /></td>
       </tr>
      </tbody>
-    </table>
-   </div>
+    </ListTable>
    <p v-if="!filteredRows.length" class="px-5 py-8 text-center text-sm text-slate-500">Nenhuma tabela cadastrada.</p>
-  </section>
+  <PagePagination :page="page" :last-page="lastPage" :total="total" @change="changePage" /></section>
   <div v-if="modalOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
    <CommissionForm v-model="form" :operators="operators" :order-types="orderTypes" :busy="busy" :editing="!!editingId" @submit="save" @cancel="modalOpen = false" />
   </div>

@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import PagePagination from '@/components/ui/PagePagination.vue'
+import { useListPagination } from '@/composables/useListPagination'
+import ListFilters from '@/components/ui/ListFilters.vue'
+import { useListFilters } from '@/composables/useListFilters'
+import ListTable from '@/components/ui/ListTable.vue'
 import { computed, ref } from 'vue'
 import { toast } from '@/services/toast'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
@@ -12,14 +17,15 @@ const {tenant,rows,operators,orderTypes,roles,loading,busy,error,writable,editin
 const filterOperator = ref('')
 const filterOrderType = ref('')
 const filterRole = ref('')
+const { applied, apply: applyFilters, clear: clearFilters } = useListFilters({ filterOperator, filterOrderType, filterRole })
 const filteredRows = computed(() => rows.value.filter(row =>
- (!filterOperator.value || String(row.operator_id) === filterOperator.value) &&
- (!filterOrderType.value || row.order_type === filterOrderType.value) &&
- (!filterRole.value || row.commercial_role === filterRole.value)
+ (!applied.value.filterOperator || String(row.operator_id) === applied.value.filterOperator) &&
+ (!applied.value.filterOrderType || row.order_type === applied.value.filterOrderType) &&
+ (!applied.value.filterRole || row.commercial_role === applied.value.filterRole)
 ))
 const exportRows = computed(() => filteredRows.value.filter(row => row.is_active))
-const exportAllowed = computed(() => filterRole.value !== '' && exportRows.value.length > 0)
-const exportTitle = computed(() => 'Tabela de comissionamento — ' + label(roles.value, filterRole.value))
+const exportAllowed = computed(() => applied.value.filterRole !== '' && exportRows.value.length > 0)
+const exportTitle = computed(() => 'Tabela de comissionamento — ' + label(roles.value, applied.value.filterRole))
 const safe = (value: unknown) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 const displayDate = (value: string | null) => value ? value.split('-').reverse().join('/') : 'Indeterminado'
 const exportData = () => exportRows.value.map(row => [
@@ -40,7 +46,7 @@ function exportCsv() {
  const csv = '\uFEFF' + [header, ...exportData()].map(row => row.map(escapeCsv).join(';')).join('\r\n')
  const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}))
  const link = document.createElement('a')
- link.href = url; link.download = 'comissoes-' + filterRole.value.toLowerCase() + '.csv'
+ link.href = url; link.download = 'comissoes-' + applied.value.filterRole.toLowerCase() + '.csv'
  document.body.appendChild(link); link.click(); link.remove()
  URL.revokeObjectURL(url)
 }
@@ -55,6 +61,7 @@ function exportPdf() {
  popup.focus()
  popup.print()
 }
+const { page, total, lastPage, pageRows, changePage } = useListPagination(filteredRows)
 </script>
 <template>
  <AppShell :tenant="tenant" title="Comissões da equipe" subtitle="Regras de repasse sobre o valor dos contratos">
@@ -64,15 +71,14 @@ function exportPdf() {
   </header>
   <AsyncNotice :loading="loading" :error="error" @retry="load"/>
   <section v-if="!loading && !error" class="mb-5 rounded-2xl border border-stone-200 bg-white p-5">
-   <div class="grid gap-3 md:grid-cols-3">
+   <ListFilters :columns="3" @search="applyFilters" @clear="clearFilters">
     <label class="block text-sm font-semibold">Operadora<SearchSelect v-model="filterOperator" :options="[{value:'',label:'Todas'}, ...operators.map(o=>({value:String(o.id),label:o.name}))]"/></label>
     <label class="block text-sm font-semibold">Tipo de pedido<SearchSelect v-model="filterOrderType" :options="[{value:'',label:'Todos'}, ...orderTypes]"/></label>
     <label class="block text-sm font-semibold">Papel comercial<SearchSelect v-model="filterRole" :options="[{value:'',label:'Todos'}, ...roles]"/></label>
-   </div>
+   </ListFilters>
    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
     <span class="text-sm text-slate-500">{{ filteredRows.length }} regra(s) encontrada(s)</span>
     <div class="flex flex-wrap gap-2">
-     <button type="button" class="rounded-lg border px-3 py-2 text-sm" @click="filterOperator='';filterOrderType='';filterRole=''">Limpar filtros</button>
      <button type="button" class="rounded-lg border px-3 py-2 text-sm" :disabled="!exportAllowed" @click="exportCsv">Exportar Excel (CSV)</button>
      <button type="button" class="rounded-lg border px-3 py-2 text-sm" :disabled="!exportAllowed" @click="exportPdf">Salvar PDF</button>
     </div>
@@ -80,18 +86,18 @@ function exportPdf() {
    <p class="mt-3 text-xs text-slate-500">Para enviar uma tabela comercial, selecione o papel (ex.: Parceiro). A exportação inclui apenas regras ativas filtradas, sem expor comissões de outros papéis. O PDF é salvo pelo diálogo de impressão do navegador.</p>
   </section>
   <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-   <div class="overflow-x-auto"><table class="w-full min-w-[860px] text-left text-sm">
+   <ListTable min-width="860px">
     <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-4">Operadora</th><th class="px-4 py-4">Tipo de pedido</th><th class="px-4 py-4">Papel</th><th class="px-4 py-4 text-right">Comissão</th><th class="px-4 py-4">Vigência</th><th class="px-4 py-4">Situação</th><th v-if="writable" class="px-4 py-4">Ações</th></tr></thead>
-    <tbody class="divide-y divide-stone-100"><tr v-for="row in filteredRows" :key="row.id">
+    <tbody class="divide-y divide-stone-100"><tr v-for="row in pageRows" :key="row.id">
      <td class="px-4 py-4">{{ row.operator?.name }}</td><td class="px-4 py-4">{{ label(orderTypes,row.order_type) }}</td><td class="px-4 py-4">{{ label(roles,row.commercial_role) }}</td>
      <td class="px-4 py-4 text-right font-semibold">{{ Number(row.percentage).toLocaleString('pt-BR') }}%</td>
      <td class="px-4 py-4">{{ row.starts_on }} até {{ row.ends_on ?? 'indeterminado' }}</td>
      <td class="px-4 py-4">{{ row.is_active ? 'Ativa' : 'Inativa' }}</td>
      <td v-if="writable" class="px-4 py-4"><TableActionButton icon="edit" :label="`Editar comissão de ${row.operator?.name ?? 'operadora'}`" :disabled="busy" @click="edit(row)" /></td>
     </tr></tbody>
-   </table></div>
+   </ListTable>
    <p v-if="!filteredRows.length" class="px-5 py-8 text-sm text-slate-500">Nenhuma regra encontrada para os filtros selecionados.</p>
-  </section>
+  <PagePagination :page="page" :last-page="lastPage" :total="total" @change="changePage" /></section>
   <div v-if="modalOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
    <TeamCommissionForm v-model="form" :operators="operators" :order-types="orderTypes" :roles="roles" :busy="busy" :editing="!!editingId" @submit="save" @cancel="modalOpen = false"/>
   </div>

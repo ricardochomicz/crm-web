@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import PagePagination from '@/components/ui/PagePagination.vue'
+import { useListPagination } from '@/composables/useListPagination'
+import TableActionButton from '@/components/ui/TableActionButton.vue'
+import ListFilters from '@/components/ui/ListFilters.vue'
+import { useListFilters } from '@/composables/useListFilters'
+import ListTable from '@/components/ui/ListTable.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
@@ -38,10 +44,11 @@ const metricLabel = (metric: string) => metric === 'QUANTITY' ? 'Linhas' : 'Rece
 const filterOperator = ref('')
 const filterType = ref('')
 const filterRole = ref('')
+const { applied, apply: applyFilters, clear: clearFilters } = useListFilters({ filterOperator, filterType, filterRole })
 const filtered = computed(() => rows.value.filter(r =>
- (!filterOperator.value || String(r.operator_id) === filterOperator.value) &&
- (!filterType.value || r.order_type === filterType.value) &&
- (!filterRole.value || r.commercial_role === filterRole.value)))
+ (!applied.value.filterOperator || String(r.operator_id) === applied.value.filterOperator) &&
+ (!applied.value.filterType || r.order_type === applied.value.filterType) &&
+ (!applied.value.filterRole || r.commercial_role === applied.value.filterRole)))
 async function load() {
  loading.value = true; error.value = ''
  try {
@@ -74,6 +81,7 @@ async function save() {
 }
 watch(tenantId, load)
 onMounted(load)
+const { page, total, lastPage, pageRows, changePage } = useListPagination(filtered)
 </script>
 <template>
  <AppShell :tenant="tenant" title="Metas comerciais" subtitle="Faixas de comissão por desempenho">
@@ -83,23 +91,23 @@ onMounted(load)
   </header>
   <AsyncNotice :loading="loading" :error="error" @retry="load"/>
   <template v-if="!loading && !error">
-   <section class="mb-5 grid gap-3 rounded-2xl border border-stone-200 bg-white p-5 md:grid-cols-3">
+   <ListFilters :columns="3" :count-label="`${filtered.length} resultado(s) encontrado(s)`" @search="applyFilters" @clear="clearFilters">
     <label class="text-sm">Operadora<SearchSelect v-model="filterOperator" :options="[{value:'',label:'Todas'}, ...operators.map(o=>({value:String(o.id),label:o.name}))]"/></label>
     <label class="text-sm">Tipo de pedido<SearchSelect v-model="filterType" :options="[{value:'',label:'Todos'}, ...orderTypes]"/></label>
     <label class="text-sm">Perfil<SearchSelect v-model="filterRole" :options="[{value:'',label:'Todos'}, ...roles]"/></label>
-   </section>
+   </ListFilters>
    <section class="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
-    <table class="w-full min-w-[850px] text-left text-sm">
+    <ListTable min-width="850px">
      <thead class="bg-stone-50 text-slate-500"><tr><th class="p-4">Operadora</th><th class="p-4">Pedido</th><th class="p-4">Perfil</th><th class="p-4">Métrica</th><th class="p-4">Faixas (mínimo → comissão)</th><th class="p-4">Vigência</th><th class="p-4">Status</th><th v-if="writable" class="p-4">Ações</th></tr></thead>
-     <tbody><tr v-for="r in filtered" :key="r.id" class="border-t border-stone-100">
+     <tbody><tr v-for="r in pageRows" :key="r.id" class="border-t border-stone-100">
       <td class="p-4">{{ r.operator?.name }}</td><td class="p-4">{{ label(orderTypes,r.order_type) }}</td><td class="p-4">{{ label(roles,r.commercial_role) }}</td><td class="p-4">{{ metricLabel(r.metric) }}</td>
       <td class="p-4">{{ r.tiers.map(t => Number(t.minimum).toLocaleString('pt-BR') + ' → ' + Number(t.percentage).toLocaleString('pt-BR') + '%').join(' · ') }}</td>
       <td class="p-4">{{ r.starts_on }} até {{ r.ends_on ?? 'indeterminado' }}</td><td class="p-4">{{ r.is_active ? 'Ativa' : 'Inativa' }}</td>
-      <td v-if="writable" class="p-4"><button class="rounded-lg border px-3 py-1" type="button" @click="edit(r)">Editar</button></td>
+      <td v-if="writable" class="p-4"><TableActionButton icon="edit" :label="`Editar meta de ${r.operator?.name ?? 'operadora'}`" :busy="busy" @click="edit(r)" /></td>
      </tr></tbody>
-    </table>
+    </ListTable>
     <p v-if="!filtered.length" class="p-6 text-sm text-slate-500">Nenhuma meta encontrada.</p>
-   </section>
+   <PagePagination :page="page" :last-page="lastPage" :total="total" @change="changePage" /></section>
   </template>
   <div v-if="modalOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
    <CommercialGoalForm v-model="form" :operators="operators" :order-types="orderTypes" :roles="roles" :busy="busy" :editing="!!editingId" @submit="save" @cancel="modalOpen=false"/>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ListTable from '@/components/ui/ListTable.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { roleLabels } from '@/features/tenants/types'
@@ -17,7 +18,7 @@ defineEmits<{ action: [action: TeamAction] }>()
 </script>
 <template>
   <div class="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
-    <table class="w-full min-w-[740px] text-left text-sm">
+    <ListTable min-width="740px">
       <caption class="sr-only">
         Membros da empresa
       </caption>
@@ -79,6 +80,6 @@ defineEmits<{ action: [action: TeamAction] }>()
           </td>
         </tr>
       </tbody>
-    </table>
+    </ListTable>
   </div>
 </template>

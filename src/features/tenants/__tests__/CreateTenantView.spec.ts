@@ -4,8 +4,15 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { createPinia } from 'pinia'
 import CreateTenantView from '../views/CreateTenantView.vue'
 import { tenantApi } from '../api'
+import { operatorsApi } from '@/features/operators/api'
+vi.mock('@/features/operators/api', () => ({ operatorsApi: { available: vi.fn() } }))
 vi.mock('../api', () => ({ tenantApi: { plans: vi.fn(), create: vi.fn() } }))
-beforeEach(() => vi.resetAllMocks())
+beforeEach(() => {
+  vi.resetAllMocks()
+  vi.mocked(operatorsApi.available).mockResolvedValue({
+    data: [{ id: 1, name: 'Operadora', slug: 'operadora', is_active: true }],
+  })
+})
 async function render() {
   const router = createRouter({
     history: createMemoryHistory(),
@@ -70,10 +77,15 @@ describe('Company onboarding', () => {
     const { wrapper, router } = await render()
     await fillCompany(wrapper)
     await wrapper.get('.primary-button').trigger('click')
+    expect(wrapper.get('.primary-button').attributes('disabled')).toBeDefined()
+    expect(tenantApi.create).not.toHaveBeenCalled()
+    await wrapper.get('input[type="checkbox"]').setValue(true)
+    await wrapper.get('.primary-button').trigger('click')
     await flushPromises()
     expect(tenantApi.create).toHaveBeenCalledWith(
       expect.objectContaining({
         subscription_plan_id: 'plan-a',
+        operator_ids: [1],
         tenant: expect.objectContaining({
           name: 'Empresa de teste',
           document: '12345678000190',

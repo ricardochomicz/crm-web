@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ListTable from '@/components/ui/ListTable.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import type { Team } from '../types'
 
@@ -18,7 +19,7 @@ defineEmits<{
 
 <template>
   <div class="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
-    <table class="w-full min-w-[640px] text-left text-sm">
+    <ListTable min-width="640px">
       <caption class="sr-only">
         Equipes da empresa
       </caption>
@@ -56,7 +57,7 @@ defineEmits<{
           </td>
         </tr>
       </tbody>
-    </table>
+    </ListTable>
   </div>
 </template>
 

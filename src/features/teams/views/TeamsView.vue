@@ -116,7 +116,6 @@ function openEdit(team: Team) {
 }
 
 function openSupervisor(team: Team) {
-  notice.value = null
   supervisorTeam.value = team
 }
 

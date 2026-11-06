@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ListTable from '@/components/ui/ListTable.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { roleLabels } from '@/features/tenants/types'
 import type { Invitation, TeamAction } from '../types'
@@ -28,7 +29,7 @@ function expiration(value: string) {
 </script>
 <template>
   <div class="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
-    <table class="w-full min-w-[780px] text-left text-sm">
+    <ListTable min-width="780px">
       <caption class="sr-only">
         Convites da empresa. As datas usam o horário local do seu navegador.
       </caption>
@@ -91,6 +92,6 @@ function expiration(value: string) {
           </td>
         </tr>
       </tbody>
-    </table>
+    </ListTable>
   </div>
 </template>

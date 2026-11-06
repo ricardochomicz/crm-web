@@ -39,7 +39,11 @@ afterEach(() => vi.useRealTimers())
 async function render() {
   const wrapper = mount(UnitAssignmentsDrawer, {
     props: { tenantId: 'company-a', unit },
-    global: { stubs: { AppDialog: { template: '<aside><slot /></aside>' } } },
+    global: {
+      stubs: {
+        AppDialog: { props: { open: Boolean }, template: '<aside v-if="open"><slot /></aside>' },
+      },
+    },
   })
   await flushPromises()
   return wrapper
@@ -59,10 +63,10 @@ describe('Unit assignment drawer', () => {
       }),
     )
     const wrapper = await render()
-    await button(wrapper, 'Adicionar membros').trigger('click')
+    await button(wrapper, 'Adicionar pessoas').trigger('click')
     await flushPromises()
     await wrapper.get('input[type="checkbox"]').setValue(true)
-    await button(wrapper, 'Próxima').trigger('click')
+    await wrapper.get('[aria-label="Próxima página"]').trigger('click')
     await flushPromises()
     await wrapper.get('input[type="checkbox"]').setValue(true)
     await wrapper.get('input[type="search"]').setValue('bia@example.com')
@@ -91,7 +95,7 @@ describe('Unit assignment drawer', () => {
   })
   it('removes only the confirmed member', async () => {
     const wrapper = await render()
-    await button(wrapper, 'Remover vínculo').trigger('click')
+    await wrapper.get('[aria-label="Remover vínculo de Ana"]').trigger('click')
     expect(wrapper.text()).toContain('A pessoa continuará na empresa')
     expect(unitsApi.changeAssignments).not.toHaveBeenCalled()
     await button(wrapper, 'Confirmar').trigger('click')
@@ -113,7 +117,9 @@ describe('Unit assignment drawer', () => {
       total: 1,
     })
     const wrapper = await render()
-    expect(button(wrapper, 'Remover vínculo').attributes('disabled')).toBeDefined()
+    expect(
+      wrapper.get('[aria-label="Remover vínculo de Ana"]').attributes('disabled'),
+    ).toBeDefined()
     expect(wrapper.text()).toContain('Atualize a equipe antes de remover.')
     wrapper.unmount()
   })
@@ -125,9 +131,9 @@ describe('Unit assignment drawer', () => {
       last_page: 1,
       total: 1,
     })
-    await button(wrapper, 'Equipes').trigger('click')
+    await button(wrapper, 'Equipes (0)').trigger('click')
     await flushPromises()
-    await button(wrapper, 'Adicionar equipes').trigger('click')
+    await button(wrapper, 'Transferir equipes').trigger('click')
     await flushPromises()
     await wrapper.get('input[type="checkbox"]').setValue(true)
     await button(wrapper, 'Revisar transferência').trigger('click')
@@ -144,7 +150,7 @@ describe('Unit assignment drawer', () => {
   it('retains selection after a failed save', async () => {
     vi.mocked(unitsApi.changeAssignments).mockRejectedValue(new Error('offline'))
     const wrapper = await render()
-    await button(wrapper, 'Adicionar membros').trigger('click')
+    await button(wrapper, 'Adicionar pessoas').trigger('click')
     await flushPromises()
     await wrapper.get('input[type="checkbox"]').setValue(true)
     await button(wrapper, 'Adicionar selecionados').trigger('click')

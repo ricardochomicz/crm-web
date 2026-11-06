@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ListTable from '@/components/ui/ListTable.vue'
 import { onMounted, ref } from 'vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
@@ -68,7 +69,7 @@ onMounted(() => load())
     <template v-if="!loading && !error && result"
       ><p class="mb-4 text-xs text-slate-500">{{ result.total }} empresas encontradas</p>
       <div class="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
-        <table class="w-full min-w-[640px] text-left text-sm">
+        <ListTable min-width="640px">
           <caption class="sr-only">
             Empresas da plataforma
           </caption>
@@ -116,7 +117,7 @@ onMounted(() => load())
               </td>
             </tr>
           </tbody>
-        </table>
+        </ListTable>
       </div>
       <PagePagination
         :page="result.current_page"
