@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import { teamApi } from '@/features/members/api'
@@ -117,12 +118,7 @@ async function save() {
       <section v-if="canManage && !loading" class="grid gap-3 rounded-xl border border-stone-200 p-4">
         <h3 class="font-semibold">Adicionar ou transferir usuário</h3>
         <label for="team-member-select" class="text-sm font-medium">Usuário ativo</label>
-        <select id="team-member-select" v-model="selectedId" class="field" :disabled="busy" @change="removalId = ''; reason = ''">
-          <option value="">Selecione um usuário</option>
-          <option v-for="member in available" :key="member.id" :value="member.id">
-            {{ member.name }} · {{ member.email }}
-          </option>
-        </select>
+        <SearchSelect v-model="selectedId" :disabled="busy" :options="[{value:'',label:'Selecione um usuário'}, ...available.map(member=>({value:member.id,label:member.name+' · '+member.email}))]" @update:model-value="removalId = ''; reason = ''"/>
         <p class="text-xs text-slate-500">Se o usuário estiver em outra equipe, será transferido para esta. Cada usuário pode integrar apenas uma equipe por vez.</p>
         <p v-if="removing" class="text-sm font-semibold">Remover {{ removing.name }} desta equipe?</p>
         <template v-if="selectedId || removalId">
