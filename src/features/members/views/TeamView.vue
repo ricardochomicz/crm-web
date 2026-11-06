@@ -5,6 +5,8 @@ import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
+import ListFilters from '@/components/ui/ListFilters.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { useAuthStore } from '@/features/auth/store'
 import { useTeamManagement } from '../composables/useTeamManagement'
 import MembersTable from '../components/MembersTable.vue'
@@ -119,13 +121,13 @@ onMounted(load)
 </script>
 <template>
   <AppShell :tenant="tenant" :title="tenant?.name ?? 'Sua equipe'" subtitle="Gestão de acesso">
-    <div class="mb-7 flex flex-wrap items-end justify-between gap-5">
+    <div class="mb-7 flex flex-wrap items-center justify-between gap-4">
       <div>
         <p class="eyebrow">AS PESSOAS FAZEM A DIFERENÇA</p>
         <h1 class="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
           Sua equipe, mais conectada.
         </h1>
-        <p class="mt-3 text-sm text-slate-500">
+        <p class="mt-2 text-sm text-slate-500">
           Gerencie quem faz parte da empresa e convide novas pessoas.
         </p>
       </div>
@@ -272,21 +274,7 @@ onMounted(load)
             Convites
           </button>
         </div>
-        <div v-if="tab === 'invitations'" class="flex items-center gap-3">
-          <label for="invitation-status" class="text-xs text-slate-500">Situação</label
-          ><select
-            id="invitation-status"
-            v-model="invitationFilter"
-            class="field py-2.5"
-            :disabled="invitationsLoading || modalOpen"
-            @change="filterInvitations"
-          >
-            <option value="">Todos os convites</option>
-            <option value="PENDING">Pendentes e expirados</option>
-            <option value="ACCEPTED">Aceitos</option>
-            <option value="REVOKED">Revogados</option>
-          </select>
-        </div>
+
       </div>
       <section
         v-show="tab === 'members' && canViewMembers"
@@ -313,7 +301,7 @@ onMounted(load)
             :page="members.current_page"
             :last-page="members.last_page"
             :total="members.total"
-            :busy="modalOpen"
+            :busy="membersLoading || modalOpen"
             @change="loadMembers"
         /></template>
         <p class="mt-4 text-xs leading-6 text-slate-400">
@@ -327,6 +315,27 @@ onMounted(load)
         aria-labelledby="tab-invitations"
         tabindex="0"
       >
+        <ListFilters
+          :columns="1"
+          :busy="invitationsLoading || modalOpen"
+          :count-label="`${invitations?.total ?? 0} convite(s) encontrado(s)`"
+          @search="filterInvitations"
+          @clear="invitationFilter = ''; filterInvitations()"
+        >
+          <label class="text-xs font-semibold text-slate-600">
+            Situação do convite
+            <SearchSelect
+              v-model="invitationFilter"
+              :disabled="invitationsLoading || modalOpen"
+              :options="[
+                { value: '', label: 'Todos os convites' },
+                { value: 'PENDING', label: 'Pendentes e expirados' },
+                { value: 'ACCEPTED', label: 'Aceitos' },
+                { value: 'REVOKED', label: 'Revogados' },
+              ]"
+            />
+          </label>
+        </ListFilters>
         <AsyncNotice
           :loading="invitationsLoading"
           :error="invitationsError"
@@ -343,7 +352,7 @@ onMounted(load)
             :page="invitations.current_page"
             :last-page="invitations.last_page"
             :total="invitations.total"
-            :busy="modalOpen"
+            :busy="invitationsLoading || modalOpen"
             @change="loadInvitations"
         /></template>
         <p class="mt-4 text-xs leading-6 text-slate-400">
