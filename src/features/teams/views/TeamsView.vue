@@ -94,13 +94,13 @@ onMounted(load)
 
 <template>
   <AppShell :tenant="tenant" :title="tenant?.name ?? 'Equipes'" subtitle="Gestão de equipes">
-    <div class="mb-7 flex flex-wrap items-end justify-between gap-5">
+    <div class="mb-7 flex flex-wrap items-center justify-between gap-4">
       <div>
         <p class="eyebrow">ORGANIZAÇÃO INTERNA</p>
         <h1 class="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
           Equipes da empresa
         </h1>
-        <p class="mt-3 text-sm text-slate-500">
+        <p class="mt-2 text-sm text-slate-500">
           Organize os membros em equipes com supervisores definidos.
         </p>
       </div>
@@ -139,7 +139,7 @@ onMounted(load)
       <template v-if="teams">
         <ListFilters :columns="1" :busy="teamsLoading || anyDialogOpen" :count-label="`${teams.total} equipe(s) encontrada(s)`" @search="searchTeams" @clear="clearTeamSearch">
           <label class="text-xs font-semibold text-slate-600">Nome da equipe
-            <input v-model="teamNameFilter" type="search" class="field mt-2" placeholder="Digite o nome da equipe" />
+            <input v-model="teamNameFilter" type="search" class="field" placeholder="Digite o nome da equipe" />
           </label>
         </ListFilters>
         <TeamsTable
@@ -155,8 +155,7 @@ onMounted(load)
           :page="teams.current_page"
           :last-page="teams.last_page"
           :total="teams.total"
-          :busy="anyDialogOpen"
-          class="mt-4"
+          :busy="teamsLoading || anyDialogOpen"
           @change="loadTeams"
         />
       </template>
