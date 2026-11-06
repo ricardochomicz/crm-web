@@ -10,7 +10,8 @@ export type ClassificationInput = Pick<Classification,'operator_id'|'code'|'name
 export type RuleInput = Pick<RenewalRule,'minimum_months'|'valid_from'|'valid_until'|'is_active'|'notes'>
 const base=(id:string)=>'/api/v1/tenants/'+encodeURIComponent(id)
 export const clientsApi={
- list:(id:string)=>request<{data:Client[];meta:{can_manage:boolean}}>(base(id)+'/clients'),
+ list:(id:string)=>request<{data:Client[];meta:{can_manage:boolean;can_create:boolean;can_delete:boolean}}>(base(id)+'/clients'),
+ remove:(id:string,client:string)=>mutate(base(id)+'/clients/'+client,{},'DELETE'),
  show:(id:string,client:string)=>request<{data:Client}>(base(id)+'/clients/'+client),
  options:(id:string)=>request<{data:{sellers:Seller[];current_seller_id:string|null;can_assign_seller:boolean}}>(base(id)+'/clients/options'),
  save:(id:string,data:ClientInput,client?:string)=>mutate<{data:Client}>(base(id)+'/clients'+(client?'/'+client:''),data,client?'PATCH':'POST'),
