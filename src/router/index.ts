@@ -92,6 +92,16 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Metas comerciais' },
     },
     {
+      path: '/empresas/:tenantId/clientes',
+      component: () => import('@/features/clients/views/ClientsView.vue'),
+      meta: { requiresAuth: true, title: 'Clientes' },
+    },
+    {
+      path: '/empresas/:tenantId/classificacoes',
+      component: () => import('@/features/clients/views/ClassificationsView.vue'),
+      meta: { requiresAuth: true, title: 'Classificações das operadoras' },
+    },
+    {
       path: '/empresas/:tenantId/produtos',
       component: () => import('@/features/products/views/ProductsView.vue'),
       meta: { requiresAuth: true, title: 'Produtos e planos' },
