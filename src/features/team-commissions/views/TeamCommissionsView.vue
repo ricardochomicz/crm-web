@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { toast } from '@/services/toast'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import TeamCommissionForm from '../components/TeamCommissionForm.vue'
@@ -63,9 +64,9 @@ function exportPdf() {
   <AsyncNotice :loading="loading" :error="error" @retry="load"/>
   <section v-if="!loading && !error" class="mb-5 rounded-2xl border border-stone-200 bg-white p-5">
    <div class="grid gap-3 md:grid-cols-3">
-    <label class="block text-sm font-semibold">Operadora<select v-model="filterOperator" class="mt-2 w-full rounded-lg border border-stone-200 px-3 py-2.5 font-normal"><option value="">Todas</option><option v-for="o in operators" :key="o.id" :value="String(o.id)">{{ o.name }}</option></select></label>
-    <label class="block text-sm font-semibold">Tipo de pedido<select v-model="filterOrderType" class="mt-2 w-full rounded-lg border border-stone-200 px-3 py-2.5 font-normal"><option value="">Todos</option><option v-for="o in orderTypes" :key="o.value" :value="o.value">{{ o.label }}</option></select></label>
-    <label class="block text-sm font-semibold">Papel comercial<select v-model="filterRole" class="mt-2 w-full rounded-lg border border-stone-200 px-3 py-2.5 font-normal"><option value="">Todos</option><option v-for="o in roles" :key="o.value" :value="o.value">{{ o.label }}</option></select></label>
+    <label class="block text-sm font-semibold">Operadora<SearchSelect v-model="filterOperator" :options="[{value:'',label:'Todas'}, ...operators.map(o=>({value:String(o.id),label:o.name}))]"/></label>
+    <label class="block text-sm font-semibold">Tipo de pedido<SearchSelect v-model="filterOrderType" :options="[{value:'',label:'Todos'}, ...orderTypes]"/></label>
+    <label class="block text-sm font-semibold">Papel comercial<SearchSelect v-model="filterRole" :options="[{value:'',label:'Todos'}, ...roles]"/></label>
    </div>
    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
     <span class="text-sm text-slate-500">{{ filteredRows.length }} regra(s) encontrada(s)</span>
