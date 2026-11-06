@@ -10,12 +10,14 @@ import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { request, mutate } from '@/lib/http'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
-type Commission = { id: string; name: string; operator_id: number; operator?: { name: string }; percentage: string; deduction_percentage: string | null; is_active: boolean }
+type Commission = { id: string; name: string; order_type: string | null; operator_id: number; operator?: { name: string }; percentage: string; deduction_percentage: string | null; is_active: boolean }
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
 const tenant = ref<Tenant>()
 const rows = ref<Commission[]>([])
 const operators = ref<TenantOperator[]>([])
+const orderTypes = ref<{value: string; label: string}[]>([])
+const orderTypeLabel = (value: string | null) => orderTypes.value.find(type => type.value === value)?.label ?? (value ? value : 'Não classificado')
 const loading = ref(true)
 const busy = ref(false)
 const error = ref('')
@@ -25,12 +27,12 @@ const base = computed(() => `/api/v1/tenants/${encodeURIComponent(tenantId.value
 const writable = computed(() => canManage.value && !!tenant.value?.access?.allows_operational_writes)
 const editingId = ref('')
 const modalOpen = ref(false)
-const blank = () => ({ name: '', operator_id: 0, percentage: '400', deduction_percentage: '', is_active: true })
+const blank = () => ({ order_type: '', operator_id: 0, percentage: '400', deduction_percentage: '', is_active: true })
 const form = ref(blank())
 const format = (n: unknown) => `${Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`
 function edit(row?: Commission) {
  editingId.value = row?.id ?? ''
- form.value = row ? { name: row.name, operator_id: row.operator_id, percentage: String(row.percentage), deduction_percentage: row.deduction_percentage ?? '', is_active: row.is_active } : blank()
+ form.value = row ? { order_type: row.order_type ?? '', operator_id: row.operator_id, percentage: String(row.percentage), deduction_percentage: row.deduction_percentage ?? '', is_active: row.is_active } : blank()
  modalOpen.value = true
 }
 async function load() {
@@ -44,6 +46,7 @@ async function load() {
   rows.value = list.data
   canManage.value = list.meta.can_manage
   operators.value = (await operatorsApi.tenantList(id)).data.filter(o => o.selected && o.is_active)
+  orderTypes.value = (await request<{data: {value: string; label: string}[]}>(base.value + '/order-types')).data
   defaultDeduction.value = (await request<{data: {default_deduction_percentage: string}}>(base.value + '/settings')).data.default_deduction_percentage
  } catch (e) { if (id === tenantId.value) error.value = errorMessage(e) }
  finally { if (id === tenantId.value) loading.value = false }
@@ -79,10 +82,10 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
   <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
    <div class="overflow-x-auto">
     <table class="w-full min-w-[720px] text-left text-sm">
-     <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-4">Tabela</th><th class="px-4 py-4">Operadora</th><th class="px-4 py-4 text-right">Comissão</th><th class="px-4 py-4 text-right">Desconto</th><th class="px-4 py-4">Situação</th><th v-if="writable" class="px-5 py-4 text-right">Ações</th></tr></thead>
+     <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-4">Tipo de pedido</th><th class="px-4 py-4">Operadora</th><th class="px-4 py-4 text-right">Comissão</th><th class="px-4 py-4 text-right">Desconto</th><th class="px-4 py-4">Situação</th><th v-if="writable" class="px-5 py-4 text-right">Ações</th></tr></thead>
      <tbody class="divide-y divide-stone-100">
       <tr v-for="item in rows" :key="item.id" class="hover:bg-stone-50/70">
-       <td class="px-5 py-4 font-semibold text-slate-800">{{ item.name }}</td>
+       <td class="px-5 py-4 font-semibold text-slate-800">{{ orderTypeLabel(item.order_type) }}</td>
        <td class="px-4 py-4 text-slate-600">{{ item.operator?.name }}</td>
        <td class="px-4 py-4 text-right font-semibold text-slate-800">{{ format(item.percentage) }}</td>
        <td class="px-4 py-4 text-right text-slate-600">{{ item.deduction_percentage === null ? 'Padrão (' + format(defaultDeduction) + ')' : format(item.deduction_percentage) }}</td>
@@ -97,7 +100,7 @@ watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: tru
   <div v-if="modalOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
    <form class="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-xl" @submit.prevent="save">
     <h2 class="text-xl font-semibold">{{ editingId ? 'Editar tabela' : 'Nova tabela de comissão' }}</h2>
-    <label class="block text-sm font-medium">Nome<input v-model="form.name" required maxlength="180" class="mt-1 w-full rounded-lg border p-2" /></label>
+    <label class="block text-sm font-medium">Tipo de pedido<select v-model="form.order_type" required class="mt-1 w-full rounded-lg border p-2"><option value="" disabled>Selecione</option><option v-for="type in orderTypes" :key="type.value" :value="type.value">{{ type.label }}</option></select></label>
     <label class="block text-sm font-medium">Operadora<select v-model.number="form.operator_id" required class="mt-1 w-full rounded-lg border p-2"><option :value="0" disabled>Selecione</option><option v-for="op in operators" :key="op.id" :value="op.id">{{ op.name }}</option></select></label>
     <label class="block text-sm font-medium">Comissão (%) <input v-model="form.percentage" required inputmode="decimal" class="mt-1.5 block w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-normal" /></label>
     <label class="block text-sm font-medium text-slate-700">Desconto (%)<input v-model="form.deduction_percentage" inputmode="decimal" class="mt-1.5 block w-full rounded-lg border border-stone-200 px-3 py-2.5 text-sm font-normal" placeholder="Vazio = padrão da empresa" /><span class="mt-1 block text-xs font-normal text-slate-500">Informe 0 para não aplicar desconto.</span></label>
