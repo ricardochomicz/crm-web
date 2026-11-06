@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import FormField from '@/components/ui/FormField.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 
 export type SupervisorOption = { id: string; name: string | null; email: string | null; status: string }
 export type TeamFormMode = 'create' | 'name' | 'supervisor'
@@ -36,20 +37,12 @@ const showSupervisor = computed(() => props.mode !== 'name')
   />
   <div v-if="showSupervisor" class="space-y-2">
     <label for="team-supervisor" class="text-sm font-semibold text-slate-700">Supervisor</label>
-    <select
-      id="team-supervisor"
-      :value="supervisorMembershipId"
-      class="field"
-      :class="{ 'field-error': supervisorError }"
+    <SearchSelect
+      :model-value="supervisorMembershipId"
+      :options="[{value:'',label:'Selecione um membro ativo'}, ...activeMembers.map(member => ({value:member.id,label:member.name ?? member.email ?? member.id}))]"
       :disabled="busy || membersLoading"
-      :data-initial-focus="mode === 'supervisor' ? '' : undefined"
-      @change="emit('update:supervisorMembershipId', ($event.target as HTMLSelectElement).value)"
-    >
-      <option value="">{{ membersLoading ? 'Carregando membros…' : 'Selecione um membro ativo' }}</option>
-      <option v-for="member in activeMembers" :key="member.id" :value="member.id">
-        {{ member.name ?? member.email ?? member.id }}
-      </option>
-    </select>
+      @update:model-value="emit('update:supervisorMembershipId', String($event))"
+    />
     <p v-if="supervisorError" class="text-xs text-red-600">{{ supervisorError }}</p>
   </div>
 </template>
