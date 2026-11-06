@@ -15,11 +15,34 @@ import { useTeamsPage } from '../composables/useTeamsPage'
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
 const {
-  tenant, loading, error, teams, teamsLoading, teamsError, teamNameFilter,
-  allMembers, membersLoading, loadTeams, searchTeams, clearTeamSearch,
-  createOpen, editingTeam, supervisorTeam, viewingTeam, canWrite, canCreate,
-  canUpdate, canUpdateSupervisor, anyDialogOpen, load, refresh, openCreate,
-  openEdit, openSupervisor, openMembers, onCompleted,
+  tenant,
+  loading,
+  error,
+  teams,
+  teamsLoading,
+  teamsError,
+  teamNameFilter,
+  allMembers,
+  membersLoading,
+  loadTeams,
+  searchTeams,
+  clearTeamSearch,
+  createOpen,
+  editingTeam,
+  supervisorTeam,
+  viewingTeam,
+  canWrite,
+  canCreate,
+  canUpdate,
+  canUpdateSupervisor,
+  anyDialogOpen,
+  load,
+  refresh,
+  openCreate,
+  openEdit,
+  openSupervisor,
+  openMembers,
+  onCompleted,
 } = useTeamsPage(tenantId)
 </script>
 <template>
@@ -67,9 +90,21 @@ const {
       />
 
       <template v-if="teams">
-        <ListFilters :columns="1" :busy="teamsLoading || anyDialogOpen" :count-label="`${teams.total} equipe(s) encontrada(s)`" @search="searchTeams" @clear="clearTeamSearch">
-          <label class="text-xs font-semibold text-slate-600">Nome da equipe
-            <input v-model="teamNameFilter" type="search" class="field" placeholder="Digite o nome da equipe" />
+        <ListFilters
+          :columns="1"
+          :busy="teamsLoading || anyDialogOpen"
+          :count-label="`${teams.total} equipe(s) encontrada(s)`"
+          @search="searchTeams"
+          @clear="clearTeamSearch"
+        >
+          <label class="text-xs font-semibold text-slate-600"
+            >Nome da equipe
+            <input
+              v-model="teamNameFilter"
+              type="search"
+              class="field"
+              placeholder="Digite o nome da equipe"
+            />
           </label>
         </ListFilters>
         <TeamsTable
@@ -122,10 +157,6 @@ const {
       @completed="onCompleted"
     />
 
-    <TeamMembersDrawer
-      :tenant-id="tenantId"
-      :team="viewingTeam"
-      @close="viewingTeam = null"
-    />
+    <TeamMembersDrawer :tenant-id="tenantId" :team="viewingTeam" @close="viewingTeam = null" />
   </AppShell>
 </template>

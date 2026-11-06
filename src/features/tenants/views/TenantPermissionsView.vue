@@ -12,10 +12,35 @@ import { useTenantPermissions } from '../composables/useTenantPermissions'
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
 const {
-  tenant, settings, loading, error, selectedRole, draft, busy, reviewing, conflicted,
-  history, historyLoading, historyError, current, search, filteredCatalog, groups,
-  added, removed, dirty, locked, label, resetDraft, selectRole, toggle,
-  loadHistory, load, save, dateTime, showLegacyPermissions,
+  tenant,
+  settings,
+  loading,
+  error,
+  selectedRole,
+  draft,
+  busy,
+  reviewing,
+  conflicted,
+  history,
+  historyLoading,
+  historyError,
+  current,
+  search,
+  filteredCatalog,
+  groups,
+  added,
+  removed,
+  dirty,
+  locked,
+  label,
+  resetDraft,
+  selectRole,
+  toggle,
+  loadHistory,
+  load,
+  save,
+  dateTime,
+  showLegacyPermissions,
 } = useTenantPermissions(tenantId)
 </script>
 <template>
@@ -41,9 +66,21 @@ const {
         Solicite ao proprietário os ajustes necessários para o seu cargo.
       </p>
     </section>
-    <CompanyRolesManager v-if="!loading && settings" :tenant-id="tenantId" :catalog="settings.catalog" :can-edit="settings.can_edit" />
+    <CompanyRolesManager
+      v-if="!loading && settings"
+      :tenant-id="tenantId"
+      :catalog="settings.catalog"
+      :can-edit="settings.can_edit"
+    />
     <template v-if="showLegacyPermissions && settings">
-      <div class="mb-5 mt-10 border-t border-stone-200 pt-7"><h2 class="text-lg font-semibold">Configuração legada de papéis</h2><p class="mt-2 text-sm text-slate-500">As configurações abaixo são mantidas para vínculos antigos sem cargo personalizado. Para os sete cargos novos e para cargos criados pela empresa, use a seção Cargos personalizados acima.</p></div>
+      <div class="mb-5 mt-10 border-t border-stone-200 pt-7">
+        <h2 class="text-lg font-semibold">Configuração legada de papéis</h2>
+        <p class="mt-2 text-sm text-slate-500">
+          As configurações abaixo são mantidas para vínculos antigos sem cargo personalizado. Para
+          os sete cargos novos e para cargos criados pela empresa, use a seção Cargos personalizados
+          acima.
+        </p>
+      </div>
       <p
         v-if="!settings.can_edit"
         role="status"
@@ -59,7 +96,9 @@ const {
         Outra sessão alterou as permissões. Feche a revisão e use Recarregar para obter os dados
         atuais.
       </p>
-      <div class="grid items-start gap-5 xl:grid-cols-[minmax(11rem,0.9fr)_minmax(0,2.6fr)_minmax(17rem,1.5fr)]">
+      <div
+        class="grid items-start gap-5 xl:grid-cols-[minmax(11rem,0.9fr)_minmax(0,2.6fr)_minmax(17rem,1.5fr)]"
+      >
         <aside
           class="rounded-2xl border border-stone-200 bg-white p-3"
           aria-label="Selecionar cargo"
@@ -193,61 +232,70 @@ const {
             </div>
           </footer>
         </section>
-      <section class="min-w-0 rounded-2xl border border-stone-200 bg-white p-5 xl:sticky xl:top-5" aria-label="Histórico de alterações">
-        <h2 class="text-lg font-semibold">Histórico de alterações</h2>
-        <p class="mt-1 text-xs font-medium text-slate-600">{{ roleLabels[selectedRole] }}</p>
-        <p class="mt-2 text-xs text-slate-500">
-          Quem alterou, quando e quais permissões mudaram. Horário local.
-        </p>
-        <AsyncNotice :loading="historyLoading" :error="historyError" @retry="loadHistory()" />
-        <template v-if="!historyLoading && !historyError && history"
-          ><ol class="mt-4 max-h-[32rem] divide-y divide-stone-100 overflow-y-auto overscroll-contain pr-2">
-            <li v-for="change in history.data" :key="change.id" class="py-5">
-              <div class="flex flex-col gap-1 text-sm">
-                <p>
-                  <strong>{{ change.actor_name }}</strong> alterou {{ roleLabels[change.role] }}
-                </p>
-                <time :datetime="change.created_at" class="text-xs text-slate-400">{{
-                  dateTime(change.created_at)
-                }}</time>
-              </div>
-              <p
-                v-if="change.permissions.some((key) => !change.previous_permissions.includes(key))"
-                class="mt-3 text-xs leading-6 text-emerald-800"
-              >
-                Adicionadas:
-                {{
-                  change.permissions
-                    .filter((key) => !change.previous_permissions.includes(key))
-                    .map(label)
-                    .join(', ')
-                }}
-              </p>
-              <p
-                v-if="change.previous_permissions.some((key) => !change.permissions.includes(key))"
-                class="mt-2 text-xs leading-6 text-red-800"
-              >
-                Removidas:
-                {{
-                  change.previous_permissions
-                    .filter((key) => !change.permissions.includes(key))
-                    .map(label)
-                    .join(', ')
-                }}
-              </p>
-            </li>
-          </ol>
-          <p v-if="!history.data.length" class="py-7 text-sm text-slate-500">
-            Nenhuma alteração registrada para este cargo.
+        <section
+          class="min-w-0 rounded-2xl border border-stone-200 bg-white p-5 xl:sticky xl:top-5"
+          aria-label="Histórico de alterações"
+        >
+          <h2 class="text-lg font-semibold">Histórico de alterações</h2>
+          <p class="mt-1 text-xs font-medium text-slate-600">{{ roleLabels[selectedRole] }}</p>
+          <p class="mt-2 text-xs text-slate-500">
+            Quem alterou, quando e quais permissões mudaram. Horário local.
           </p>
-          <PagePagination
-            :page="history.current_page"
-            :last-page="history.last_page"
-            :total="history.total"
-            :busy="busy"
-            @change="loadHistory"
-        /></template>
-      </section>
+          <AsyncNotice :loading="historyLoading" :error="historyError" @retry="loadHistory()" />
+          <template v-if="!historyLoading && !historyError && history"
+            ><ol
+              class="mt-4 max-h-[32rem] divide-y divide-stone-100 overflow-y-auto overscroll-contain pr-2"
+            >
+              <li v-for="change in history.data" :key="change.id" class="py-5">
+                <div class="flex flex-col gap-1 text-sm">
+                  <p>
+                    <strong>{{ change.actor_name }}</strong> alterou {{ roleLabels[change.role] }}
+                  </p>
+                  <time :datetime="change.created_at" class="text-xs text-slate-400">{{
+                    dateTime(change.created_at)
+                  }}</time>
+                </div>
+                <p
+                  v-if="
+                    change.permissions.some((key) => !change.previous_permissions.includes(key))
+                  "
+                  class="mt-3 text-xs leading-6 text-emerald-800"
+                >
+                  Adicionadas:
+                  {{
+                    change.permissions
+                      .filter((key) => !change.previous_permissions.includes(key))
+                      .map(label)
+                      .join(', ')
+                  }}
+                </p>
+                <p
+                  v-if="
+                    change.previous_permissions.some((key) => !change.permissions.includes(key))
+                  "
+                  class="mt-2 text-xs leading-6 text-red-800"
+                >
+                  Removidas:
+                  {{
+                    change.previous_permissions
+                      .filter((key) => !change.permissions.includes(key))
+                      .map(label)
+                      .join(', ')
+                  }}
+                </p>
+              </li>
+            </ol>
+            <p v-if="!history.data.length" class="py-7 text-sm text-slate-500">
+              Nenhuma alteração registrada para este cargo.
+            </p>
+            <PagePagination
+              :page="history.current_page"
+              :last-page="history.last_page"
+              :total="history.total"
+              :busy="busy"
+              @change="loadHistory"
+          /></template>
+        </section>
       </div>
     </template>
     <AppDialog
