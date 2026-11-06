@@ -10,6 +10,7 @@ import PagePagination from '@/components/ui/PagePagination.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import ParticipantForm from '../components/ParticipantForm.vue'
 import { participantsApi, type Participant, type ParticipantInput, type Override, type OverrideInput } from '../api'
+import { useParticipantsList } from '../composables/useParticipantsList'
 import { tenantApi } from '@/features/tenants/api'
 import type { Tenant } from '@/features/tenants/types'
 import { operatorsApi, type TenantOperator } from '@/features/operators/api'
@@ -19,25 +20,15 @@ import { errorMessage } from '@/lib/feedback'
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
 const tenant = ref<Tenant>()
-const rows = ref<Participant[]>([])
-const currentPage = ref(1)
-const lastPage = ref(1)
-const total = ref(0)
-const filtersBusy = ref(false)
-const appliedSearch = ref('')
-const appliedRole = ref('')
+const { rows, currentPage, lastPage, total, filtersBusy, canManage, search, filterRole, appliedSearch, appliedRole, loadRows, applyFilters, clearFilters } = useParticipantsList(tenantId)
 const operators = ref<TenantOperator[]>([])
 const orderTypes = ref<CommissionOption[]>([])
 const loading = ref(true)
 const busy = ref(false)
 const error = ref('')
-const canManage = ref(false)
 const writable = computed(() => canManage.value && !!tenant.value?.access?.allows_operational_writes)
 const filterRole = ref('')
 const search = ref('')
-async function loadRows(page=1){filtersBusy.value=true;try{const result=await participantsApi.list(tenantId.value,page,appliedSearch.value,appliedRole.value);rows.value=result.data;currentPage.value=result.meta.current_page;lastPage.value=result.meta.last_page;total.value=result.meta.total;canManage.value=result.meta.can_manage}catch(e){toast.error(errorMessage(e))}finally{filtersBusy.value=false}}
-function applyFilters(){appliedSearch.value=search.value.trim();appliedRole.value=filterRole.value;void loadRows(1)}
-function clearFilters(){search.value='';filterRole.value='';applyFilters()}
 const blank = (): ParticipantInput => ({role:'PARTNER',person_type:'PJ',name:'',document:null,email:null,phone:null,notes:null,is_active:true})
 const form = ref<ParticipantInput>(blank())
 const editingId = ref('')
