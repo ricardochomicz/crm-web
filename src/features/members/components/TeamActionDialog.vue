@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
-import RoleSelect from './RoleSelect.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
+import type { CompanyRole } from '../api'
 import { teamApi } from '../api'
 import { errorMessage } from '@/lib/feedback'
 import type { AssignableRole, TeamAction, TeamNotice } from '../types'
@@ -9,6 +10,7 @@ const props = defineProps<{
   tenantId: string
   action: TeamAction | null
   allowedRoles: AssignableRole[]
+  companyRoles: CompanyRole[]
   allowed: boolean
   canWrite: boolean
   resendBlocked: string
@@ -17,12 +19,18 @@ const emit = defineEmits<{ close: []; completed: [notice: TeamNotice] }>()
 const busy = ref(false)
 const error = ref('')
 const role = ref<AssignableRole>('CONSULTANT')
+const selectedRoleId = ref('')
+const selectableRoles = computed(() => props.companyRoles.filter(item => item.is_active && item.code !== 'OWNER' && props.allowedRoles.includes(item.legacy_role as AssignableRole)))
+watch(selectedRoleId, id => { const found = selectableRoles.value.find(item => item.id === id); if (found) role.value = found.legacy_role as AssignableRole })
 const errorElement = ref<HTMLElement>()
 watch(
   () => props.action,
   (action) => {
     error.value = ''
-    if (action?.kind === 'role' && action.member.role !== 'OWNER') role.value = action.member.role
+    if (action?.kind === 'role' && action.member.role !== 'OWNER') {
+      role.value = action.member.role
+      selectedRoleId.value = action.member.tenant_role_id ?? selectableRoles.value.find(item => item.legacy_role === action.member.role)?.id ?? ''
+    }
   },
 )
 const title = computed(() => {
@@ -72,7 +80,7 @@ const blocked = computed(() => {
   if (!props.action.member.can_manage) return 'O acesso do proprietário não pode ser alterado.'
   if (props.action.kind === 'role' && !props.allowedRoles.includes(role.value))
     return 'Selecione um cargo disponível.'
-  if (props.action.kind === 'role' && props.action.member.role === role.value)
+  if (props.action.kind === 'role' && props.action.member.role === role.value && props.action.member.tenant_role_id === selectedRoleId.value)
     return 'Selecione um papel diferente do atual.'
   return ''
 })
@@ -90,7 +98,7 @@ async function submit() {
   try {
     let notice: TeamNotice = { tone: 'success', message: '' }
     if (action.kind === 'role') {
-      await teamApi.role(props.tenantId, action.member.id, role.value)
+      await teamApi.role(props.tenantId, action.member.id, role.value, selectedRoleId.value || undefined)
       notice.message = 'Papel atualizado nesta empresa.'
     } else if (action.kind === 'status') {
       const status = action.member.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
@@ -151,12 +159,7 @@ async function submit() {
         {{ error }}
       </p>
       <fieldset :disabled="busy" class="space-y-5">
-        <RoleSelect
-          v-if="action?.kind === 'role'"
-          id="member-role"
-          v-model="role"
-          :allowed-roles="allowedRoles"
-        />
+        <div v-if="action?.kind === 'role'"><label class="mb-2 block text-sm font-semibold text-slate-700">Cargo na empresa</label><SearchSelect v-model="selectedRoleId" :options="selectableRoles.map(item => ({ value: item.id, label: item.name }))" placeholder="Selecione o cargo" /></div>
         <p v-if="blocked" role="status" class="text-xs leading-6 text-amber-800">{{ blocked }}</p>
         <div class="flex justify-end gap-3 border-t border-stone-100 pt-5">
           <button type="button" class="secondary-button" data-initial-focus @click="emit('close')">
