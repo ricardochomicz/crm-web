@@ -2,13 +2,14 @@ import { computed, ref } from 'vue'
 import { tenantApi } from '@/features/tenants/api'
 import { can, canViewTeam, type Page, type Tenant } from '@/features/tenants/types'
 import { errorMessage } from '@/lib/feedback'
-import { teamApi } from '../api'
+import { teamApi, type CompanyRole } from '../api'
 import type { AssignableRole, Invitation, InvitationStatus, Member } from '../types'
 export function useTeamManagement(tenantId: string) {
   const tenant = ref<Tenant>()
   const loading = ref(true)
   const error = ref('')
   const members = ref<Page<Member>>()
+  const companyRoles = ref<CompanyRole[]>([])
   const invitations = ref<Page<Invitation>>()
   const membersLoading = ref(false)
   const invitationsLoading = ref(false)
@@ -108,6 +109,7 @@ export function useTeamManagement(tenantId: string) {
     subscriptionError.value = ''
     try {
       tenant.value = (await tenantApi.show(tenantId)).data
+      companyRoles.value = (await teamApi.roles(tenantId)).data
     } catch (failure) {
       tenant.value = undefined
       subscriptionError.value = errorMessage(failure)
@@ -135,6 +137,7 @@ export function useTeamManagement(tenantId: string) {
   }
   return {
     tenant,
+    companyRoles,
     loading,
     error,
     members,
