@@ -17,14 +17,25 @@ import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { request, mutate } from '@/lib/http'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
-type Commission = { id: string; name: string; order_type: string | null; operator_id: number; operator?: { name: string }; percentage: string; deduction_percentage: string | null; is_active: boolean }
+type Commission = {
+  id: string
+  name: string
+  order_type: string | null
+  operator_id: number
+  operator?: { name: string }
+  percentage: string
+  deduction_percentage: string | null
+  is_active: boolean
+}
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
 const tenant = ref<Tenant>()
 const rows = ref<Commission[]>([])
 const operators = ref<TenantOperator[]>([])
-const orderTypes = ref<{value: string; label: string}[]>([])
-const orderTypeLabel = (value: string | null) => orderTypes.value.find(type => type.value === value)?.label ?? (value ? value : 'Não classificado')
+const orderTypes = ref<{ value: string; label: string }[]>([])
+const orderTypeLabel = (value: string | null) =>
+  orderTypes.value.find((type) => type.value === value)?.label ??
+  (value ? value : 'Não classificado')
 const loading = ref(true)
 const busy = ref(false)
 const error = ref('')
@@ -32,88 +43,257 @@ const canManage = ref(false)
 const defaultDeduction = ref('0')
 const filterOperator = ref('')
 const filterOrderType = ref('')
-const { applied, apply: applyFilters, clear: clearFilters } = useListFilters({ filterOperator, filterOrderType })
-const filteredRows = computed(() => rows.value.filter(r => (!applied.value.filterOperator || String(r.operator_id) === applied.value.filterOperator) && (!applied.value.filterOrderType || r.order_type === applied.value.filterOrderType)))
+const {
+  applied,
+  apply: applyFilters,
+  clear: clearFilters,
+} = useListFilters({ filterOperator, filterOrderType })
+const filteredRows = computed(() =>
+  rows.value.filter(
+    (r) =>
+      (!applied.value.filterOperator || String(r.operator_id) === applied.value.filterOperator) &&
+      (!applied.value.filterOrderType || r.order_type === applied.value.filterOrderType),
+  ),
+)
 const base = computed(() => `/api/v1/tenants/${encodeURIComponent(tenantId.value)}/commissions`)
-const writable = computed(() => canManage.value && !!tenant.value?.access?.allows_operational_writes)
+const writable = computed(
+  () => canManage.value && !!tenant.value?.access?.allows_operational_writes,
+)
 const editingId = ref('')
 const modalOpen = ref(false)
-const blank = () => ({ order_type: '', operator_id: 0, percentage: '400', deduction_percentage: '', is_active: true })
+const blank = () => ({
+  order_type: '',
+  operator_id: 0,
+  percentage: '400',
+  deduction_percentage: '',
+  is_active: true,
+})
 const form = ref(blank())
 const format = (n: unknown) => `${Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`
 function edit(row?: Commission) {
- editingId.value = row?.id ?? ''
- form.value = row ? { order_type: row.order_type ?? '', operator_id: row.operator_id, percentage: String(row.percentage), deduction_percentage: row.deduction_percentage ?? '', is_active: row.is_active } : blank()
- modalOpen.value = true
+  editingId.value = row?.id ?? ''
+  form.value = row
+    ? {
+        order_type: row.order_type ?? '',
+        operator_id: row.operator_id,
+        percentage: String(row.percentage),
+        deduction_percentage: row.deduction_percentage ?? '',
+        is_active: row.is_active,
+      }
+    : blank()
+  modalOpen.value = true
 }
 async function load() {
- const id = tenantId.value
- loading.value = true
- error.value = ''
- try {
-  const [company, list] = await Promise.all([tenantApi.show(id), request<{data: Commission[]; meta: {can_manage: boolean}}>(`${base.value}`)])
-  if (id !== tenantId.value) return
-  tenant.value = company.data
-  rows.value = list.data
-  canManage.value = list.meta.can_manage
-  operators.value = (await operatorsApi.tenantList(id)).data.filter(o => o.selected && o.is_active)
-  orderTypes.value = (await request<{data: {value: string; label: string}[]}>(base.value + '/order-types')).data
-  defaultDeduction.value = (await request<{data: {default_deduction_percentage: string}}>(base.value + '/settings')).data.default_deduction_percentage
- } catch (e) { if (id === tenantId.value) error.value = errorMessage(e) }
- finally { if (id === tenantId.value) loading.value = false }
+  const id = tenantId.value
+  loading.value = true
+  error.value = ''
+  try {
+    const [company, list] = await Promise.all([
+      tenantApi.show(id),
+      request<{ data: Commission[]; meta: { can_manage: boolean } }>(`${base.value}`),
+    ])
+    if (id !== tenantId.value) return
+    tenant.value = company.data
+    rows.value = list.data
+    canManage.value = list.meta.can_manage
+    operators.value = (await operatorsApi.tenantList(id)).data.filter(
+      (o) => o.selected && o.is_active,
+    )
+    orderTypes.value = (
+      await request<{ data: { value: string; label: string }[] }>(base.value + '/order-types')
+    ).data
+    defaultDeduction.value = (
+      await request<{ data: { default_deduction_percentage: string } }>(base.value + '/settings')
+    ).data.default_deduction_percentage
+  } catch (e) {
+    if (id === tenantId.value) error.value = errorMessage(e)
+  } finally {
+    if (id === tenantId.value) loading.value = false
+  }
 }
 async function saveSettings() {
- try {
-  await mutate(base.value + '/settings', { default_deduction_percentage: Number(defaultDeduction.value.replace(',', '.')) }, 'PUT')
-  toast.success('Desconto padrão salvo.')
- } catch (e) { toast.error(errorMessage(e)) }
+  try {
+    await mutate(
+      base.value + '/settings',
+      { default_deduction_percentage: Number(defaultDeduction.value.replace(',', '.')) },
+      'PUT',
+    )
+    toast.success('Desconto padrão salvo.')
+  } catch (e) {
+    toast.error(errorMessage(e))
+  }
 }
 async function save() {
- if (!writable.value || busy.value) return
- busy.value = true
- try {
-  const payload = { ...form.value, percentage: Number(form.value.percentage.replace(',', '.')), deduction_percentage: form.value.deduction_percentage === '' ? null : Number(form.value.deduction_percentage.replace(',', '.')) }
-  await mutate(editingId.value ? `${base.value}/${editingId.value}` : base.value, payload, editingId.value ? 'PATCH' : 'POST')
-  toast.success('Tabela de comissão salva.')
-  modalOpen.value = false
-  await load()
- } catch (e) { toast.error(errorMessage(e)) }
- finally { busy.value = false }
+  if (!writable.value || busy.value) return
+  busy.value = true
+  try {
+    const payload = {
+      ...form.value,
+      percentage: Number(form.value.percentage.replace(',', '.')),
+      deduction_percentage:
+        form.value.deduction_percentage === ''
+          ? null
+          : Number(form.value.deduction_percentage.replace(',', '.')),
+    }
+    await mutate(
+      editingId.value ? `${base.value}/${editingId.value}` : base.value,
+      payload,
+      editingId.value ? 'PATCH' : 'POST',
+    )
+    toast.success('Tabela de comissão salva.')
+    modalOpen.value = false
+    await load()
+  } catch (e) {
+    toast.error(errorMessage(e))
+  } finally {
+    busy.value = false
+  }
 }
-watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: true })
+watch(
+  tenantId,
+  () => {
+    modalOpen.value = false
+    void load()
+  },
+  { immediate: true },
+)
 const { page, total, lastPage, pageRows, changePage } = useListPagination(filteredRows)
 </script>
 <template>
- <AppShell :tenant="tenant" title="Tabelas de comissões" subtitle="Comissões recebidas das operadoras">
-  <header class="mb-7 flex flex-wrap items-center justify-between gap-4">
-   <div><p class="eyebrow">FINANCEIRO</p><h1 class="mt-3 text-3xl font-semibold">Tabelas de comissões</h1><p class="mt-2 text-sm text-slate-500">Percentuais recebidos das operadoras, com desconto individual.</p></div>
-   <button v-if="writable" class="primary-button w-auto" type="button" @click="edit()">+ Nova tabela</button>
-  </header>
-  <AsyncNotice :loading="loading" :error="error" @retry="load" />
-  <form v-if="!loading && !error" class="mb-5 rounded-2xl border border-stone-200 bg-white p-5" @submit.prevent="saveSettings"><div class="flex flex-wrap items-end gap-4"><label class="block text-sm font-semibold text-slate-700">Desconto padrão da empresa (%)<input v-model="defaultDeduction" :disabled="!writable" inputmode="decimal" class="mt-2 block w-44 rounded-xl border-0 bg-stone-100 px-4 py-3 text-sm font-normal outline-none focus:bg-white focus:ring-2 focus:ring-orange-400" /></label><button v-if="writable" type="submit" class="primary-button w-auto">Salvar padrão</button></div><p class="mt-3 text-xs text-slate-500">Aplicado à comissão bruta quando a tabela não possui desconto próprio. Use 0% para não descontar.</p></form>
-  <ListFilters :columns="2" v-if="!loading && !error" :count-label="`${filteredRows.length} resultado(s) encontrado(s)`" @search="applyFilters" @clear="clearFilters">
-   <label class="text-xs font-semibold text-slate-600">Operadora<SearchSelect v-model="filterOperator" :options="[{value:'',label:'Todas as operadoras'}, ...operators.map(o=>({value:String(o.id),label:o.name}))]"/></label>
-   <label class="text-xs font-semibold text-slate-600">Tipo de pedido<SearchSelect v-model="filterOrderType" :options="[{value:'',label:'Todos os tipos'}, ...orderTypes]"/></label>
-  </ListFilters>
-  <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-   <ListTable min-width="720px">
-     <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-4">Tipo de pedido</th><th class="px-4 py-4">Operadora</th><th class="px-4 py-4 text-right">Comissão</th><th class="px-4 py-4 text-right">Desconto</th><th class="px-4 py-4">Situação</th><th v-if="writable" class="px-5 py-4 text-right">Ações</th></tr></thead>
-     <tbody class="divide-y divide-stone-100">
-      <tr v-for="item in pageRows" :key="item.id" class="hover:bg-stone-50/70">
-       <td class="px-5 py-4 font-semibold text-slate-800">{{ orderTypeLabel(item.order_type) }}</td>
-       <td class="px-4 py-4 text-slate-600">{{ item.operator?.name }}</td>
-       <td class="px-4 py-4 text-right font-semibold text-slate-800">{{ format(item.percentage) }}</td>
-       <td class="px-4 py-4 text-right text-slate-600">{{ item.deduction_percentage === null ? 'Padrão (' + format(defaultDeduction) + ')' : format(item.deduction_percentage) }}</td>
-       <td class="px-4 py-4"><span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="item.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-slate-500'">{{ item.is_active ? 'Ativa' : 'Inativa' }}</span></td>
-       <td v-if="writable" class="px-5 py-4 text-right"><TableActionButton icon="edit" :label="`Editar tabela de ${item.operator?.name ?? 'comissões'}`" :disabled="busy" @click="edit(item)" /></td>
-      </tr>
-     </tbody>
-    </ListTable>
-   <p v-if="!filteredRows.length" class="px-5 py-8 text-center text-sm text-slate-500">Nenhuma tabela cadastrada.</p>
-  </section>
-  <PagePagination v-if="!loading && !error" :page="page" :last-page="lastPage" :total="total" :busy="loading || busy" @change="changePage" />
-  <div v-if="modalOpen && writable" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-   <CommissionForm v-model="form" :operators="operators" :order-types="orderTypes" :busy="busy" :editing="!!editingId" @submit="save" @cancel="modalOpen = false" />
-  </div>
- </AppShell>
+  <AppShell
+    :tenant="tenant"
+    title="Tabelas de comissões"
+    subtitle="Comissões recebidas das operadoras"
+  >
+    <header class="mb-7 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <p class="eyebrow">FINANCEIRO</p>
+        <h1 class="mt-3 text-3xl font-semibold">Tabelas de comissões</h1>
+        <p class="mt-2 text-sm text-slate-500">
+          Percentuais recebidos das operadoras, com desconto individual.
+        </p>
+      </div>
+      <button v-if="writable" class="primary-button w-auto" type="button" @click="edit()">
+        + Nova tabela
+      </button>
+    </header>
+    <AsyncNotice :loading="loading" :error="error" @retry="load" />
+    <form
+      v-if="!loading && !error"
+      class="mb-5 rounded-2xl border border-stone-200 bg-white p-5"
+      @submit.prevent="saveSettings"
+    >
+      <div class="flex flex-wrap items-end gap-4">
+        <label class="block text-sm font-semibold text-slate-700"
+          >Desconto padrão da empresa (%)<input
+            v-model="defaultDeduction"
+            :disabled="!writable"
+            inputmode="decimal"
+            class="mt-2 block w-44 rounded-xl border-0 bg-stone-100 px-4 py-3 text-sm font-normal outline-none focus:bg-white focus:ring-2 focus:ring-orange-400" /></label
+        ><button v-if="writable" type="submit" class="primary-button w-auto">Salvar padrão</button>
+      </div>
+      <p class="mt-3 text-xs text-slate-500">
+        Aplicado à comissão bruta quando a tabela não possui desconto próprio. Use 0% para não
+        descontar.
+      </p>
+    </form>
+    <ListFilters
+      :columns="2"
+      v-if="!loading && !error"
+      :count-label="`${filteredRows.length} resultado(s) encontrado(s)`"
+      @search="applyFilters"
+      @clear="clearFilters"
+    >
+      <label class="text-xs font-semibold text-slate-600"
+        >Operadora<SearchSelect
+          v-model="filterOperator"
+          :options="[
+            { value: '', label: 'Todas as operadoras' },
+            ...operators.map((o) => ({ value: String(o.id), label: o.name })),
+          ]"
+      /></label>
+      <label class="text-xs font-semibold text-slate-600"
+        >Tipo de pedido<SearchSelect
+          v-model="filterOrderType"
+          :options="[{ value: '', label: 'Todos os tipos' }, ...orderTypes]"
+      /></label>
+    </ListFilters>
+    <section
+      v-if="!loading && !error"
+      class="overflow-hidden rounded-2xl border border-stone-200 bg-white"
+    >
+      <ListTable min-width="720px">
+        <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <tr>
+            <th class="px-5 py-4">Tipo de pedido</th>
+            <th class="px-4 py-4">Operadora</th>
+            <th class="px-4 py-4 text-right">Comissão</th>
+            <th class="px-4 py-4 text-right">Desconto</th>
+            <th class="px-4 py-4">Situação</th>
+            <th v-if="writable" class="px-5 py-4 text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-100">
+          <tr v-for="item in pageRows" :key="item.id" class="hover:bg-stone-50/70">
+            <td class="px-5 py-4 font-semibold text-slate-800">
+              {{ orderTypeLabel(item.order_type) }}
+            </td>
+            <td class="px-4 py-4 text-slate-600">{{ item.operator?.name }}</td>
+            <td class="px-4 py-4 text-right font-semibold text-slate-800">
+              {{ format(item.percentage) }}
+            </td>
+            <td class="px-4 py-4 text-right text-slate-600">
+              {{
+                item.deduction_percentage === null
+                  ? 'Padrão (' + format(defaultDeduction) + ')'
+                  : format(item.deduction_percentage)
+              }}
+            </td>
+            <td class="px-4 py-4">
+              <span
+                class="rounded-full px-2.5 py-1 text-xs font-semibold"
+                :class="
+                  item.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-slate-500'
+                "
+                >{{ item.is_active ? 'Ativa' : 'Inativa' }}</span
+              >
+            </td>
+            <td v-if="writable" class="px-5 py-4 text-right">
+              <TableActionButton
+                icon="edit"
+                :label="`Editar tabela de ${item.operator?.name ?? 'comissões'}`"
+                :disabled="busy"
+                @click="edit(item)"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </ListTable>
+      <p v-if="!filteredRows.length" class="px-5 py-8 text-center text-sm text-slate-500">
+        Nenhuma tabela cadastrada.
+      </p>
+    </section>
+    <PagePagination
+      v-if="!loading && !error"
+      :page="page"
+      :last-page="lastPage"
+      :total="total"
+      :busy="loading || busy"
+      @change="changePage"
+    />
+    <div
+      v-if="modalOpen && writable"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    >
+      <CommissionForm
+        v-model="form"
+        :operators="operators"
+        :order-types="orderTypes"
+        :busy="busy"
+        :editing="!!editingId"
+        @submit="save"
+        @cancel="modalOpen = false"
+      />
+    </div>
+  </AppShell>
 </template>
