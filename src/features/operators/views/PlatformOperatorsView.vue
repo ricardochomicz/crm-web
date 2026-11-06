@@ -8,9 +8,24 @@ import TableActionButton from '@/components/ui/TableActionButton.vue'
 import { usePlatformOperators } from '../composables/usePlatformOperators'
 
 const {
-  operators, loading, busy, error, searchFilter, statusFilter, form, editing,
-  editForm, filteredOperators, applyFilters, clearFilters, edit, closeEdit,
-  saveEdit, load, create, toggle,
+  operators,
+  loading,
+  busy,
+  error,
+  searchFilter,
+  statusFilter,
+  form,
+  editing,
+  editForm,
+  filteredOperators,
+  applyFilters,
+  clearFilters,
+  edit,
+  closeEdit,
+  saveEdit,
+  load,
+  create,
+  toggle,
 } = usePlatformOperators()
 </script>
 <template>
@@ -125,7 +140,9 @@ const {
                   <TableActionButton
                     :icon="operator.is_active ? 'pause' : 'play'"
                     :tone="operator.is_active ? 'danger' : 'success'"
-                    :label="operator.is_active ? `Desativar ${operator.name}` : `Ativar ${operator.name}`"
+                    :label="
+                      operator.is_active ? `Desativar ${operator.name}` : `Ativar ${operator.name}`
+                    "
                     :disabled="busy"
                     @click="toggle(operator)"
                   />
@@ -134,7 +151,11 @@ const {
             </tr>
             <tr v-if="!filteredOperators.length">
               <td colspan="4" class="px-6 py-12 text-center text-slate-500">
-                {{ operators.length ? 'Nenhuma operadora corresponde aos filtros.' : 'Nenhuma operadora cadastrada.' }}
+                {{
+                  operators.length
+                    ? 'Nenhuma operadora corresponde aos filtros.'
+                    : 'Nenhuma operadora cadastrada.'
+                }}
               </td>
             </tr>
           </tbody>
@@ -150,12 +171,7 @@ const {
       <form class="space-y-4" @submit.prevent="saveEdit">
         <label class="block text-sm font-medium text-slate-700">
           Nome
-          <input
-            v-model="editForm.name"
-            class="field mt-1 w-full"
-            maxlength="160"
-            required
-          />
+          <input v-model="editForm.name" class="field mt-1 w-full" maxlength="160" required />
         </label>
         <label class="block text-sm font-medium text-slate-700">
           Identificador
@@ -168,19 +184,10 @@ const {
           />
         </label>
         <div class="flex justify-end gap-3 pt-3">
-          <button
-            type="button"
-            class="secondary-button"
-            :disabled="busy"
-            @click="closeEdit"
-          >
+          <button type="button" class="secondary-button" :disabled="busy" @click="closeEdit">
             Cancelar
           </button>
-          <button
-            type="submit"
-            class="primary-button w-auto"
-            :disabled="busy"
-          >
+          <button type="submit" class="primary-button w-auto" :disabled="busy">
             {{ busy ? 'Salvando…' : 'Salvar alterações' }}
           </button>
         </div>
