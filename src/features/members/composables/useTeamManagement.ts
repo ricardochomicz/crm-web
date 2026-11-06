@@ -127,6 +127,7 @@ export function useTeamManagement(tenantId: string) {
     error.value = ''
     try {
       tenant.value = (await tenantApi.show(tenantId)).data
+      companyRoles.value = (await teamApi.roles(tenantId)).data
       await Promise.all([loadMembers(), loadInvitations()])
     } catch (failure) {
       tenant.value = undefined
