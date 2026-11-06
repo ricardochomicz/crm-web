@@ -57,6 +57,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Membros e convites' },
     },
     {
+      path: '/empresas/:tenantId/participantes-comerciais',
+      component: () => import('@/features/commercial-participants/views/CommercialParticipantsView.vue'),
+      meta: { requiresAuth: true, title: 'Parceiros e indicadores' },
+    },
+    {
       path: '/empresas/:tenantId/equipes',
       component: () => import('@/features/teams/views/TeamsView.vue'),
       meta: { requiresAuth: true, title: 'Equipes' },
