@@ -16,9 +16,11 @@ import type { Tenant } from '@/features/tenants/types'
 const route=useRoute(), tenantId=computed(()=>String(route.params.tenantId))
 const tenant=ref<Tenant>(),rows=ref<Client[]>([]),operators=ref<TenantOperator[]>([]),classes=ref<Classification[]>([]),sellers=ref<Seller[]>([])
 const canAssignSeller=ref(false),currentSellerId=ref<string|null>(null)
-const loading=ref(true),busy=ref(false),error=ref(''),canManage=ref(false),search=ref(''),operatorFilter=ref('')
+const loading=ref(true),busy=ref(false),error=ref(''),canManage=ref(false),canCreate=ref(false),canDelete=ref(false),search=ref(''),operatorFilter=ref('')
 const showSellerSelect=computed(()=>canAssignSeller.value||tenant.value?.role==='OWNER'||tenant.value?.role==='MANAGER')
 const writable=computed(()=>canManage.value&&!!tenant.value?.access?.allows_operational_writes)
+const canAdd=computed(()=>canCreate.value&&!!tenant.value?.access?.allows_operational_writes)
+const canRemove=computed(()=>canDelete.value&&!!tenant.value?.access?.allows_operational_writes)
 const filtered=computed(()=>rows.value.filter(r=>(!operatorFilter.value||String(r.operator_id)===operatorFilter.value)&&(!search.value||[r.company_name,r.document,r.email??''].join(' ').toLocaleLowerCase('pt-BR').includes(search.value.toLocaleLowerCase('pt-BR')))))
 const blank=():ClientInput=>({person_type:'PJ',document:'',company_name:'',phone:null,email:null,zip_code:null,address:null,address_number:null,address_complement:null,neighborhood:null,city:null,state:null,operator_id:null,classification_id:null,contract_started_on:null,contract_ends_on:null,is_active:true,seller_membership_id:null,seller_reason:null})
 const validationState=useFormValidation<keyof ClientInput>()
@@ -73,7 +75,7 @@ async function load(){
  try{
  const [t,list,op,cl,opts]=await Promise.all([tenantApi.show(id),clientsApi.list(id),operatorsApi.available(),clientsApi.classifications(id),clientsApi.options(id)])
  if(id!==tenantId.value)return
- tenant.value=t.data;rows.value=list.data;canManage.value=list.meta.can_manage;operators.value=op.data.map(o=>({...o,selected:true}));classes.value=cl.data;sellers.value=opts.data.sellers;canAssignSeller.value=opts.data.can_assign_seller;currentSellerId.value=opts.data.current_seller_id
+ tenant.value=t.data;rows.value=list.data;canManage.value=list.meta.can_manage;canCreate.value=list.meta.can_create;canDelete.value=list.meta.can_delete;operators.value=op.data.map(o=>({...o,selected:true}));classes.value=cl.data;sellers.value=opts.data.sellers;canAssignSeller.value=opts.data.can_assign_seller;currentSellerId.value=opts.data.current_seller_id
  }catch(e){error.value=e instanceof Error?e.message:'Erro ao carregar clientes.'}finally{if(id===tenantId.value)loading.value=false}
 }
 async function save(){
@@ -85,6 +87,13 @@ async function save(){
  const r=await clientsApi.save(tenantId.value,data,editing.value||undefined);modal.value=false;toast.success('Cliente salvo.');await load();if(selected.value?.id===r.data.id)await details(r.data.id)
  }catch(e){if(e instanceof ApiError && Object.keys(e.errors).length){validationState.fromApi(e.errors)}else{toast.error(e instanceof Error?e.message:'Erro ao salvar cliente.')}}finally{busy.value=false}
 }
+async function removeClient(c:Client){
+ if(busy.value || !canRemove.value || !window.confirm(`Excluir o cliente "${c.company_name}"? Ele deixará de aparecer na listagem, mas seus dados permanecerão preservados para possível recuperação.`))return
+ busy.value=true
+ try{await clientsApi.remove(tenantId.value,c.id);if(selected.value?.id===c.id)selected.value=null;toast.success('Cliente enviado para a lixeira.');await load()}
+ catch(e){toast.error(e instanceof Error?e.message:'Erro ao excluir cliente.')}
+ finally{busy.value=false}
+}
 async function details(id:string){try{selected.value=(await clientsApi.show(tenantId.value,id)).data;tab.value='data'}catch(e){toast.error(e instanceof Error?e.message:'Erro ao carregar cliente.')}}
 function editContact(c?:Contact){contactEditing.value=c?.id??'';contact.value=c?{name:c.name,position:c.position,phone:c.phone,email:c.email,is_primary:c.is_primary,is_active:c.is_active,notes:c.notes}:contactBlank();contactModal.value=true}
 async function saveContact(){if(!selected.value||busy.value)return;busy.value=true;try{await clientsApi.contact(tenantId.value,selected.value.id,{...contact.value,phone:digits(contact.value.phone,11)||null},contactEditing.value||undefined);contactModal.value=false;toast.success('Contato salvo.');await details(selected.value.id)}catch(e){toast.error(e instanceof Error?e.message:'Erro ao salvar contato.')}finally{busy.value=false}}
@@ -92,11 +101,11 @@ watch(tenantId,()=>{selected.value=null;modal.value=false;void load()},{immediat
 </script>
 <template>
 <AppShell :tenant="tenant" title="Clientes" subtitle="Carteira comercial e contatos">
- <header class="mb-6 flex flex-wrap items-center justify-between gap-3"><div><p class="eyebrow">COMERCIAL</p><h1 class="mt-3 text-3xl font-semibold">Clientes</h1><p class="mt-2 text-sm text-slate-500">Cadastros, operadora atual, classificação e histórico de vendedores.</p></div><button v-if="writable" type="button" class="primary-button w-auto" @click="start()">+ Novo cliente</button></header>
+ <header class="mb-6 flex flex-wrap items-center justify-between gap-3"><div><p class="eyebrow">COMERCIAL</p><h1 class="mt-3 text-3xl font-semibold">Clientes</h1><p class="mt-2 text-sm text-slate-500">Cadastros, operadora atual, classificação e histórico de vendedores.</p></div><button v-if="canAdd" type="button" class="primary-button w-auto" @click="start()">+ Novo cliente</button></header>
  <AsyncNotice :loading="loading" :error="error" @retry="load"/>
  <template v-if="!loading&&!error">
   <section class="mb-5 flex flex-wrap gap-3 rounded-2xl border border-stone-200 bg-white p-4"><input v-model="search" class="field max-w-sm" placeholder="Buscar nome, documento ou e-mail"/><div class="min-w-52"><SearchSelect v-model="operatorFilter" :options="[{value:'',label:'Todas as operadoras'},...operators.map(o=>({value:String(o.id),label:o.name}))]"/></div></section>
-  <section class="overflow-x-auto rounded-2xl border border-stone-200 bg-white"><table class="w-full min-w-[700px] text-left text-sm"><thead class="bg-stone-50"><tr><th class="p-4">Cliente</th><th class="p-4">Documento</th><th class="p-4">Operadora</th><th class="p-4">Classificação</th><th class="p-4">Vendedor</th><th class="p-4">Ações</th></tr></thead><tbody><tr v-for="c in filtered" :key="c.id" class="border-t border-stone-100"><td class="p-4 font-semibold">{{c.company_name}}</td><td class="p-4">{{c.document}}</td><td class="p-4">{{c.operator?.name??'—'}}</td><td class="p-4">{{c.classification?.code??'—'}}</td><td class="p-4">{{sellers.find(s=>s.id===activeSeller(c)?.tenant_user_id)?.name??'—'}}</td><td class="p-4"><div class="flex gap-2"><button class="rounded-lg border px-3 py-1.5" @click="details(c.id)">Detalhes</button><button v-if="writable" class="rounded-lg border px-3 py-1.5" @click="start(c)">Editar</button></div></td></tr></tbody></table><p v-if="!filtered.length" class="p-5 text-sm text-slate-500">Nenhum cliente encontrado.</p></section>
+  <section class="overflow-x-auto rounded-2xl border border-stone-200 bg-white"><table class="w-full min-w-[700px] text-left text-sm"><thead class="bg-stone-50"><tr><th class="p-4">Cliente</th><th class="p-4">Documento</th><th class="p-4">Operadora</th><th class="p-4">Classificação</th><th class="p-4">Vendedor</th><th class="p-4">Ações</th></tr></thead><tbody><tr v-for="c in filtered" :key="c.id" class="border-t border-stone-100"><td class="p-4 font-semibold">{{c.company_name}}</td><td class="p-4">{{c.document}}</td><td class="p-4">{{c.operator?.name??'—'}}</td><td class="p-4">{{c.classification?.code??'—'}}</td><td class="p-4">{{sellers.find(s=>s.id===activeSeller(c)?.tenant_user_id)?.name??'—'}}</td><td class="p-4"><div class="flex gap-2"><button class="rounded-lg border px-3 py-1.5" @click="details(c.id)">Detalhes</button><button v-if="writable" class="rounded-lg border px-3 py-1.5" @click="start(c)">Editar</button><button v-if="canRemove" type="button" class="rounded-lg border border-red-200 px-3 py-1.5 text-red-700 hover:bg-red-50" :disabled="busy" @click="removeClient(c)">Excluir</button></div></td></tr></tbody></table><p v-if="!filtered.length" class="p-5 text-sm text-slate-500">Nenhum cliente encontrado.</p></section>
   <section v-if="selected" class="mt-5 rounded-2xl border border-stone-200 bg-white p-5">
    <div class="mb-4 flex items-center justify-between"><h2 class="text-xl font-semibold">{{selected.company_name}}</h2><button class="rounded-lg border px-3 py-2" @click="selected=null">Fechar</button></div>
    <div class="mb-5 flex gap-2"><button v-for="item in [{id:'data',label:'Dados'},{id:'contacts',label:'Pessoas de contato'},{id:'sellers',label:'Histórico de vendedores'}] as const" :key="item.id" class="rounded-lg px-3 py-2 text-sm" :class="tab===item.id?'bg-orange-100 text-orange-900':'bg-stone-100'" @click="tab=item.id">{{item.label}}</button></div>
