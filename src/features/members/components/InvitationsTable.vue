@@ -49,7 +49,7 @@ function expiration(value: string) {
               {{ invitation.reserves_seat ? 'Uma vaga reservada' : 'Não reserva vaga' }}
             </p>
           </th>
-          <td class="px-5 py-5 text-xs text-slate-600">{{ roleLabels[invitation.role] }}</td>
+          <td class="px-5 py-5 text-xs text-slate-600">{{ (invitation.role_name || roleLabels[invitation.role]) }}</td>
           <td class="px-5 py-5">
             <StatusBadge :tone="status(invitation).tone">{{
               status(invitation).label
