@@ -8,9 +8,13 @@ defineProps<{ tenant?: Tenant }>()
 const route = useRoute()
 const auth = useAuthStore()
 const teamOpen = ref(false)
+const commercialOpen = ref(false)
+const managementOpen = ref(false)
 const settingsOpen = ref(false)
 watch(() => route.path, (path) => {
   if (/\/(equipe|equipes)$/.test(path)) teamOpen.value = true
+  if (/\/produtos$/.test(path)) commercialOpen.value = true
+  if (/\/comissoes$/.test(path)) managementOpen.value = true
   if (/\/(dados|unidades|permissoes|assinatura|operadoras)$/.test(path)) settingsOpen.value = true
 }, { immediate: true })
 </script>
@@ -45,8 +49,18 @@ watch(() => route.path, (path) => {
           >
           </div>
         </div>
-        <RouterLink v-if="can(tenant, 'products.view')" :to="`/empresas/${tenant.id}/produtos`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/produtos') }">Produtos e planos</RouterLink>
-        <RouterLink v-if="can(tenant, 'commissions.view')" :to="`/empresas/${tenant.id}/comissoes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/comissoes') }">Tabelas de comissões</RouterLink>
+        <div v-if="can(tenant, 'products.view')" class="space-y-2">
+          <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="commercialOpen" @click="commercialOpen = !commercialOpen">Comercial <span aria-hidden="true">{{ commercialOpen ? '⌄' : '›' }}</span></button>
+          <div v-show="commercialOpen" class="space-y-1 border-l border-stone-200 pl-2">
+            <RouterLink :to="`/empresas/${tenant.id}/produtos`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/produtos') }" :aria-current="route.path.endsWith('/produtos') ? 'page' : undefined">Produtos e planos</RouterLink>
+          </div>
+        </div>
+        <div v-if="can(tenant, 'commissions.view')" class="space-y-2">
+          <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="managementOpen" @click="managementOpen = !managementOpen">Gerencial <span aria-hidden="true">{{ managementOpen ? '⌄' : '›' }}</span></button>
+          <div v-show="managementOpen" class="space-y-1 border-l border-stone-200 pl-2">
+            <RouterLink :to="`/empresas/${tenant.id}/comissoes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/comissoes') }" :aria-current="route.path.endsWith('/comissoes') ? 'page' : undefined">Tabelas de comissões</RouterLink>
+          </div>
+        </div>
         <div class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen">Configurações <span aria-hidden="true">{{ settingsOpen ? '⌄' : '›' }}</span></button>
           <div v-show="settingsOpen" class="space-y-1 border-l border-stone-200 pl-2">
