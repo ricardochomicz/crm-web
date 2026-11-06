@@ -7,6 +7,7 @@ import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { tenantApi } from '@/features/tenants/api'
 import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { toast } from '@/services/toast'
+import { ApiError } from '@/lib/http'
 import { clientsApi, type Client, type ClientInput, type Contact, type ContactInput, type Classification, type Seller } from '../api'
 import type { Tenant } from '@/features/tenants/types'
 const route=useRoute(), tenantId=computed(()=>String(route.params.tenantId))
@@ -75,7 +76,7 @@ async function save(){
  if(busy.value)return;busy.value=true
  try{const data={...form.value,operator_id:form.value.operator_id||null,classification_id:form.value.classification_id||null,seller_membership_id:showSellerSelect.value?(form.value.seller_membership_id||null):(editing.value?null:currentSellerId.value),contract_started_on:form.value.contract_started_on||null,contract_ends_on:form.value.contract_ends_on||null,document:form.value.document.replace(/\D/g,''),zip_code:form.value.zip_code?.replace(/\D/g,'')||null,phone:form.value.phone?.replace(/\D/g,'')||null}
  const r=await clientsApi.save(tenantId.value,data,editing.value||undefined);modal.value=false;toast.success('Cliente salvo.');await load();if(selected.value?.id===r.data.id)await details(r.data.id)
- }catch(e){toast.error(e instanceof Error?e.message:'Erro ao salvar cliente.')}finally{busy.value=false}
+ }catch(e){if(e instanceof ApiError && Object.keys(e.errors).length){toast.error(Object.values(e.errors).flat().join(' · '))}else{toast.error(e instanceof Error?e.message:'Erro ao salvar cliente.')}}finally{busy.value=false}
 }
 async function details(id:string){try{selected.value=(await clientsApi.show(tenantId.value,id)).data;tab.value='data'}catch(e){toast.error(e instanceof Error?e.message:'Erro ao carregar cliente.')}}
 function editContact(c?:Contact){contactEditing.value=c?.id??'';contact.value=c?{name:c.name,position:c.position,phone:c.phone,email:c.email,is_primary:c.is_primary,is_active:c.is_active,notes:c.notes}:contactBlank();contactModal.value=true}
