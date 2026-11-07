@@ -5,7 +5,7 @@ import type { OrderType } from '@/features/order-types/api'
 const props = defineProps<{ form: OpportunityInput; orderTypes: OrderType[] }>()
 const lineCount = computed(() => props.form.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0))
 const totalMonthly = computed(() => props.form.items.reduce((sum, item) => sum + Number(item.monthly_unit_amount || 0) * Number(item.quantity || 0), 0))
-const totalOnce = computed(() => props.form.items.reduce((sum, item) => sum + Number(item.one_time_unit_amount || 0) * Number(item.quantity || 0), 0))
+
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const receiptGroups = computed(() => {
   const groups = new Map<string, { name: string; count: number; total: number }>()
@@ -37,7 +37,7 @@ const receiptGroups = computed(() => {
             </div>
             <div class="space-y-3 border-t border-dashed border-stone-300 bg-stone-50 px-5 py-5">
               <div class="flex justify-between text-sm text-slate-600"><span>Quantidade</span><strong>{{ lineCount }}</strong></div>
-              <div class="flex justify-between text-sm text-slate-600"><span>Valor pontual</span><strong>{{ money(totalOnce) }}</strong></div>
+             
               <div class="border-t border-stone-200 pt-3">
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Total mensal estimado</p>
                 <p class="mt-1 text-3xl font-bold tracking-tight text-slate-900">{{ money(totalMonthly) }}</p>
