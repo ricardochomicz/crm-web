@@ -16,9 +16,18 @@ const types: { value: EventType; label: string }[] = [
   { value: 'visit', label: 'Visita' }, { value: 'task', label: 'Tarefa' },
   { value: 'reminder', label: 'Lembrete' },
 ]
+function nextAvailable(date: string): string {
+  const now = new Date()
+  const start = new Date(now.getTime() + 60000)
+  start.setSeconds(0, 0)
+  const proposed = new Date(`${date}T09:00`)
+  return localInput(proposed > start ? proposed.toISOString() : start.toISOString())
+}
 function emptyForm(date: string): CalendarEventInput {
+  const start = nextAvailable(date)
+  const end = localInput(new Date(new Date(start).getTime() + 3600000).toISOString())
   return { title: '', description: null, type: 'meeting', status: 'pending', priority: 'normal', all_day: false,
-    starts_at: `${date}T09:00`, ends_at: `${date}T10:00` }
+    starts_at: start, ends_at: end }
 }
 function localInput(value: string): string {
   const d = new Date(value)
@@ -38,6 +47,16 @@ watch(() => [props.open, props.event, props.date] as const, () => {
 const title = computed(() => props.event ? 'Editar compromisso' : 'Novo compromisso')
 async function save() {
   if (busy.value || !props.canWrite) return
+  const start = new Date(form.value.starts_at)
+  const end = new Date(form.value.ends_at)
+  if (Number.isNaN(start.getTime()) || start <= new Date()) {
+    error.value = 'Escolha uma data e horário de início futuros.'
+    return
+  }
+  if (Number.isNaN(end.getTime()) || end <= start) {
+    error.value = 'O término deve ser posterior ao início.'
+    return
+  }
   busy.value = true
   error.value = ''
   try {
