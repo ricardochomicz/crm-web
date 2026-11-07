@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue'
-const props = withDefaults(defineProps<{ modelValue: boolean; label: string; indeterminate?: boolean; disabled?: boolean; showLabel?: boolean }>(), { indeterminate: false, disabled: false, showLabel: false })
+const props = withDefaults(defineProps<{ modelValue: boolean; label: string; indeterminate?: boolean; disabled?: boolean; showLabel?: boolean }>(), { indeterminate: false, disabled: false, showLabel: true })
 const emit = defineEmits<{ 'update:modelValue': [checked: boolean] }>()
 const id = useId()
 const active = computed(() => props.modelValue || props.indeterminate)
