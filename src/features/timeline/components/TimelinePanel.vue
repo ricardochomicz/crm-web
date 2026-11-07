@@ -9,6 +9,7 @@ const props = defineProps<{
     type: TimelineType
     subjectId: string
     canWrite?: boolean
+    originFilter?: TimelineType
 }>()
 
 const comments = ref<TimelineComment[]>([])
@@ -30,7 +31,7 @@ async function load(next = 1) {
     loading.value = true
     error.value = ''
     try {
-        const result = await timelineApi.list(props.tenantId, props.type, props.subjectId, next)
+        const result = await timelineApi.list(props.tenantId, props.type, props.subjectId, next, props.originFilter)
         if (current !== sequence) return
         comments.value = next === 1 ? result.data : [...comments.value, ...result.data]
         page.value = result.current_page
@@ -42,7 +43,7 @@ async function load(next = 1) {
     }
 }
 
-watch(() => [props.tenantId, props.type, props.subjectId] as const, () => {
+watch(() => [props.tenantId, props.type, props.subjectId, props.originFilter] as const, () => {
     comments.value = []
     content.value = ''
     files.value = []
