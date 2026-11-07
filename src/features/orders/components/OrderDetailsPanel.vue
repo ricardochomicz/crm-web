@@ -123,6 +123,9 @@ async function activateSelected() {
                 item_ids: selectedItems.value,
                 activated_at: activationDate.value,
             })
+        } else if (canComplete.value) {
+            // Pedidos ativados antes da conclusão automática.
+            await ordersApi.complete(props.tenantId, props.orderId)
         }
         if (allLinesWillBeActive.value) {
             toast.success('Todas as linhas ativadas. Pedido concluído.')
