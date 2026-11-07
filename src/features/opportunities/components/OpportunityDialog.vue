@@ -6,6 +6,7 @@ import AppDialog from '@/components/ui/AppDialog.vue'
 import OpportunityDetailsForm from './OpportunityDetailsForm.vue'
 import OpportunityReceipt from './OpportunityReceipt.vue'
 import OpportunityLineEditDialog from './OpportunityLineEditDialog.vue'
+import OpportunityBulkEditDialog from './OpportunityBulkEditDialog.vue'
 import { opportunitiesApi, type Opportunity, type OpportunityInput } from '../api'
 import { errorMessage } from '@/lib/feedback'
 import type { OrderType } from '@/features/order-types/api'
@@ -18,6 +19,30 @@ const busy = ref(false)
 const error = ref('')
 const showImport = ref(false)
 const editingLineIndex = ref<number | null>(null)
+const selectedLineIndices = ref<number[]>([])
+const showBulkEdit = ref(false)
+const allSelected = computed(() => form.value.items.length > 0 && selectedLineIndices.value.length === form.value.items.length)
+const selectedItems = computed(() => selectedLineIndices.value.map(index => form.value.items[index]).filter((item): item is OpportunityInput['items'][number] => !!item))
+function toggleLine(index: number, checked: boolean) {
+  selectedLineIndices.value = checked ? [...selectedLineIndices.value.filter(i => i !== index), index] : selectedLineIndices.value.filter(i => i !== index)
+}
+function toggleAll(checked: boolean) { selectedLineIndices.value = checked ? form.value.items.map((_, index) => index) : [] }
+function removeLine(index: number) {
+  form.value.items.splice(index, 1)
+  selectedLineIndices.value = selectedLineIndices.value.filter(i => i !== index).map(i => i > index ? i - 1 : i)
+}
+function applyBulk(changes: { order_type_id?: string; product_id?: string; monthly_unit_amount?: number }) {
+  const product = changes.product_id ? props.products.find(p => p.id === changes.product_id) : null
+  for (const index of selectedLineIndices.value) {
+    const item = form.value.items[index]
+    if (!item) continue
+    form.value.items.splice(index, 1, {
+      ...item, ...changes, ...(product ? { description: product.name } : {}),
+    })
+  }
+  selectedLineIndices.value = []
+  showBulkEdit.value = false
+}
 const editingLine = computed(() => editingLineIndex.value === null ? null : form.value.items[editingLineIndex.value] ?? null)
 const otherNumbers = computed(() => form.value.items.filter((_, i) => i !== editingLineIndex.value).map(i => (i.line_number ?? '').replace(/\D/g, '')).filter(Boolean))
 function updateLine(item: OpportunityInput['items'][number]) { if (editingLineIndex.value !== null) form.value.items.splice(editingLineIndex.value, 1, item); editingLineIndex.value = null }
@@ -106,6 +131,8 @@ watch(() => [props.open, props.opportunity] as const, () => {
   error.value = ''
   showImport.value = false
   editingLineIndex.value = null
+  selectedLineIndices.value = []
+  showBulkEdit.value = false
   form.value = props.opportunity ? {
     code: props.opportunity.code, title: props.opportunity.title,
     client_id: props.opportunity.client_id, order_type_id: props.opportunity.order_type_id ?? '',
@@ -144,14 +171,22 @@ async function save() {
               <div><h3 class="text-lg font-semibold">Linhas e serviços</h3><p class="text-xs text-slate-500">Cole números do Excel em lotes, cada lote com seu plano.</p></div>
               <button type="button" class="primary-button w-auto" :disabled="form.items.length >= maxItems" @click="openImport">+ Importar linhas</button>
             </div>
+            <div v-if="selectedLineIndices.length" class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-orange-50 px-4 py-3">
+              <span class="text-sm font-semibold text-orange-900">{{ selectedLineIndices.length }} linha(s) selecionada(s)</span>
+              <div class="flex gap-2">
+                <button type="button" class="secondary-button w-auto" @click="selectedLineIndices = []">Limpar seleção</button>
+                <button type="button" class="primary-button w-auto" @click="showBulkEdit = true">Editar selecionadas</button>
+              </div>
+            </div>
             <p v-if="!form.items.length" class="rounded-xl border border-dashed border-stone-300 bg-white p-8 text-center text-sm text-slate-500">Nenhuma linha adicionada.</p>
             <div v-else class="max-h-[420px] overflow-auto rounded-xl border border-stone-200 bg-white">
               <table class="w-full min-w-[500px] text-left text-sm">
-                <thead class="sticky top-0 bg-stone-100 text-xs uppercase text-slate-500"><tr><th class="p-3">Número</th><th class="p-3">Plano</th><th class="p-3 text-right">Mensal</th><th class="p-3 text-right">Ação</th></tr></thead>
+                <thead class="sticky top-0 bg-stone-100 text-xs uppercase text-slate-500"><tr><th class="p-3"><input type="checkbox" aria-label="Selecionar todas as linhas" :checked="allSelected" @change="toggleAll(($event.target as HTMLInputElement).checked)" /></th><th class="p-3">Número</th><th class="p-3">Plano</th><th class="p-3 text-right">Mensal</th><th class="p-3 text-right">Ação</th></tr></thead>
                 <tbody><tr v-for="(item, index) in form.items" :key="item.id ?? index" class="border-t border-stone-100">
+                  <td class="p-3"><input type="checkbox" :aria-label="'Selecionar linha ' + (index + 1)" :checked="selectedLineIndices.includes(index)" @change="toggleLine(index, ($event.target as HTMLInputElement).checked)" /></td>
                   <td class="p-3 font-medium">{{ item.line_number || 'Número pendente' }}<span class="ml-2 text-xs text-slate-400">{{ typeName(item.order_type_id) }}</span></td><td class="p-3">{{ item.description }}</td>
                   <td class="p-3 text-right">{{ money(Number(item.monthly_unit_amount) * Number(item.quantity)) }}</td>
-                  <td class="p-3 text-right"><div class="flex justify-end gap-3"><button type="button" class="font-semibold text-blue-700 hover:underline" @click="editingLineIndex = index">Editar</button><button type="button" class="font-semibold text-red-600 hover:underline" @click="form.items.splice(index, 1)">Excluir</button></div></td>
+                  <td class="p-3 text-right"><div class="flex justify-end gap-3"><button type="button" class="font-semibold text-blue-700 hover:underline" @click="editingLineIndex = index">Editar</button><button type="button" class="font-semibold text-red-600 hover:underline" @click="removeLine(index)">Excluir</button></div></td>
                 </tr></tbody>
               </table>
             </div>
@@ -173,6 +208,7 @@ async function save() {
       </footer>
     </form>
   </AppDialog>
+  <OpportunityBulkEditDialog :open="open && showBulkEdit" :items="selectedItems" :products="products" :order-types="orderTypes" @close="showBulkEdit = false" @apply="applyBulk" />
   <OpportunityLineEditDialog :open="open && editingLineIndex !== null" :item="editingLine" :products="products" :order-types="orderTypes" :existing-numbers="otherNumbers" @close="editingLineIndex = null" @save="updateLine" />
   <AppDialog :open="open && showImport" title="Importar linhas" description="Escolha o tipo de operação, informe as linhas e associe um plano ao lote." size="wide" @close="showImport = false">
     <div class="space-y-4">

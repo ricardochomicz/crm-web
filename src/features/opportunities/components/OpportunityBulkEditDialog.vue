@@ -1,0 +1,81 @@
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import AppDialog from '@/components/ui/AppDialog.vue'
+import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
+import AppCurrencyField from '@/components/ui/AppCurrencyField.vue'
+import type { OpportunityInput } from '../api'
+import type { Product } from '@/features/products/api'
+import type { OrderType } from '@/features/order-types/api'
+type Item = OpportunityInput['items'][number]
+const props = defineProps<{ open: boolean; items: Item[]; products: Product[]; orderTypes: OrderType[] }>()
+const emit = defineEmits<{ close: []; apply: [changes: { order_type_id?: string; product_id?: string; monthly_unit_amount?: number }] }>()
+const changeType = ref(false)
+const changePlan = ref(false)
+const changePrice = ref(false)
+const typeId = ref('')
+const productId = ref('')
+const monthly = ref(0)
+const error = ref('')
+const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+const planOptions = computed(() => props.products.filter(p => p.is_active).map(p => ({ id: p.id, name: p.name })))
+const before = computed(() => props.items.reduce((sum, item) => sum + Number(item.monthly_unit_amount) * Number(item.quantity), 0))
+const after = computed(() => props.items.reduce((sum, item) => sum + (changePrice.value ? Number(monthly.value) : Number(item.monthly_unit_amount)) * Number(item.quantity), 0))
+const selectedType = computed(() => props.orderTypes.find(t => t.id === typeId.value))
+const invalidNumbers = computed(() => changeType.value && selectedType.value?.requires_number && props.items.some(i => !i.line_number))
+watch(() => props.open, open => {
+  if (!open) return
+  changeType.value = false; changePlan.value = false; changePrice.value = false
+  typeId.value = ''; productId.value = ''; monthly.value = 0; error.value = ''
+})
+function apply() {
+  error.value = ''
+  if (!changeType.value && !changePlan.value && !changePrice.value) { error.value = 'Marque pelo menos um campo para alterar.'; return }
+  if (changeType.value && !selectedType.value) { error.value = 'Selecione um tipo válido.'; return }
+  if (invalidNumbers.value) { error.value = 'Há linhas sem número. O tipo escolhido exige número para todas.'; return }
+  if (changePlan.value && !props.products.some(p => p.id === productId.value && p.is_active)) { error.value = 'Selecione um plano ativo.'; return }
+  if (changePrice.value && (!Number.isFinite(monthly.value) || monthly.value < 0)) { error.value = 'Valor mensal inválido.'; return }
+  emit('apply', {
+    ...(changeType.value ? { order_type_id: typeId.value } : {}),
+    ...(changePlan.value ? { product_id: productId.value } : {}),
+    ...(changePrice.value ? { monthly_unit_amount: Number(monthly.value) } : {}),
+  })
+}
+</script>
+<template>
+  <AppDialog :open="open" title="Editar linhas em massa" :description="items.length + ' linha(s) selecionada(s). Marque somente os campos que deseja alterar.'" @close="emit('close')">
+    <div class="space-y-5">
+      <div class="flex items-start gap-3">
+        <input id="bulk-type" v-model="changeType" type="checkbox" class="mt-1 accent-orange-600" />
+        <div class="min-w-0 flex-1">
+          <label for="bulk-type" class="mb-2 block text-sm font-semibold">Alterar tipo das linhas</label>
+          <AppAutocomplete v-if="changeType" v-model="typeId" label="Novo tipo" :options="orderTypes" />
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <input id="bulk-plan" v-model="changePlan" type="checkbox" class="mt-1 accent-orange-600" />
+        <div class="min-w-0 flex-1">
+          <label for="bulk-plan" class="mb-2 block text-sm font-semibold">Alterar plano</label>
+          <AppAutocomplete v-if="changePlan" v-model="productId" label="Novo plano" :options="planOptions" />
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <input id="bulk-price" v-model="changePrice" type="checkbox" class="mt-1 accent-orange-600" />
+        <div class="min-w-0 flex-1">
+          <label for="bulk-price" class="mb-2 block text-sm font-semibold">Alterar valor mensal por linha</label>
+          <AppCurrencyField v-if="changePrice" v-model="monthly" label="Novo valor mensal" />
+          <p v-if="changePlan && !changePrice" class="mt-1 text-xs text-slate-500">Os valores negociados atuais serão preservados.</p>
+        </div>
+      </div>
+      <div class="rounded-xl bg-stone-50 p-4 text-sm">
+        <p class="font-semibold">{{ items.length }} linha(s) serão atualizadas</p>
+        <p class="mt-2">Mensal atual: <strong>{{ money(before) }}</strong></p>
+        <p>Mensal após alteração: <strong>{{ money(after) }}</strong></p>
+      </div>
+      <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
+      <div class="flex justify-end gap-3 border-t pt-4">
+        <button type="button" class="secondary-button w-auto" @click="emit('close')">Cancelar</button>
+        <button type="button" class="primary-button w-auto" :disabled="!items.length" @click="apply">Aplicar a {{ items.length }} linha(s)</button>
+      </div>
+    </div>
+  </AppDialog>
+</template>
