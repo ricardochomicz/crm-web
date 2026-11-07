@@ -59,12 +59,13 @@ watch(() => [model.value.client_id, props.clients] as const, () => {
               </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
-              <label class="block space-y-2 text-sm font-semibold text-slate-700">Tipo de negociação
-                <select v-model="model.order_type_id" class="field min-h-[44px]" required>
+              <div class="space-y-2">
+                <label for="opportunity-type" class="block text-sm font-semibold text-slate-700">Tipo de negociação</label>
+                <select id="opportunity-type" v-model="model.order_type_id" class="field" required>
                   <option value="">Selecione o tipo</option>
                   <option v-for="type in orderTypes" :key="type.id" :value="type.id">{{ type.name }}</option>
                 </select>
-              </label>
+              </div>
               <FormField id="opportunity-forecast" v-model="model.expected_close_at" label="Previsão de fechamento" type="date" class="min-h-[44px]" />
             </div>
           </section>
