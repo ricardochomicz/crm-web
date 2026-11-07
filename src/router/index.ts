@@ -132,6 +132,11 @@ const router = createRouter({
       meta: { requiresAuth: true, admin: true, title: 'Classificações globais' },
     },
     {
+      path: '/admin/status-pedidos',
+      component: () => import('@/features/admin/views/PlatformOrderStatusesView.vue'),
+      meta: { requiresAuth: true, admin: true, title: 'Status dos pedidos' },
+    },
+    {
       path: '/admin/operadoras',
       component: () => import('@/features/operators/views/PlatformOperatorsPage.vue'),
       meta: { requiresAuth: true, admin: true, title: 'Catálogo de operadoras' },
