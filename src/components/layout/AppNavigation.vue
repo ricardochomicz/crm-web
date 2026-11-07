@@ -103,6 +103,7 @@ watch(() => route.path, (path) => {
             class="nav-item"
             :class="{ 'nav-active': route.path.endsWith('/status-pedidos') }"
             >Status dos pedidos</RouterLink
+          >
           <RouterLink
             v-if="tenant.access?.can_manage_permissions"
             :to="`/empresas/${tenant.id}/permissoes`"
