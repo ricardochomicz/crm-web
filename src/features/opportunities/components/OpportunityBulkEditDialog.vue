@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import { computed, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
@@ -44,24 +45,24 @@ function apply() {
 <template>
   <AppDialog :open="open" title="Editar linhas em massa" :description="items.length + ' linha(s) selecionada(s). Marque somente os campos que deseja alterar.'" @close="emit('close')">
     <div class="space-y-5">
-      <div class="flex items-start gap-3">
-        <input id="bulk-type" v-model="changeType" type="checkbox" class="mt-1 accent-orange-600" />
+      <div class="rounded-xl border border-stone-200 p-3 transition-colors" :class="changeType ? 'border-orange-200 bg-orange-50/50' : 'bg-white'">
+        <AppCheckbox v-model="changeType" label="Alterar tipo das linhas" />
         <div class="min-w-0 flex-1">
-          <label for="bulk-type" class="mb-2 block text-sm font-semibold">Alterar tipo das linhas</label>
+          
           <AppAutocomplete v-if="changeType" v-model="typeId" label="Novo tipo" :options="orderTypes" />
         </div>
       </div>
-      <div class="flex items-start gap-3">
-        <input id="bulk-plan" v-model="changePlan" type="checkbox" class="mt-1 accent-orange-600" />
+      <div class="rounded-xl border border-stone-200 p-3 transition-colors" :class="changePlan ? 'border-orange-200 bg-orange-50/50' : 'bg-white'">
+        <AppCheckbox v-model="changePlan" label="Alterar plano" />
         <div class="min-w-0 flex-1">
-          <label for="bulk-plan" class="mb-2 block text-sm font-semibold">Alterar plano</label>
+          
           <AppAutocomplete v-if="changePlan" v-model="productId" label="Novo plano" :options="planOptions" />
         </div>
       </div>
-      <div class="flex items-start gap-3">
-        <input id="bulk-price" v-model="changePrice" type="checkbox" class="mt-1 accent-orange-600" />
+      <div class="rounded-xl border border-stone-200 p-3 transition-colors" :class="changePrice ? 'border-orange-200 bg-orange-50/50' : 'bg-white'">
+        <AppCheckbox v-model="changePrice" label="Alterar valor mensal por linha" />
         <div class="min-w-0 flex-1">
-          <label for="bulk-price" class="mb-2 block text-sm font-semibold">Alterar valor mensal por linha</label>
+          
           <AppCurrencyField v-if="changePrice" v-model="monthly" label="Novo valor mensal" />
           <p v-if="changePlan && !changePrice" class="mt-1 text-xs text-slate-500">Os valores negociados atuais serão preservados.</p>
         </div>

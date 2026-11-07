@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
 import AppCurrencyField from '@/components/ui/AppCurrencyField.vue'
 import { computed, ref, watch } from 'vue'
@@ -181,9 +182,9 @@ async function save() {
             <p v-if="!form.items.length" class="rounded-xl border border-dashed border-stone-300 bg-white p-8 text-center text-sm text-slate-500">Nenhuma linha adicionada.</p>
             <div v-else class="max-h-[420px] overflow-auto rounded-xl border border-stone-200 bg-white">
               <table class="w-full min-w-[500px] text-left text-sm">
-                <thead class="sticky top-0 bg-stone-100 text-xs uppercase text-slate-500"><tr><th class="p-3"><input type="checkbox" aria-label="Selecionar todas as linhas" :checked="allSelected" @change="toggleAll(($event.target as HTMLInputElement).checked)" /></th><th class="p-3">Número</th><th class="p-3">Plano</th><th class="p-3 text-right">Mensal</th><th class="p-3 text-right">Ação</th></tr></thead>
-                <tbody><tr v-for="(item, index) in form.items" :key="item.id ?? index" class="border-t border-stone-100">
-                  <td class="p-3"><input type="checkbox" :aria-label="'Selecionar linha ' + (index + 1)" :checked="selectedLineIndices.includes(index)" @change="toggleLine(index, ($event.target as HTMLInputElement).checked)" /></td>
+                <thead class="sticky top-0 bg-stone-100 text-xs uppercase text-slate-500"><tr><th class="p-3"><AppCheckbox label="Selecionar todas as linhas" :model-value="allSelected" :indeterminate="selectedLineIndices.length > 0 && !allSelected" @update:model-value="toggleAll" /></th><th class="p-3">Número</th><th class="p-3">Plano</th><th class="p-3 text-right">Mensal</th><th class="p-3 text-right">Ação</th></tr></thead>
+                <tbody><tr v-for="(item, index) in form.items" :key="item.id ?? index" class="border-t border-stone-100 transition-colors" :class="selectedLineIndices.includes(index) ? 'bg-orange-50/70' : 'hover:bg-stone-50'">
+                  <td class="p-3"><AppCheckbox :label="'Selecionar linha ' + (index + 1)" :model-value="selectedLineIndices.includes(index)" @update:model-value="checked => toggleLine(index, checked)" /></td>
                   <td class="p-3 font-medium">{{ item.line_number || 'Número pendente' }}<span class="ml-2 text-xs text-slate-400">{{ typeName(item.order_type_id) }}</span></td><td class="p-3">{{ item.description }}</td>
                   <td class="p-3 text-right">{{ money(Number(item.monthly_unit_amount) * Number(item.quantity)) }}</td>
                   <td class="p-3 text-right"><div class="flex justify-end gap-3"><button type="button" class="font-semibold text-blue-700 hover:underline" @click="editingLineIndex = index">Editar</button><button type="button" class="font-semibold text-red-600 hover:underline" @click="removeLine(index)">Excluir</button></div></td>
