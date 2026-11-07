@@ -3,6 +3,8 @@ import { ref, watch } from 'vue'
 import { toast } from '@/services/toast'
 import { errorMessage } from '@/lib/feedback'
 import { ordersApi, type CommercialOrder } from '../api'
+import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
+import OrderItemsSection from './OrderItemsSection.vue'
 import { orderStatusesApi, type OrderStatus } from '@/features/order-statuses/api'
 
 const props = defineProps<{ tenantId: string; orderId: string }>()
@@ -59,51 +61,64 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
 
 <template>
     <section class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-        <div class="mb-5 flex items-center justify-between gap-3">
-            <h2 class="text-lg font-semibold">Detalhes do pedido</h2>
+        <header class="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <p class="eyebrow">PEDIDO COMERCIAL</p>
+                <h2 class="mt-2 text-xl font-semibold text-slate-800">Detalhes do pedido</h2>
+            </div>
             <button type="button" class="secondary-button w-auto" @click="emit('close')">Fechar</button>
-        </div>
+        </header>
         <p v-if="loading" class="text-sm text-slate-500">Carregando pedido…</p>
         <p v-else-if="error" class="text-sm text-rose-700">{{ error }}</p>
-        <div v-else-if="order" class="space-y-5">
-            <div class="grid gap-3 text-sm sm:grid-cols-3">
-                <p><span class="block text-slate-500">Código</span><strong>{{ order.code || order.id.slice(0, 8) }}</strong></p>
-                <p><span class="block text-slate-500">Cliente</span><strong>{{ order.customer_name }}</strong></p>
-                <p><span class="block text-slate-500">Linhas</span><strong>{{ order.line_quantity }}</strong></p>
+        <div v-else-if="order" class="grid items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,1fr)]">
+            <div class="min-w-0 space-y-5">
+                <section class="rounded-xl border border-stone-200 bg-stone-50/60 p-5">
+                    <h3 class="mb-4 font-semibold text-slate-800">Resumo comercial</h3>
+                    <dl class="grid gap-x-5 gap-y-4 sm:grid-cols-2">
+                        <div class="min-w-0">
+                            <dt class="text-xs font-medium text-slate-500">Pedido</dt>
+                            <dd class="mt-1 break-all text-sm font-semibold text-slate-800">{{ order.code || order.id.slice(0, 8) }}</dd>
+                        </div>
+                        <div class="min-w-0">
+                            <dt class="text-xs font-medium text-slate-500">Cliente</dt>
+                            <dd class="mt-1 text-sm font-semibold text-slate-800">{{ order.customer_name }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-medium text-slate-500">Quantidade de linhas</dt>
+                            <dd class="mt-1 text-lg font-semibold text-slate-800">{{ order.line_quantity }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-medium text-slate-500">Mensalidade total</dt>
+                            <dd class="mt-1 text-lg font-semibold text-slate-800">{{ Number(order.monthly_amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <form class="rounded-xl border border-stone-200 p-5" @submit.prevent="save">
+                    <h3 class="mb-4 font-semibold text-slate-800">Acompanhamento do pedido</h3>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <label class="text-sm font-semibold text-slate-700">Status operacional
+                            <select v-model="statusId" class="field mt-2 w-full" required>
+                                <option value="" disabled>Selecione</option>
+                                <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
+                            </select>
+                        </label>
+                        <label class="text-sm font-semibold text-slate-700">Previsão de ativação
+                            <input v-model="expected" type="date" class="field mt-2 w-full" />
+                        </label>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button type="submit" class="primary-button w-auto" :disabled="saving || !statusId">{{ saving ? 'Salvando…' : 'Salvar alterações' }}</button>
+                    </div>
+                </form>
+
+                <OrderItemsSection :items="order.items || []" :count="order.line_quantity" />
             </div>
-            <section class="border-t border-stone-100 pt-5">
-                <h3 class="mb-3 font-semibold text-slate-800">Itens negociados</h3>
-                <div class="overflow-x-auto rounded-xl border border-stone-200">
-                    <table class="w-full min-w-[600px] text-left text-sm">
-                        <thead class="bg-stone-50 text-xs uppercase text-slate-500">
-                            <tr><th class="p-3">Linha</th><th class="p-3">Descrição</th><th class="p-3">Quantidade</th><th class="p-3">Mensalidade unitária</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="item in order.items || []" :key="item.id" class="border-t border-stone-100">
-                                <td class="p-3">{{ item.line_number || '—' }}</td>
-                                <td class="p-3">{{ item.description || '—' }}</td>
-                                <td class="p-3">{{ item.quantity }}</td>
-                                <td class="p-3">{{ Number(item.monthly_unit_amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <p v-if="!order.items?.length" class="p-4 text-sm text-slate-500">Nenhum item registrado.</p>
-                </div>
-            </section>
-            <form class="grid gap-4 border-t border-stone-100 pt-5 sm:grid-cols-2" @submit.prevent="save">
-                <label class="text-sm font-semibold">Status operacional
-                    <select v-model="statusId" class="field mt-2 w-full" required>
-                        <option value="" disabled>Selecione</option>
-                        <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
-                    </select>
-                </label>
-                <label class="text-sm font-semibold">Previsão de ativação
-                    <input v-model="expected" type="date" class="field mt-2 w-full" />
-                </label>
-                <div class="sm:col-span-2">
-                    <button type="submit" class="primary-button w-auto" :disabled="saving || !statusId">{{ saving ? 'Salvando…' : 'Salvar alterações' }}</button>
-                </div>
-            </form>
+
+            <aside class="min-w-0 rounded-xl border border-stone-200 p-5">
+                <h3 class="mb-4 font-semibold text-slate-800">Timeline do pedido</h3>
+                <TimelinePanel :tenant-id="tenantId" type="commercial_order" :subject-id="order.id" :can-write="true" />
+            </aside>
         </div>
     </section>
 </template>
