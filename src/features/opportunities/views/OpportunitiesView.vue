@@ -74,7 +74,7 @@ async function loadKanban() {
   } catch (e) { if (current === version) error.value = errorMessage(e) }
   finally { if (current === version) loading.value = false }
 }
-function reload() { if (viewMode.value === 'kanban') void loadKanban(); else reload() }
+function reload() { if (viewMode.value === 'kanban') void loadKanban(); else void load() }
 async function changeView(mode: 'list' | 'kanban') {
   viewMode.value = mode
   if (mode === 'kanban') {
