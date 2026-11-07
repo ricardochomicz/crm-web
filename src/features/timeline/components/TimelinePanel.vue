@@ -168,7 +168,7 @@ function formatted(date: string) {
                         📎 {{ file.original_name }}
                     </button>
                 </div>
-                <div v-if="canWrite" class="flex gap-3 text-xs">
+                <div v-if="canWrite && comment.can_edit" class="flex gap-3 text-xs">
                     <button type="button" class="font-semibold text-blue-700" @click="startEdit(comment)">Editar</button>
                     <button type="button" class="font-semibold text-rose-700" @click="remove(comment)">Excluir</button>
                 </div>
