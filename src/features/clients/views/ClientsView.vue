@@ -94,6 +94,7 @@ const form = ref<ClientInput>(blank()),
   modal = ref(false),
   selected = ref<Client | null>(null),
   tab = ref<'data' | 'contacts' | 'sellers' | 'history'>('data')
+const historyOrigin = ref<'client' | 'opportunity' | 'commercial_order'>('client')
 const contactBlank = (): ContactInput => ({
   name: '',
   position: null,
@@ -463,7 +464,26 @@ watch(
             Nenhum contato cadastrado.
           </p>
         </div>
-        <TimelinePanel v-if="tab === 'history' && selected" :tenant-id="tenantId" type="client" :subject-id="selected.id" :can-write="writable" />
+        <div v-if="tab === 'history' && selected" class="space-y-4">
+          <div class="flex flex-wrap gap-2 border-b border-stone-200 pb-3" aria-label="Filtrar histórico por origem">
+            <button
+              v-for="category in [
+                { id: 'client', label: 'Cliente' },
+                { id: 'opportunity', label: 'Oportunidades' },
+                { id: 'commercial_order', label: 'Pedidos' },
+              ] as const"
+              :key="category.id"
+              type="button"
+              class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+              :class="historyOrigin === category.id ? 'bg-orange-100 text-orange-900' : 'bg-stone-100 text-slate-600 hover:bg-stone-200'"
+              :aria-pressed="historyOrigin === category.id"
+              @click="historyOrigin = category.id"
+            >
+              {{ category.label }}
+            </button>
+          </div>
+          <TimelinePanel :tenant-id="tenantId" type="client" :subject-id="selected.id" :origin-filter="historyOrigin" :can-write="writable && historyOrigin === 'client'" />
+        </div>
         <div v-if="tab === 'sellers'" class="space-y-2">
           <p v-for="s in selected.sellers" :key="s.id" class="border-b py-2 text-sm">
             {{
