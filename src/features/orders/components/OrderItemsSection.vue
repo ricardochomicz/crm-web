@@ -19,7 +19,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
         <div v-if="expanded" class="overflow-x-auto border-t border-stone-200">
             <table class="w-full min-w-[580px] text-left text-sm">
                 <thead class="bg-stone-50 text-xs uppercase text-slate-500">
-                    <tr><th class="p-3">Linha</th><th class="p-3">Descrição</th><th class="p-3">Quantidade</th><th class="p-3">Mensalidade unitária</th><th class="p-3">Status</th><th class="p-3">Ativação</th></tr>
+                    <tr><th class="p-3">Linha</th><th class="p-3">Descrição</th><th class="p-3">Quantidade</th><th class="p-3">R$</th><th class="p-3">Status</th><th class="p-3">Ativação</th></tr>
                 </thead>
                 <tbody>
                     <tr v-for="item in items" :key="item.id" class="border-t border-stone-100">
