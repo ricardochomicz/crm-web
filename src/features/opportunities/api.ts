@@ -6,6 +6,7 @@ export type OpportunityItem = {
 }
 export type Opportunity = {
   items?: OpportunityItem[];
+  parent_opportunity_id?: string | null; lost_reason?: string | null; closed_at?: string | null;
   id: string; code: string; title: string; status: 'open' | 'won' | 'lost' | 'cancelled'
   client_id: string; tenant_user_id: string; funnel_stage_id: string | null
   operator_id: number | null; order_type: string; order_type_id: string | null; description: string | null
@@ -49,6 +50,8 @@ export const opportunitiesApi = {
   overview: (tenantId: string, from: string, to: string) =>
     request<{ data: CommercialOverview }>(base(tenantId) + '/overview?' + new URLSearchParams({ date_from: from, date_to: to }).toString()),
   stages: (tenantId: string) => request<{ data: FunnelStage[] }>('/api/v1/tenants/' + encodeURIComponent(tenantId) + '/opportunity-funnel-stages'),
+  recover: (tenantId: string, id: string) =>
+    mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/recover', {}, 'POST'),
   markLost: (tenantId: string, id: string, lostReason: string) =>
     mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/mark-lost', { lost_reason: lostReason }, 'POST'),
   confirmSale: (tenantId: string, id: string) =>
