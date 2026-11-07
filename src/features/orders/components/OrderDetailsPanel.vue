@@ -18,6 +18,7 @@ const saving = ref(false)
 const selectedItems = ref<string[]>([])
 const activationDate = ref(new Date().toLocaleDateString('en-CA'))
 const moving = ref(false)
+const timelineVersion = ref(0)
 const pendingItems = computed(() => order.value?.items?.filter(item => item.status === 'PENDING' && !item.activated_at && item.quantity === 1) ?? [])
 const canComplete = computed(() => !!order.value?.items?.length && order.value.items.every(item => item.status === 'ACTIVE' && !!item.activated_at) && !order.value.administratively_completed_at)
 const error = ref('')
@@ -55,6 +56,7 @@ async function save() {
         })
         toast.success('Pedido atualizado.')
         await load()
+        timelineVersion.value++
         emit('saved')
     } catch (failure) {
         toast.error(errorMessage(failure))
@@ -142,7 +144,7 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                                 <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
                             </select>
                         </label>
-                        <label class="text-sm font-semibold text-slate-700">Data de ativação
+                        <label class="text-sm font-semibold text-slate-700">Previsão de ativação
                             <input v-model="expected" type="date" class="field mt-2 w-full" />
                         </label>
                     </div>
@@ -182,7 +184,7 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
 
             <aside class="min-w-0 rounded-xl border border-stone-200 p-5">
                 <h3 class="mb-4 font-semibold text-slate-800">Timeline do pedido</h3>
-                <TimelinePanel :tenant-id="tenantId" type="commercial_order" :subject-id="order.id" :can-write="true" />
+                <TimelinePanel :key="timelineVersion" :tenant-id="tenantId" type="commercial_order" :subject-id="order.id" :can-write="true" />
             </aside>
         </div>
     </section>
