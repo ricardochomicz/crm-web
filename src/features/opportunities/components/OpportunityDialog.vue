@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
 import { computed, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import OpportunityDetailsForm from './OpportunityDetailsForm.vue'
@@ -163,12 +164,7 @@ async function save() {
   </AppDialog>
   <AppDialog :open="open && showImport" title="Importar linhas" description="Escolha o tipo de operação, informe as linhas e associe um plano ao lote." size="wide" @close="showImport = false">
     <div class="space-y-4">
-      <label class="block space-y-2 text-sm font-semibold">Tipo das linhas
-        <select v-model="batchTypeId" class="field" required>
-          <option value="">Selecione o tipo</option>
-          <option v-for="type in orderTypes" :key="type.id" :value="type.id">{{ type.name }}</option>
-        </select>
-      </label>
+      <AppAutocomplete v-model="batchTypeId" label="Tipo das linhas" placeholder="Buscar tipo das linhas" :options="orderTypes" />
       <label v-if="selectedBatchType && !selectedBatchType.requires_number" class="block space-y-2 text-sm font-semibold">Quantidade de linhas novas
         <input v-model.number="batchQuantity" class="field" type="number" min="1" :max="maxItems - form.items.length" />
       </label>

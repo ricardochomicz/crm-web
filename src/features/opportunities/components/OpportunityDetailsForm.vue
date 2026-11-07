@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
 import { computed, ref, watch } from 'vue'
 import FormField from '@/components/ui/FormField.vue'
 import type { Client } from '@/features/clients/api'
@@ -59,13 +60,7 @@ watch(() => [model.value.client_id, props.clients] as const, () => {
               </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
-              <div class="space-y-2">
-                <label for="opportunity-type" class="block text-sm font-semibold text-slate-700">Tipo de negociação</label>
-                <select id="opportunity-type" v-model="model.order_type_id" class="field" required>
-                  <option value="">Selecione o tipo</option>
-                  <option v-for="type in orderTypes" :key="type.id" :value="type.id">{{ type.name }}</option>
-                </select>
-              </div>
+              <AppAutocomplete v-model="model.order_type_id" label="Tipo de negociação" placeholder="Buscar tipo de negociação" :options="orderTypes" />
               <FormField id="opportunity-forecast" v-model="model.expected_close_at" label="Previsão de fechamento" type="date" class="min-h-[44px]" />
             </div>
           </section>
