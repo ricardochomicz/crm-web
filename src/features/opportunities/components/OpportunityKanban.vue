@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import type { FunnelStage, Opportunity } from '../api'
 const props = defineProps<{ stages: FunnelStage[]; items: Opportunity[]; canEdit: boolean; busyId: string | null }>()
-const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity] }>()
+const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity] }>()
 const dragging = ref<string | null>(null)
 const hover = ref<string | null>(null)
 const columns = computed(() => [
@@ -60,13 +60,14 @@ function drop(stageId: string) {
                 <span v-if="isOverdue(item)" class="ml-1 rounded-md bg-rose-100 px-1.5 py-0.5 text-rose-800">Atrasada</span>
               </p>
             </button>
-            <label v-if="canEdit && item.status === 'open'" class="mt-3 block text-xs text-slate-500">Mover para
-              <select class="field mt-1 text-xs" :disabled="!!busyId" :value="item.funnel_stage_id || ''"
-                @change="emit('move', item.id, ($event.target as HTMLSelectElement).value)">
-                <option value="" disabled>Selecione a etapa</option>
-                <option v-for="target in stages.filter(s => s.is_active)" :key="target.id" :value="target.id">{{ target.name }}</option>
-              </select>
-            </label>
+            <div v-if="canEdit && item.status === 'open'" class="mt-3 grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
+              <button type="button" class="flex items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-500" :disabled="!!busyId" @click="emit('won', item)">
+                <span aria-hidden="true">✓</span> Ganha
+              </button>
+              <button type="button" class="flex items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2 py-2 text-xs font-semibold text-rose-800 hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-500" :disabled="!!busyId" @click="emit('lost', item)">
+                <span aria-hidden="true">✕</span> Perdida
+              </button>
+            </div>
           </article>
           <p v-if="!items.some(i => (i.funnel_stage_id || '') === stage.id)" class="rounded-xl border border-dashed border-stone-300 p-5 text-center text-xs text-slate-400">Arraste oportunidades para esta etapa</p>
         </div>

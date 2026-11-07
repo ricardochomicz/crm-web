@@ -42,6 +42,35 @@ const loading = ref(true)
 const error = ref('')
 const dialogOpen = ref(false)
 const confirmingSale = ref(false)
+const lostCandidate = ref<Opportunity | null>(null)
+const lostReason = ref('')
+const markingLost = ref(false)
+function askMarkLost(item: Opportunity) {
+    if (!canEdit.value || item.status !== 'open') return
+    lostReason.value = ''
+    lostCandidate.value = item
+}
+async function markLost() {
+    const item = lostCandidate.value
+    const reason = lostReason.value.trim()
+    if (!item || markingLost.value) return
+    if (reason.length < 3) {
+        toast.error('Informe o motivo da perda (mínimo de 3 caracteres).')
+        return
+    }
+    markingLost.value = true
+    try {
+        await opportunitiesApi.markLost(tenantId.value, item.id, reason)
+        lostCandidate.value = null
+        toast.success('Oportunidade marcada como perdida.')
+        reload()
+        void commercialOverview.value?.refresh()
+    } catch (error) {
+        toast.error(errorMessage(error))
+    } finally {
+        markingLost.value = false
+    }
+}
 const saleCandidate = ref<Opportunity | null>(null)
 function askConfirmSale(item: Opportunity) {
     if (!canEdit.value || item.status !== 'open') return
@@ -202,7 +231,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
     <AsyncNotice :loading="loading" :error="error" @retry="reload" />
     <div v-if="viewMode === 'kanban' && !loading && !error">
       <p v-if="kanbanLimitReached" class="mb-3 text-sm text-amber-700">Há mais oportunidades do que o limite de carregamento do quadro. Refine os filtros para visualizar todas.</p>
-      <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="open" />
+      <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="open" @won="askConfirmSale" @lost="askMarkLost" />
     </div>
     <section v-if="viewMode === 'list' && !loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <ListTable min-width="750px">
@@ -229,6 +258,18 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
       <p v-if="!rows.length" class="p-6 text-center text-sm text-slate-500">Nenhuma oportunidade encontrada.</p>
     </section>
     <PagePagination v-if="viewMode === 'list'" :page="page" :last-page="lastPage" :total="total" :per-page="perPage" :busy="loading" @change="changePage" />
+    <div v-if="lostCandidate" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4" role="presentation" @click.self="!markingLost && (lostCandidate = null)">
+      <form role="dialog" aria-modal="true" aria-labelledby="mark-lost-title" class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @submit.prevent="markLost">
+        <h2 id="mark-lost-title" class="text-lg font-semibold text-slate-900">Registrar venda perdida</h2>
+        <p class="mt-2 text-sm text-slate-600">Oportunidade: <strong>{{ lostCandidate.title }}</strong>. O registro permanecerá no histórico comercial.</p>
+        <label class="mt-4 block text-sm font-semibold text-slate-700" for="lost-reason">Motivo da perda *</label>
+        <textarea id="lost-reason" v-model="lostReason" class="field mt-2 min-h-24 w-full" required minlength="3" maxlength="200" placeholder="Ex.: cliente optou pela concorrência" />
+        <div class="mt-6 flex justify-end gap-2">
+          <button type="button" class="secondary-button w-auto" :disabled="markingLost" @click="lostCandidate = null">Cancelar</button>
+          <button type="submit" class="primary-button w-auto" :disabled="markingLost || lostReason.trim().length < 3">{{ markingLost ? 'Registrando…' : 'Confirmar perda' }}</button>
+        </div>
+      </form>
+    </div>
     <div v-if="saleCandidate" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4" role="presentation" @click.self="!confirmingSale && (saleCandidate = null)">
       <section role="dialog" aria-modal="true" aria-labelledby="confirm-sale-title" class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
         <h2 id="confirm-sale-title" class="text-lg font-semibold text-slate-900">Confirmar venda</h2>
