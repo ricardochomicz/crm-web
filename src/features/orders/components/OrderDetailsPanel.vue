@@ -5,6 +5,7 @@ import { errorMessage } from '@/lib/feedback'
 import { ordersApi, type CommercialOrder } from '../api'
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
 import OrderItemsSection from './OrderItemsSection.vue'
+import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import { orderStatusesApi, type OrderStatus } from '@/features/order-statuses/api'
 
 const props = defineProps<{ tenantId: string; orderId: string }>()
@@ -20,6 +21,12 @@ const activationDate = ref(new Date().toLocaleDateString('en-CA'))
 const moving = ref(false)
 const timelineVersion = ref(0)
 const showLineActivation = computed(() => statuses.value.find(status => status.id === statusId.value)?.name.trim().toLocaleLowerCase('pt-BR') === 'ativo')
+const allPendingSelected = computed(() => pendingItems.value.length > 0 && pendingItems.value.every(item => selectedItems.value.includes(item.id)))
+const somePendingSelected = computed(() => selectedItems.value.length > 0 && !allPendingSelected.value)
+function toggleAllPending(checked: boolean) { selectedItems.value = checked ? pendingItems.value.map(item => item.id) : [] }
+function togglePending(id: string, checked: boolean) {
+    selectedItems.value = checked ? [...selectedItems.value.filter(value => value !== id), id] : selectedItems.value.filter(value => value !== id)
+}
 const pendingItems = computed(() => order.value?.items?.filter(item => item.status === 'PENDING' && !item.activated_at && item.quantity === 1) ?? [])
 const canComplete = computed(() => !!order.value?.items?.length && order.value.items.every(item => item.status === 'ACTIVE' && !!item.activated_at) && !order.value.administratively_completed_at)
 const error = ref('')
@@ -165,11 +172,19 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                             <input v-model="activationDate" type="date" class="field mt-2 w-full" :max="new Date().toLocaleDateString('en-CA')" />
                         </label>
                         <p class="text-xs text-slate-500">Selecione apenas as linhas que deseja ativar agora.</p>
-                        <div class="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-stone-200 p-3">
-                            <label v-for="item in pendingItems" :key="item.id" class="flex items-center gap-3 text-sm text-slate-700">
-                                <input v-model="selectedItems" type="checkbox" :value="item.id" />
-                                <span>{{ item.line_number || 'Linha' }} — {{ item.description || item.id.slice(0, 8) }}</span>
-                            </label>
+                        <div class="overflow-hidden rounded-lg border border-stone-200">
+                            <div class="flex items-center gap-3 border-b border-stone-200 bg-stone-50 px-3 py-2">
+                                <AppCheckbox :model-value="allPendingSelected" :indeterminate="somePendingSelected"
+                                    label="Selecionar todas as linhas" @update:model-value="toggleAllPending" />
+                            </div>
+                            <div class="max-h-48 overflow-y-auto">
+                                <div v-for="item in pendingItems" :key="item.id" class="flex items-center gap-3 border-b border-stone-100 px-3 py-2 last:border-b-0">
+                                    <AppCheckbox :model-value="selectedItems.includes(item.id)"
+                                        :label="item.line_number || item.description || 'Linha ' + item.id.slice(0, 8)"
+                                        :show-label="false" @update:model-value="checked => togglePending(item.id, checked)" />
+                                    <span class="text-sm text-slate-700">{{ item.line_number || 'Linha' }} — {{ item.description || item.id.slice(0, 8) }}</span>
+                                </div>
+                            </div>
                         </div>
                         <button type="button" class="primary-button w-auto" :disabled="moving || !selectedItems.length || !activationDate" @click="activateSelected">
                             {{ moving ? 'Processando…' : `Ativar ${selectedItems.length} linha(s)` }}
