@@ -34,6 +34,7 @@ watch(() => route.path, (path) => {
           :aria-current="route.path === `/empresas/${tenant.id}` ? 'page' : undefined"
           ><AppIcon name="grid" class="size-5" />Início</RouterLink
         >
+        <RouterLink v-if="can(tenant, 'calendar.view')" :to="`/empresas/${tenant.id}/agenda`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/agenda') }" :aria-current="route.path.endsWith('/agenda') ? 'page' : undefined"><AppIcon name="calendar" class="size-5" />Agenda</RouterLink>
         <div v-if="canViewTeam(tenant)" class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="teamOpen" @click="teamOpen = !teamOpen">Equipe <span aria-hidden="true">{{ teamOpen ? '⌄' : '›' }}</span></button>
           <div v-show="teamOpen" class="space-y-1 border-l border-stone-200 pl-2">
