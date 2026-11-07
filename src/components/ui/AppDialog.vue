@@ -7,7 +7,7 @@ const props = withDefaults(
     description?: string
     busy?: boolean
     drawer?: boolean
-    size?: 'default' | 'wide'
+    size?: 'default' | 'wide' | 'full'
   }>(),
   { busy: false },
 )
@@ -47,15 +47,15 @@ function requestClose() {
       :aria-labelledby="titleId"
       :aria-describedby="description ? descriptionId : undefined"
       :aria-busy="busy"
-      class="overflow-y-auto border border-stone-200 bg-white p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/45 backdrop:backdrop-blur-sm"
+      class="flex flex-col overflow-hidden border border-stone-200 bg-white p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/45 backdrop:backdrop-blur-sm"
       :class="
         drawer
           ? 'fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-full max-w-2xl rounded-none'
-          : size === 'wide' ? 'm-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-5xl rounded-3xl' : 'm-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg rounded-3xl'
+          : size === 'full' ? 'm-auto h-[min(94dvh,1000px)] max-h-[94dvh] w-[calc(100%-1.5rem)] max-w-[1500px] rounded-3xl' : size === 'wide' ? 'm-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-5xl rounded-3xl' : 'm-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg rounded-3xl'
       "
       @cancel.prevent="requestClose"
     >
-      <header class="flex items-start justify-between gap-5 px-6 pt-7 sm:px-8">
+      <header class="shrink-0 flex items-start justify-between gap-5 border-b border-stone-100 px-6 py-5 sm:px-8">
         <div>
           <h2 :id="titleId" class="text-xl font-semibold tracking-tight">{{ title }}</h2>
           <p v-if="description" :id="descriptionId" class="mt-3 text-sm leading-6 text-slate-500">
@@ -72,6 +72,6 @@ function requestClose() {
           ×
         </button>
       </header>
-      <div class="px-6 pb-7 pt-6 sm:px-8"><slot /></div></dialog
+      <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-5 sm:px-8"><slot /></div></dialog
   ></Teleport>
 </template>
