@@ -98,13 +98,7 @@ watch(() => route.path, (path) => {
             :class="{ 'nav-active': route.path.endsWith('/operadoras') }"
             >Minhas operadoras</RouterLink
           >
-          <RouterLink
-            v-if="tenant.role === 'OWNER'"
-            :to="`/empresas/${tenant.id}/status-pedidos`"
-            class="nav-item"
-            :class="{ 'nav-active': route.path.endsWith('/status-pedidos') }"
-            >Status dos pedidos</RouterLink
-          >
+                    >
           <RouterLink
             v-if="tenant.access?.can_manage_permissions"
             :to="`/empresas/${tenant.id}/permissoes`"
@@ -141,6 +135,7 @@ watch(() => route.path, (path) => {
           :class="{ 'nav-active': route.path === '/admin/operadoras' }"
           >Catálogo de operadoras</RouterLink
         >
+        <RouterLink to="/admin/status-pedidos" class="nav-item" :class="{ 'nav-active': route.path === '/admin/status-pedidos' }">Status dos pedidos</RouterLink>
         <RouterLink to="/admin/classificacoes" class="nav-item" :class="{ 'nav-active': route.path === '/admin/classificacoes' }">Classificações globais</RouterLink>
         <RouterLink
           to="/admin"
