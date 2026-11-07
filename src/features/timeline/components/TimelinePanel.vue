@@ -155,6 +155,17 @@ function formatted(date: string) {
                     <span class="text-sm font-semibold text-slate-800">{{ comment.author?.user?.name ?? 'Usuário' }}</span>
                     <span class="text-xs text-slate-500">{{ formatted(comment.created_at) }}{{ comment.edited_at ? ' · editado' : '' }}</span>
                 </div>
+                <div v-if="type === 'client' && comment.origin" class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="rounded-md bg-slate-100 px-2 py-1 font-semibold text-slate-700">
+                        {{ comment.origin.type === 'opportunity' ? 'Oportunidade' : comment.origin.type === 'commercial_order' ? 'Pedido' : 'Cliente' }}
+                    </span>
+                    <span v-if="comment.origin.type === 'opportunity'" class="font-medium text-slate-600">
+                        {{ [comment.origin.code, comment.origin.title].filter(Boolean).join(' · ') || comment.origin.id }}
+                    </span>
+                    <span v-if="comment.origin.type === 'commercial_order'" class="font-medium text-slate-600">
+                        {{ comment.origin.code ? 'Origem: ' + comment.origin.code + ' · ' : '' }}Pedido {{ comment.origin.id.slice(0, 8) }}
+                    </span>
+                </div>
                 <template v-if="editingId === comment.id">
                     <textarea v-model="editingContent" class="field w-full" rows="3" />
                     <div class="flex gap-2">
