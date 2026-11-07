@@ -4,7 +4,7 @@ import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import { calendarApi } from '../api'
 import { errorMessage } from '@/lib/feedback'
-import type { CalendarEvent, CalendarEventInput, EventType, EventStatus, EventPriority } from '../types'
+import type { CalendarEvent, CalendarEventInput, EventType } from '../types'
 
 const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
