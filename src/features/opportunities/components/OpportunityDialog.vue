@@ -14,6 +14,8 @@ const error = ref('')
 const showImport = ref(false)
 const pastedNumbers = ref('')
 const batchProductId = ref('')
+const batchType = ref<'portability' | 'new'>('portability')
+const batchQuantity = ref(1)
 const batchMonthly = ref(0)
 const batchError = ref('')
 const maxItems = 200
@@ -31,8 +33,8 @@ const parsedNumbers = computed(() => pastedNumbers.value.split(/[\s,;]+/).map(va
 const receiptGroups = computed(() => {
   const groups = new Map<string, { name: string; count: number; total: number }>()
   for (const item of form.value.items) {
-    const key = item.product_id + ':' + item.monthly_unit_amount
-    const group = groups.get(key) ?? { name: item.description, count: 0, total: 0 }
+    const key = item.operation_type + ':' + item.product_id + ':' + item.monthly_unit_amount
+    const group = groups.get(key) ?? { name: (item.operation_type === 'portability' ? 'Portabilidade · ' : 'Nova · ') + item.description, count: 0, total: 0 }
     group.count += Number(item.quantity)
     group.total += Number(item.monthly_unit_amount) * Number(item.quantity)
     groups.set(key, group)
@@ -42,6 +44,8 @@ const receiptGroups = computed(() => {
 function openImport() {
   pastedNumbers.value = ''
   batchProductId.value = ''
+  batchType.value = 'portability'
+  batchQuantity.value = 1
   batchMonthly.value = 0
   batchError.value = ''
   showImport.value = true
@@ -53,18 +57,21 @@ function addBatch() {
   batchError.value = ''
   const numbers = parsedNumbers.value
   const product = props.products.find(p => p.id === batchProductId.value && p.is_active)
-  if (!numbers.length) { batchError.value = 'Cole pelo menos um número.'; return }
+  if (batchType.value === 'portability' && !numbers.length) { batchError.value = 'Cole pelo menos um número.'; return }
+  if (batchType.value === 'new' && (!Number.isInteger(Number(batchQuantity.value)) || Number(batchQuantity.value) < 1)) { batchError.value = 'Informe a quantidade de linhas novas.'; return }
+  const count = batchType.value === 'new' ? Number(batchQuantity.value) : numbers.length
   if (!product) { batchError.value = 'Selecione um plano ativo.'; return }
   if (!Number.isFinite(Number(batchMonthly.value)) || Number(batchMonthly.value) < 0) { batchError.value = 'Valor mensal inválido.'; return }
-  if (numbers.length + form.value.items.length > maxItems) { batchError.value = 'Limite de 200 itens por oportunidade.'; return }
+  if (count + form.value.items.length > maxItems) { batchError.value = 'Limite de 200 itens por oportunidade.'; return }
   const seen = new Set(form.value.items.map(item => (item.line_number ?? '').replace(/\D/g, '')).filter(Boolean))
-  for (const number of numbers) {
+  for (const number of batchType.value === 'portability' ? numbers : []) {
     if (![10, 11].includes(number.length)) { batchError.value = 'Número inválido: ' + number; return }
     if (seen.has(number)) { batchError.value = 'Número duplicado: ' + number; return }
     seen.add(number)
   }
-  form.value.items.push(...numbers.map(number => ({
-    product_id: product.id, line_number: number, description: product.name,
+  form.value.items.push(...Array.from({ length: count }, (_, index) => ({
+    operation_type: batchType.value,
+    product_id: product.id, line_number: batchType.value === 'portability' ? numbers[index] : null, description: product.name,
     quantity: 1, monthly_unit_amount: Number(batchMonthly.value),
     one_time_unit_amount: 0, notes: null,
   })))
@@ -74,6 +81,7 @@ function validateLines(): boolean {
   if (!form.value.items.length) { error.value = 'Adicione pelo menos uma linha ou serviço.'; return false }
   const numbers = new Set<string>()
   for (const [index, item] of form.value.items.entries()) {
+    if (item.operation_type === 'portability' && !item.line_number) { error.value = `Portabilidade exige número no item ${index + 1}.`; return false }
     if (!item.product_id) { error.value = `Selecione o plano do item ${index + 1}.`; return false }
     const number = (item.line_number ?? '').replace(/\D/g, '')
     if (number && ![10, 11].includes(number.length)) { error.value = `Informe o telefone com DDD no item ${index + 1}.`; return false }
@@ -151,7 +159,7 @@ async function save() {
               <table class="w-full min-w-[500px] text-left text-sm">
                 <thead class="sticky top-0 bg-stone-100 text-xs uppercase text-slate-500"><tr><th class="p-3">Número</th><th class="p-3">Plano</th><th class="p-3 text-right">Mensal</th><th class="p-3 text-right">Ação</th></tr></thead>
                 <tbody><tr v-for="(item, index) in form.items" :key="item.id ?? index" class="border-t border-stone-100">
-                  <td class="p-3 font-medium">{{ item.line_number || '—' }}</td><td class="p-3">{{ item.description }}</td>
+                  <td class="p-3 font-medium">{{ item.line_number || 'Número pendente' }}<span class="ml-2 text-xs text-slate-400">{{ item.operation_type === 'portability' ? 'Portabilidade' : 'Nova' }}</span></td><td class="p-3">{{ item.description }}</td>
                   <td class="p-3 text-right">{{ money(Number(item.monthly_unit_amount) * Number(item.quantity)) }}</td>
                   <td class="p-3 text-right"><button type="button" class="font-semibold text-red-600 hover:underline" @click="form.items.splice(index, 1)">Excluir</button></td>
                 </tr></tbody>
@@ -199,9 +207,18 @@ async function save() {
       </footer>
     </form>
   </AppDialog>
-  <AppDialog :open="open && showImport" title="Importar linhas" description="Cole os números do Excel e associe um plano a todo o lote." size="wide" @close="showImport = false">
+  <AppDialog :open="open && showImport" title="Importar linhas" description="Escolha o tipo de operação, informe as linhas e associe um plano ao lote." size="wide" @close="showImport = false">
     <div class="space-y-4">
-      <label class="block space-y-2 text-sm font-semibold">Números (um por linha)
+      <label class="block space-y-2 text-sm font-semibold">Tipo das linhas
+        <select v-model="batchType" class="field">
+          <option value="portability">Portabilidade — já tenho os números</option>
+          <option value="new">Linhas novas — números ainda não definidos</option>
+        </select>
+      </label>
+      <label v-if="batchType === 'new'" class="block space-y-2 text-sm font-semibold">Quantidade de linhas novas
+        <input v-model.number="batchQuantity" class="field" type="number" min="1" :max="maxItems - form.items.length" />
+      </label>
+      <label v-else class="block space-y-2 text-sm font-semibold">Números (um por linha)
         <textarea v-model="pastedNumbers" class="field min-h-48 font-mono" rows="8" placeholder="42988080544&#10;42988080541&#10;42988080542" />
       </label>
       <div class="grid gap-4 sm:grid-cols-2">
@@ -215,11 +232,11 @@ async function save() {
           <input v-model.number="batchMonthly" class="field" type="number" min="0" step="0.01" />
         </label>
       </div>
-      <p class="rounded-xl bg-stone-50 p-4 text-sm">{{ parsedNumbers.length }} números · Total mensal do lote: <strong>{{ money(parsedNumbers.length * Number(batchMonthly || 0)) }}</strong></p>
+      <p class="rounded-xl bg-stone-50 p-4 text-sm">{{ batchType === 'new' ? batchQuantity : parsedNumbers.length }} linhas · Total mensal do lote: <strong>{{ money((batchType === 'new' ? Number(batchQuantity) : parsedNumbers.length) * Number(batchMonthly || 0)) }}</strong></p>
       <p v-if="batchError" role="alert" class="text-sm text-red-700">{{ batchError }}</p>
       <div class="flex justify-end gap-3 border-t pt-4">
         <button type="button" class="secondary-button w-auto" @click="showImport = false">Cancelar</button>
-        <button type="button" class="primary-button w-auto" @click="addBatch">Adicionar {{ parsedNumbers.length }} linhas</button>
+        <button type="button" class="primary-button w-auto" @click="addBatch">Adicionar {{ batchType === 'new' ? batchQuantity : parsedNumbers.length }} linhas</button>
       </div>
     </div>
   </AppDialog>

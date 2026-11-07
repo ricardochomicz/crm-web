@@ -1,7 +1,7 @@
 import { request, mutate } from '@/lib/http'
 
 export type OpportunityItem = {
-  id?: string; product_id: string; line_number: string | null; description: string
+  id?: string; operation_type: 'portability' | 'new'; product_id: string; line_number: string | null; description: string
   quantity: number; monthly_unit_amount: number; one_time_unit_amount: number; notes: string | null
 }
 export type Opportunity = {
