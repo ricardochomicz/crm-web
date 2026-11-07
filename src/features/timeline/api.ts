@@ -14,6 +14,7 @@ export type TimelineComment = {
     tenant_user_id: string
     content: string
     can_edit: boolean
+    origin?: { type: TimelineType; id: string; code?: string | null; title?: string | null }
     created_at: string
     edited_at: string | null
     author?: { user?: { name: string } }
