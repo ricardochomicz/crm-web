@@ -26,7 +26,7 @@ const products = ref<Product[]>([])
 const orderTypes = ref<OrderType[]>([])
 const rows = ref<Opportunity[]>([])
 const stages = ref<FunnelStage[]>([])
-const viewMode = ref<'list' | 'kanban'>('list')
+const viewMode = ref<'list' | 'kanban'>('kanban')
 const section = ref<'open' | 'closed'>('open')
 const recoveringId = ref<string | null>(null)
 async function recover(item: Opportunity) {
