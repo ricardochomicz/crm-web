@@ -97,13 +97,13 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                 <form class="rounded-xl border border-stone-200 p-5" @submit.prevent="save">
                     <h3 class="mb-4 font-semibold text-slate-800">Acompanhamento do pedido</h3>
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <label class="text-sm font-semibold text-slate-700">Status operacional
+                        <label class="text-sm font-semibold text-slate-700">Status do pedido
                             <select v-model="statusId" class="field mt-2 w-full" required>
                                 <option value="" disabled>Selecione</option>
                                 <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
                             </select>
                         </label>
-                        <label class="text-sm font-semibold text-slate-700">Previsão de ativação
+                        <label class="text-sm font-semibold text-slate-700">Data de ativação
                             <input v-model="expected" type="date" class="field mt-2 w-full" />
                         </label>
                     </div>
