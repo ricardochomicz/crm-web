@@ -193,7 +193,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
           <td class="p-4">{{ displayOrderType(item) }}</td>
           <td class="p-4">
               <span>{{ item.expected_close_at ? item.expected_close_at.slice(0, 10).split('-').reverse().join('/') : '—' }}</span>
-              <span v-if="item.status === 'open' && item.expected_close_at && item.expected_close_at.slice(0, 10) < new Date().toISOString().slice(0, 10)" class="ml-2 rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">Atrasada</span>
+              <span v-if="item.status === 'open' && item.expected_close_at && item.expected_close_at.slice(0, 10) < new Date().toISOString().slice(0, 10)" class="ml-2 rounded-md bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700">Atrasada</span>
             </td>
           <td class="p-4 font-semibold">{{ money(item.estimated_monthly_amount) }}</td>
           <td class="p-4"><TableActionButton v-if="canEdit && item.status === 'open'" icon="edit" :label="`Editar ${item.title}`" @click="open(item)" /></td>

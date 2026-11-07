@@ -20,6 +20,12 @@ function palette(name: string) {
   return stagePalette.find(p => p.match.test(name)) || neutralPalette
 }
 const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+function isOverdue(item: Opportunity): boolean {
+    if (item.status !== 'open' || !item.expected_close_at) return false
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    return item.expected_close_at.slice(0, 10) < today
+}
 function drop(stageId: string) {
   hover.value = null
   const item = props.items.find(item => item.id === dragging.value)
@@ -42,14 +48,17 @@ function drop(stageId: string) {
           <article v-for="item in items.filter(i => (i.funnel_stage_id || '') === stage.id)" :key="item.id"
             :draggable="canEdit && item.status === 'open' && !busyId"
             class="rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:shadow-md"
-            :class="dragging === item.id ? 'opacity-50' : ''"
+            :class="[dragging === item.id ? 'opacity-50' : '', isOverdue(item) ? 'border-rose-200 bg-rose-50/40' : '']"
             @dragstart="dragging = item.id" @dragend="dragging = null; hover = null">
             <button type="button" class="w-full text-left" @click="emit('edit', item)">
               <p class="text-sm font-semibold text-slate-800">{{ item.title }}</p>
               <p class="mt-1 text-xs text-slate-500">{{ item.code }}</p>
               <p class="mt-3 text-sm text-slate-600">{{ item.client?.company_name || 'Cliente não informado' }}</p>
               <p class="mt-3 text-sm font-bold text-slate-900">{{ money(item.estimated_monthly_amount) }}/mês</p>
-              <p v-if="item.expected_close_at" class="mt-1 text-xs text-slate-500">Previsão: {{ item.expected_close_at.slice(0, 10).split('-').reverse().join('/') }}</p>
+              <p v-if="item.expected_close_at" class="mt-1 text-xs" :class="isOverdue(item) ? 'font-semibold text-rose-700' : 'text-slate-500'">
+                Previsão: {{ item.expected_close_at.slice(0, 10).split('-').reverse().join('/') }}
+                <span v-if="isOverdue(item)" class="ml-1 rounded-md bg-rose-100 px-1.5 py-0.5 text-rose-800">Atrasada</span>
+              </p>
             </button>
             <label v-if="canEdit && item.status === 'open'" class="mt-3 block text-xs text-slate-500">Mover para
               <select class="field mt-1 text-xs" :disabled="!!busyId" :value="item.funnel_stage_id || ''"
