@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import OpportunityDetailsForm from './OpportunityDetailsForm.vue'
+import OpportunityReceipt from './OpportunityReceipt.vue'
 import { opportunitiesApi, type Opportunity, type OpportunityInput } from '../api'
 import { errorMessage } from '@/lib/feedback'
 import type { OrderType } from '@/features/order-types/api'
@@ -31,19 +32,13 @@ const blank = (): OpportunityInput => ({
 const form = ref<OpportunityInput>(blank())
 const totalMonthly = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.monthly_unit_amount || 0) * Number(item.quantity || 0), 0))
 const totalOnce = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.one_time_unit_amount || 0) * Number(item.quantity || 0), 0))
+function generateCode(): string {
+  const now = new Date()
+  const stamp = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0'), String(now.getHours()).padStart(2, '0'), String(now.getMinutes()).padStart(2, '0'), String(now.getSeconds()).padStart(2, '0')].join('')
+  return 'OP-' + stamp + '-' + Math.random().toString(36).slice(2, 6).toUpperCase()
+}
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const parsedNumbers = computed(() => pastedNumbers.value.split(/[\s,;]+/).map(value => value.replace(/\D/g, '')).filter(Boolean))
-const receiptGroups = computed(() => {
-  const groups = new Map<string, { name: string; count: number; total: number }>()
-  for (const item of form.value.items) {
-    const key = item.order_type_id + ':' + item.product_id + ':' + item.monthly_unit_amount
-    const group = groups.get(key) ?? { name: typeName(item.order_type_id) + ' · ' + item.description, count: 0, total: 0 }
-    group.count += Number(item.quantity)
-    group.total += Number(item.monthly_unit_amount) * Number(item.quantity)
-    groups.set(key, group)
-  }
-  return [...groups.entries()].map(([key, group]) => ({ key, ...group }))
-})
 function openImport() {
   pastedNumbers.value = ''
   batchProductId.value = ''
@@ -154,31 +149,7 @@ async function save() {
             <textarea v-model="form.description" class="field" rows="3" placeholder="Detalhes da negociação" />
           </label>
         </fieldset>
-        <aside class="min-w-0 xl:sticky xl:top-0 xl:self-start" aria-label="Resumo da oportunidade">
-          <div class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
-            <div class="border-b border-dashed border-stone-300 bg-slate-900 px-5 py-5 text-white">
-              <p class="text-xs font-semibold uppercase tracking-widest text-slate-300">Resumo comercial</p>
-              <h3 class="mt-2 text-xl font-semibold">Sua oportunidade</h3>
-              <p class="mt-1 text-xs text-slate-300">{{ form.code || 'Sem código' }} · {{ lineCount }} linha(s)/serviço(s)</p>
-            </div>
-            <div class="max-h-[40vh] space-y-3 overflow-y-auto px-5 py-4">
-              <p v-if="!receiptGroups.length" class="py-8 text-center text-sm text-slate-400">Os lotes aparecerão aqui.</p>
-              <div v-for="group in receiptGroups" :key="group.key" class="flex justify-between gap-3 border-b border-dashed border-stone-200 pb-3 text-sm">
-                <div><strong>{{ group.name }}</strong><p class="text-xs text-slate-500">{{ group.count }} linha(s)</p></div>
-                <strong>{{ money(group.total) }}</strong>
-              </div>
-            </div>
-            <div class="space-y-3 border-t border-dashed border-stone-300 bg-stone-50 px-5 py-5">
-              <div class="flex justify-between text-sm text-slate-600"><span>Quantidade</span><strong>{{ lineCount }}</strong></div>
-              <div class="flex justify-between text-sm text-slate-600"><span>Valor pontual</span><strong>{{ money(totalOnce) }}</strong></div>
-              <div class="border-t border-stone-200 pt-3">
-                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Total mensal estimado</p>
-                <p class="mt-1 text-3xl font-bold tracking-tight text-slate-900">{{ money(totalMonthly) }}</p>
-              </div>
-              <p class="text-xs text-slate-500">Valores estimados, sujeitos à confirmação da negociação.</p>
-            </div>
-          </div>
-        </aside>
+        <OpportunityReceipt :form="form" :order-types="orderTypes" />
       </div>
       <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ error }}</p>
       <footer class="sticky bottom-0 z-10 -mx-6 -mb-6 flex items-center justify-between gap-3 border-t border-stone-200 bg-white px-6 py-4 sm:-mx-8 sm:px-8">
