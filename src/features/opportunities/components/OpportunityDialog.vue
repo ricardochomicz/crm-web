@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
+import AppCurrencyField from '@/components/ui/AppCurrencyField.vue'
 import { computed, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import OpportunityDetailsForm from './OpportunityDetailsForm.vue'
@@ -18,6 +19,10 @@ const showImport = ref(false)
 const pastedNumbers = ref('')
 const batchProductId = ref('')
 const batchTypeId = ref('')
+const activePlanOptions = computed(() => props.products.filter(p => p.is_active).map(p => ({
+  id: p.id, name: p.name + ' — ' + money(Number(p.price)),
+})))
+watch(batchProductId, () => chooseBatchPlan())
 const selectedBatchType = computed(() => props.orderTypes.find(type => type.id === batchTypeId.value))
 const typeName = (id: string) => props.orderTypes.find(type => type.id === id)?.name ?? 'Tipo anterior'
 const batchQuantity = ref(1)
@@ -172,15 +177,8 @@ async function save() {
         <textarea v-model="pastedNumbers" class="field min-h-48 font-mono" rows="8" placeholder="42988080544&#10;42988080541&#10;42988080542" />
       </label>
       <div class="grid gap-4 sm:grid-cols-2">
-        <label class="block space-y-2 text-sm font-semibold">Plano do lote
-          <select v-model="batchProductId" class="field" @change="chooseBatchPlan">
-            <option value="">Selecione o plano</option>
-            <option v-for="product in products.filter(p => p.is_active)" :key="product.id" :value="product.id">{{ product.name }} — {{ money(Number(product.price)) }}</option>
-          </select>
-        </label>
-        <label class="block space-y-2 text-sm font-semibold">Valor mensal por linha
-          <input v-model.number="batchMonthly" class="field" type="number" min="0" step="0.01" />
-        </label>
+        <AppAutocomplete v-model="batchProductId" label="Plano do lote" placeholder="Buscar plano" :options="activePlanOptions" />
+        <AppCurrencyField v-model="batchMonthly" label="Valor mensal por linha" />
       </div>
       <p class="rounded-xl bg-stone-50 p-4 text-sm">{{ selectedBatchType && !selectedBatchType.requires_number ? batchQuantity : parsedNumbers.length }} linhas · Total mensal do lote: <strong>{{ money((selectedBatchType && !selectedBatchType.requires_number ? Number(batchQuantity) : parsedNumbers.length) * Number(batchMonthly || 0)) }}</strong></p>
       <p v-if="batchError" role="alert" class="text-sm text-red-700">{{ batchError }}</p>
