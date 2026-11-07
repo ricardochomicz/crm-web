@@ -19,6 +19,7 @@ const selectedItems = ref<string[]>([])
 const activationDate = ref(new Date().toLocaleDateString('en-CA'))
 const moving = ref(false)
 const timelineVersion = ref(0)
+const showLineActivation = computed(() => statuses.value.find(status => status.id === statusId.value)?.name.trim().toLocaleLowerCase('pt-BR') === 'ativo')
 const pendingItems = computed(() => order.value?.items?.filter(item => item.status === 'PENDING' && !item.activated_at && item.quantity === 1) ?? [])
 const canComplete = computed(() => !!order.value?.items?.length && order.value.items.every(item => item.status === 'ACTIVE' && !!item.activated_at) && !order.value.administratively_completed_at)
 const error = ref('')
@@ -144,7 +145,7 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                                 <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
                             </select>
                         </label>
-                        <label class="text-sm font-semibold text-slate-700">Previsão de ativação
+                        <label class="text-sm font-semibold text-slate-700">Data de ativação
                             <input v-model="expected" type="date" class="field mt-2 w-full" />
                         </label>
                     </div>
@@ -153,7 +154,7 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                     </div>
                 </form>
 
-                <section class="rounded-xl border border-stone-200 p-5">
+                <section v-if="showLineActivation" class="rounded-xl border border-stone-200 p-5">
                     <h3 class="font-semibold text-slate-800">Ativação das linhas</h3>
                     <p class="mt-2 text-sm text-slate-600">
                         {{ order.activation_summary?.active ?? order.items?.filter(item => item.status === 'ACTIVE').length ?? 0 }}
