@@ -9,6 +9,16 @@ const columns = computed(() => [
   { id: '', name: 'Sem etapa', position: -1, is_active: true },
   ...props.stages.filter(s => s.is_active || props.items.some(item => item.funnel_stage_id === s.id)),
 ])
+const stagePalette = [
+  { match: /prospec/i, background: 'bg-amber-50/60', border: 'border-amber-200', accent: 'bg-amber-500', text: 'text-amber-800', badge: 'bg-amber-100 text-amber-800', hover: 'ring-amber-300' },
+  { match: /negocia/i, background: 'bg-violet-50/60', border: 'border-violet-200', accent: 'bg-violet-500', text: 'text-violet-800', badge: 'bg-violet-100 text-violet-800', hover: 'ring-violet-300' },
+  { match: /proposta/i, background: 'bg-blue-50/60', border: 'border-blue-200', accent: 'bg-blue-500', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-800', hover: 'ring-blue-300' },
+  { match: /fechamento/i, background: 'bg-green-50/60', border: 'border-green-200', accent: 'bg-green-500', text: 'text-green-800', badge: 'bg-green-100 text-green-800', hover: 'ring-green-300' },
+]
+const neutralPalette = { background: 'bg-slate-50', border: 'border-slate-200', accent: 'bg-slate-400', text: 'text-slate-700', badge: 'bg-slate-100 text-slate-700', hover: 'ring-slate-300' }
+function palette(name: string) {
+  return stagePalette.find(p => p.match.test(name)) || neutralPalette
+}
 const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 function drop(stageId: string) {
   hover.value = null
@@ -21,12 +31,12 @@ function drop(stageId: string) {
   <div class="overflow-x-auto pb-4">
     <div class="flex min-w-max items-start gap-4">
       <section v-for="stage in columns" :key="stage.id || 'unassigned'"
-        class="w-72 shrink-0 rounded-2xl border border-stone-200 bg-stone-50 p-3 transition-colors"
-        :class="hover === stage.id && stage.id ? 'border-orange-400 bg-orange-50' : ''"
+        class="w-72 shrink-0 rounded-2xl border p-3 transition-colors"
+        :class="[palette(stage.name).background, palette(stage.name).border, hover === stage.id && stage.id ? 'ring-2 ' + palette(stage.name).hover : '']"
         @dragover.prevent="hover = stage.id" @dragleave.self="hover = null" @drop.prevent="drop(stage.id)">
         <div class="mb-3 flex items-center justify-between gap-2 px-1">
-          <h3 class="text-sm font-bold text-slate-800">{{ stage.name }}</h3>
-          <span class="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">{{ items.filter(i => (i.funnel_stage_id || '') === stage.id).length }}</span>
+          <h3 class="flex items-center gap-2 text-sm font-bold" :class="palette(stage.name).text"><span class="h-5 w-1 rounded-full" :class="palette(stage.name).accent"></span>{{ stage.name }}</h3>
+          <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="palette(stage.name).badge">{{ items.filter(i => (i.funnel_stage_id || '') === stage.id).length }}</span>
         </div>
         <div class="min-h-24 space-y-3">
           <article v-for="item in items.filter(i => (i.funnel_stage_id || '') === stage.id)" :key="item.id"
