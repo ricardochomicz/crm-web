@@ -6,6 +6,7 @@ import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import ListTable from '@/components/ui/ListTable.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import OrderDetailsPanel from '../components/OrderDetailsPanel.vue'
+import AppDialog from '@/components/ui/AppDialog.vue'
 import { useOrdersPage } from '../composables/useOrdersPage'
 
 const route = useRoute()
@@ -28,7 +29,9 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
             <input id="order-search" v-model="search" class="field w-full" placeholder="Código, cliente ou status" />
             <div class="mt-3 flex justify-end gap-2"><button type="button" class="secondary-button w-auto" @click="clearFilters">Limpar filtros</button><button type="submit" class="primary-button w-auto">Buscar</button></div>
         </form>
-        <OrderDetailsPanel v-if="selectedOrderId" :tenant-id="tenantId" :order-id="selectedOrderId" class="mb-5" @close="selectedOrderId = null" @saved="load" />
+        <AppDialog :open="!!selectedOrderId" title="Detalhes do pedido" size="full" @close="selectedOrderId = null">
+            <OrderDetailsPanel v-if="selectedOrderId" :tenant-id="tenantId" :order-id="selectedOrderId" @close="selectedOrderId = null" @saved="load" />
+        </AppDialog>
         <AsyncNotice :loading="loading" :error="error" @retry="load" />
         <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
             <ListTable min-width="750px">
