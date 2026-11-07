@@ -62,5 +62,8 @@ const { tenant, operators, selected, loading, error, busy, writable, dirty, load
         </button>
       </div>
     </section>
+    <div v-if="!loading && !error && !dirty" class="mt-5 flex justify-end">
+      <RouterLink :to="`/empresas/${tenantId}/status-pedidos`" class="primary-button w-auto">Próxima etapa: status dos pedidos →</RouterLink>
+    </div>
   </AppShell>
 </template>
