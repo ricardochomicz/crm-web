@@ -32,6 +32,8 @@ const {
   error,
   categories,
   form,
+  productErrors,
+  promotionErrors,
   editingId,
   promoEditingId,
   promo,
@@ -234,31 +236,31 @@ const {
             ×
           </button>
         </div>
-        <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="save">
+        <form class="grid gap-4 sm:grid-cols-2" novalidate @submit.prevent="save">
           <label class="text-sm"
-            >Nome<input v-model="form.name" required maxlength="180" class="field"
-          /></label>
+            >Nome<input v-model="form.name" :aria-invalid="!!productErrors.name" :aria-describedby="productErrors.name ? 'form-name-error' : undefined" required maxlength="180" class="field"
+          /><span v-if="productErrors.name" id="form-name-error" class="mt-1 block text-xs text-red-600" role="alert">{{ productErrors.name }}</span></label>
           <label class="text-sm"
             >Operadora<SearchSelect
-              v-model="form.operator_id"
+              v-model="form.operator_id" :aria-invalid="!!productErrors.operator_id" :aria-describedby="productErrors.operator_id ? 'form-operator_id-error' : undefined"
               :options="operators.map((o) => ({ value: o.id, label: o.name }))"
               required
-          /></label>
+          /><span v-if="productErrors.operator_id" id="form-operator_id-error" class="mt-1 block text-xs text-red-600" role="alert">{{ productErrors.operator_id }}</span></label>
           <label class="text-sm"
             >Categoria<SearchSelect
-              v-model="form.category"
+              v-model="form.category" :aria-invalid="!!productErrors.category" :aria-describedby="productErrors.category ? 'form-category-error' : undefined"
               :options="categories.map((c) => ({ value: c[0]!, label: c[1]! }))"
-          /></label>
+          /><span v-if="productErrors.category" id="form-category-error" class="mt-1 block text-xs text-red-600" role="alert">{{ productErrors.category }}</span></label>
           <label class="text-sm"
             >Preço (R$)<input
-              v-model="priceDisplay"
+              v-model="priceDisplay" :aria-invalid="!!productErrors.price" :aria-describedby="productErrors.price ? 'priceDisplay-error' : undefined"
               type="text"
               inputmode="numeric"
               autocomplete="off"
               placeholder="R$ 0,00"
               required
               class="field"
-          /></label>
+          /><span v-if="productErrors.price" id="priceDisplay-error" class="mt-1 block text-xs text-red-600" role="alert">{{ productErrors.price }}</span></label>
           <label class="text-sm sm:col-span-2"
             >Descrição<textarea v-model="form.description" class="field" rows="3" />
           </label>
@@ -321,24 +323,24 @@ const {
             Editar
           </button>
         </div>
-        <form class="mt-5 grid gap-4 sm:grid-cols-2" @submit.prevent="savePromotion">
-          <label class="text-sm">Nome<input v-model="promo.name" required class="field" /></label>
+        <form class="mt-5 grid gap-4 sm:grid-cols-2" novalidate @submit.prevent="savePromotion">
+          <label class="text-sm">Nome<input v-model="promo.name" :aria-invalid="!!promotionErrors.name" :aria-describedby="promotionErrors.name ? 'promo-name-error' : undefined" required class="field" /><span v-if="promotionErrors.name" id="promo-name-error" class="mt-1 block text-xs text-red-600" role="alert">{{ promotionErrors.name }}</span></label>
           <label class="text-sm"
             >Preço promocional<input
-              v-model="promotionPriceDisplay"
+              v-model="promotionPriceDisplay" :aria-invalid="!!promotionErrors.promotional_price" :aria-describedby="promotionErrors.promotional_price ? 'promotionPriceDisplay-error' : undefined"
               type="text"
               inputmode="numeric"
               autocomplete="off"
               placeholder="R$ 0,00"
               required
               class="field"
-          /></label>
+          /><span v-if="promotionErrors.promotional_price" id="promotionPriceDisplay-error" class="mt-1 block text-xs text-red-600" role="alert">{{ promotionErrors.promotional_price }}</span></label>
           <label class="text-sm"
-            >Início<input v-model="promo.starts_at" type="date" required class="field"
-          /></label>
+            >Início<input v-model="promo.starts_at" :aria-invalid="!!promotionErrors.starts_at" :aria-describedby="promotionErrors.starts_at ? 'promo-starts_at-error' : undefined" type="date" required class="field"
+          /><span v-if="promotionErrors.starts_at" id="promo-starts_at-error" class="mt-1 block text-xs text-red-600" role="alert">{{ promotionErrors.starts_at }}</span></label>
           <label class="text-sm"
-            >Término<input v-model="promo.ends_at" type="date" required class="field"
-          /></label>
+            >Término<input v-model="promo.ends_at" :aria-invalid="!!promotionErrors.ends_at" :aria-describedby="promotionErrors.ends_at ? 'promo-ends_at-error' : undefined" type="date" required class="field"
+          /><span v-if="promotionErrors.ends_at" id="promo-ends_at-error" class="mt-1 block text-xs text-red-600" role="alert">{{ promotionErrors.ends_at }}</span></label>
           <label class="flex items-center gap-2 text-sm"
             ><input v-model="promo.is_active" type="checkbox" /> Promoção ativa</label
           >
