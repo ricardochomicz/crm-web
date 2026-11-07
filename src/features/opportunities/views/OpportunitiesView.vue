@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
-import ListFilters from '@/components/ui/ListFilters.vue'
+import OpportunityFiltersPanel from '../components/OpportunityFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
@@ -12,7 +12,7 @@ import { can, type Tenant } from '@/features/tenants/types'
 import { orderTypesApi, type OrderType } from '@/features/order-types/api'
 import { productsApi, type Product } from '@/features/products/api'
 import { clientsApi, type Client } from '@/features/clients/api'
-import { opportunitiesApi, type Opportunity, type FunnelStage } from '../api'
+import { opportunitiesApi, type Opportunity, type FunnelStage, type OpportunityFilters } from '../api'
 import OpportunityDialog from '../components/OpportunityDialog.vue'
 import OpportunityKanban from '../components/OpportunityKanban.vue'
 import { errorMessage } from '@/lib/feedback'
@@ -29,9 +29,9 @@ const viewMode = ref<'list' | 'kanban'>('list')
 const kanbanRows = ref<Opportunity[]>([])
 const movingId = ref<string | null>(null)
 const kanbanLimitReached = ref(false)
-const search = ref('')
-const status = ref('open')
-const applied = ref({ search: '', status: 'open' })
+const defaultFilters = (): OpportunityFilters => ({ search: '', status: 'open', period: 'current', order_type_id: '', date_from: '', date_to: '' })
+const filters = ref<OpportunityFilters>(defaultFilters())
+const applied = ref<OpportunityFilters>(defaultFilters())
 const page = ref(1)
 const total = ref(0)
 const lastPage = ref(1)
@@ -113,8 +113,19 @@ async function setup() {
     }
   } catch (e) { error.value = errorMessage(e) }
 }
-function applyFilters() { page.value = 1; applied.value = { search: search.value.trim(), status: status.value }; void load() }
-function clearFilters() { search.value = ''; status.value = 'open'; applyFilters() }
+function applyFilters() {
+    if (filters.value.min_amount !== undefined && filters.value.max_amount !== undefined && Number(filters.value.min_amount) > Number(filters.value.max_amount)) {
+        toast.error('O valor mínimo não pode ser maior que o máximo.')
+        return
+    }
+    page.value = 1
+    applied.value = { ...filters.value, search: filters.value.search?.trim() }
+    reload()
+}
+function clearFilters() {
+    filters.value = defaultFilters()
+    applyFilters()
+}
 function changePage(next: number) { page.value = next; void load() }
 async function open(item: Opportunity | null = null) {
   if (item) {
@@ -156,23 +167,14 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
       <div><p class="eyebrow">COMERCIAL</p><h1 class="mt-3 text-3xl font-semibold">Oportunidades</h1><p class="mt-2 text-sm text-slate-500">Acompanhe negociações sem misturar pedidos e carteira.</p></div>
       <button v-if="canCreate" type="button" class="primary-button w-auto" @click="open()">+ Nova oportunidade</button>
     </header>
-    <ListFilters :busy="loading" :columns="2" :count-label="`${total} oportunidade(s) encontrada(s)`" @search="applyFilters" @clear="clearFilters">
-      <label class="text-xs font-semibold text-slate-600">Buscar
-        <input v-model="search" class="field" type="search" placeholder="Código ou título" />
-      </label>
-      <label class="text-xs font-semibold text-slate-600">Situação
-        <select v-model="status" class="field">
-          <option value="open">Em aberto</option><option value="won">Ganhas</option><option value="lost">Perdidas</option><option value="cancelled">Canceladas</option>
-        </select>
-      </label>
-    </ListFilters>
+    <OpportunityFiltersPanel v-model="filters" :types="orderTypes" :busy="loading" :count="total" @search="applyFilters" @clear="clearFilters" />
     <div class="mb-4 flex justify-end">
       <div class="inline-flex rounded-xl border border-stone-200 bg-white p-1 shadow-sm" role="group" aria-label="Visualização das oportunidades">
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="viewMode === 'list' ? 'bg-orange-50 text-orange-700' : 'text-slate-600 hover:bg-stone-50'" @click="changeView('list')">☷ Lista</button>
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="viewMode === 'kanban' ? 'bg-orange-50 text-orange-700' : 'text-slate-600 hover:bg-stone-50'" @click="changeView('kanban')">▦ Kanban</button>
       </div>
     </div>
-    <AsyncNotice :loading="loading" :error="error" @retry="load" />
+    <AsyncNotice :loading="loading" :error="error" @retry="reload" />
     <div v-if="viewMode === 'kanban' && !loading && !error">
       <p v-if="kanbanLimitReached" class="mb-3 text-sm text-amber-700">Há mais oportunidades do que o limite de carregamento do quadro. Refine os filtros para visualizar todas.</p>
       <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="open" />
@@ -186,7 +188,10 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
           <td class="p-4"><p class="font-semibold text-slate-800">{{ item.title }}</p><p class="text-xs text-slate-500">{{ item.code }}</p></td>
           <td class="p-4">{{ item.client?.company_name ?? '—' }}</td>
           <td class="p-4">{{ displayOrderType(item) }}</td>
-          <td class="p-4">{{ item.expected_close_at ? new Date(item.expected_close_at).toLocaleDateString('pt-BR') : '—' }}</td>
+          <td class="p-4">
+              <span>{{ item.expected_close_at ? item.expected_close_at.slice(0, 10).split('-').reverse().join('/') : '—' }}</span>
+              <span v-if="item.status === 'open' && item.expected_close_at && item.expected_close_at.slice(0, 10) < new Date().toISOString().slice(0, 10)" class="ml-2 rounded-md bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">Atrasada</span>
+            </td>
           <td class="p-4 font-semibold">{{ money(item.estimated_monthly_amount) }}</td>
           <td class="p-4"><TableActionButton v-if="canEdit && item.status === 'open'" icon="edit" :label="`Editar ${item.title}`" @click="open(item)" /></td>
         </tr></tbody>
