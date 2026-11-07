@@ -46,6 +46,7 @@ async function save() {
             expected_activation_at: expected.value || null,
         })
         toast.success('Pedido atualizado.')
+        await load()
         emit('saved')
     } catch (failure) {
         toast.error(errorMessage(failure))
@@ -70,6 +71,25 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                 <p><span class="block text-slate-500">Cliente</span><strong>{{ order.customer_name }}</strong></p>
                 <p><span class="block text-slate-500">Linhas</span><strong>{{ order.line_quantity }}</strong></p>
             </div>
+            <section class="border-t border-stone-100 pt-5">
+                <h3 class="mb-3 font-semibold text-slate-800">Itens negociados</h3>
+                <div class="overflow-x-auto rounded-xl border border-stone-200">
+                    <table class="w-full min-w-[600px] text-left text-sm">
+                        <thead class="bg-stone-50 text-xs uppercase text-slate-500">
+                            <tr><th class="p-3">Linha</th><th class="p-3">Descrição</th><th class="p-3">Quantidade</th><th class="p-3">Mensalidade unitária</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="item in order.items || []" :key="item.id" class="border-t border-stone-100">
+                                <td class="p-3">{{ item.line_number || '—' }}</td>
+                                <td class="p-3">{{ item.description || '—' }}</td>
+                                <td class="p-3">{{ item.quantity }}</td>
+                                <td class="p-3">{{ Number(item.monthly_unit_amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p v-if="!order.items?.length" class="p-4 text-sm text-slate-500">Nenhum item registrado.</p>
+                </div>
+            </section>
             <form class="grid gap-4 border-t border-stone-100 pt-5 sm:grid-cols-2" @submit.prevent="save">
                 <label class="text-sm font-semibold">Status operacional
                     <select v-model="statusId" class="field mt-2 w-full" required>

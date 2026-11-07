@@ -1,8 +1,20 @@
 import { mutate, request } from '@/lib/http'
 
+export type CommercialOrderItem = {
+    id: string
+    line_number: string | null
+    description: string | null
+    quantity: number
+    monthly_unit_amount: string
+    one_time_unit_amount: string
+    status: string | null
+}
+
 export type CommercialOrder = {
+    items?: CommercialOrderItem[]
     id: string
     code: string | null
+    opportunity_id?: string | null
     customer_name: string
     monthly_amount: string
     line_quantity: number

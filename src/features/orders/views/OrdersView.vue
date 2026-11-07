@@ -4,13 +4,14 @@ import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import ListTable from '@/components/ui/ListTable.vue'
+import PagePagination from '@/components/ui/PagePagination.vue'
 import OrderDetailsPanel from '../components/OrderDetailsPanel.vue'
 import { useOrdersPage } from '../composables/useOrdersPage'
 
 const route = useRoute()
 const selectedOrderId = ref<string | null>(null)
 const tenantId = computed(() => String(route.params.tenantId))
-const { tenant, filtered, loading, error, search, load } = useOrdersPage(tenantId)
+const { tenant, paginated, total, page, lastPage, perPage, loading, error, search, applyFilters, clearFilters, changePage, load } = useOrdersPage(tenantId)
 const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/') || '—'
 </script>
@@ -22,10 +23,11 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
             <h1 class="mt-3 text-3xl font-semibold">Pedidos comerciais</h1>
             <p class="mt-2 text-sm text-slate-500">Acompanhe os pedidos originados das oportunidades ganhas.</p>
         </header>
-        <div class="mb-5 rounded-2xl border border-stone-200 bg-white p-4">
+        <form class="mb-5 rounded-2xl border border-stone-200 bg-white p-4" @submit.prevent="applyFilters">
             <label for="order-search" class="mb-2 block text-sm font-semibold text-slate-700">Pesquisar pedidos</label>
             <input id="order-search" v-model="search" class="field w-full" placeholder="Código, cliente ou status" />
-        </div>
+            <div class="mt-3 flex justify-end gap-2"><button type="button" class="secondary-button w-auto" @click="clearFilters">Limpar filtros</button><button type="submit" class="primary-button w-auto">Buscar</button></div>
+        </form>
         <OrderDetailsPanel v-if="selectedOrderId" :tenant-id="tenantId" :order-id="selectedOrderId" class="mb-5" @close="selectedOrderId = null" @saved="load" />
         <AsyncNotice :loading="loading" :error="error" @retry="load" />
         <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
@@ -34,7 +36,7 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
                     <tr><th class="p-4">Pedido</th><th class="p-4">Cliente</th><th class="p-4">Venda</th><th class="p-4">Linhas</th><th class="p-4">Mensalidade</th><th class="p-4">Status</th></tr>
                 </thead>
                 <tbody>
-                    <tr v-for="order in filtered" :key="order.id" class="border-t border-stone-100">
+                    <tr v-for="order in paginated" :key="order.id" class="border-t border-stone-100">
                         <td class="p-4 font-semibold text-slate-800"><button type="button" class="font-semibold text-orange-700 hover:underline" @click="selectedOrderId = order.id">{{ order.code || order.id.slice(0, 8) }}</button></td>
                         <td class="p-4">{{ order.customer_name }}</td>
                         <td class="p-4">{{ date(order.sold_on) }}</td>
@@ -44,7 +46,8 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
                     </tr>
                 </tbody>
             </ListTable>
-            <p v-if="!filtered.length" class="p-6 text-center text-sm text-slate-500">Nenhum pedido encontrado.</p>
+            <p v-if="!total" class="p-6 text-center text-sm text-slate-500">Nenhum pedido encontrado.</p>
         </section>
+        <PagePagination v-if="!loading && !error" :page="page" :last-page="lastPage" :total="total" :per-page="perPage" @change="changePage" />
     </AppShell>
 </template>
