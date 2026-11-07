@@ -202,7 +202,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
     <AsyncNotice :loading="loading" :error="error" @retry="reload" />
     <div v-if="viewMode === 'kanban' && !loading && !error">
       <p v-if="kanbanLimitReached" class="mb-3 text-sm text-amber-700">Há mais oportunidades do que o limite de carregamento do quadro. Refine os filtros para visualizar todas.</p>
-      <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="open" @confirm-sale="askConfirmSale" />
+      <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="open" />
     </div>
     <section v-if="viewMode === 'list' && !loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <ListTable min-width="750px">
