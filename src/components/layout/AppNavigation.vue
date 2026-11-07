@@ -20,7 +20,7 @@ watch(() => route.path, (path) => {
   if (/\/(equipe|equipes|participantes-comerciais)$/.test(path)) teamOpen.value = true
   if (/\/(produtos|clientes|oportunidades)$/.test(path)) commercialOpen.value = true
   if (/\/(comissoes|comissoes-equipe|metas-comerciais|classificacoes)$/.test(path)) managementOpen.value = true
-  if (/\/(dados|unidades|permissoes|assinatura|operadoras)$/.test(path)) settingsOpen.value = true
+  if (/\/(dados|unidades|permissoes|assinatura|operadoras|status-pedidos)$/.test(path)) settingsOpen.value = true
 }, { immediate: true })
 </script>
 <template>
@@ -97,6 +97,12 @@ watch(() => route.path, (path) => {
             :class="{ 'nav-active': route.path.endsWith('/operadoras') }"
             >Minhas operadoras</RouterLink
           >
+          <RouterLink
+            v-if="tenant.role === 'OWNER'"
+            :to="`/empresas/${tenant.id}/status-pedidos`"
+            class="nav-item"
+            :class="{ 'nav-active': route.path.endsWith('/status-pedidos') }"
+            >Status dos pedidos</RouterLink
           <RouterLink
             v-if="tenant.access?.can_manage_permissions"
             :to="`/empresas/${tenant.id}/permissoes`"
