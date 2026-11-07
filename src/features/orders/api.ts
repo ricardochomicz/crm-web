@@ -8,6 +8,7 @@ export type CommercialOrderItem = {
     monthly_unit_amount: string
     one_time_unit_amount: string
     status: string | null
+    activated_at?: string | null
 }
 
 export type CommercialOrder = {
@@ -25,6 +26,8 @@ export type CommercialOrder = {
     order_status?: string | null
     expected_activation_at?: string | null
     activated_at?: string | null
+    administratively_completed_at?: string | null
+    activation_summary?: { total: number; active: number; pending: number }
 }
 
 export const ordersApi = {
@@ -32,6 +35,10 @@ export const ordersApi = {
         request<{ data: CommercialOrder }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders/${id}`),
     updateWorkflow: (tenantId: string, id: string, data: { order_status_id: string; expected_activation_at: string | null }) =>
         mutate<{ data: CommercialOrder }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders/${id}/workflow`, data, 'PATCH'),
+    activateItems: (tenantId: string, id: string, data: { item_ids: string[]; activated_at: string }) =>
+        mutate<{ data: CommercialOrder }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders/${id}/activate-items`, data, 'POST'),
+    complete: (tenantId: string, id: string) =>
+        mutate<{ data: CommercialOrder }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders/${id}/complete`, {}, 'POST'),
     list: (tenantId: string) =>
         request<{ data: CommercialOrder[] }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders`),
 }
