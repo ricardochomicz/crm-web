@@ -145,10 +145,9 @@ async function save() {
             </label>
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="block space-y-2 text-sm font-semibold text-slate-700">Tipo de negociação
-                <select v-model="form.order_type" class="field">
-                  <option value="NOVO">Novo</option><option value="PORTABILIDADE">Portabilidade</option>
-                  <option value="RENOVACAO">Renovação</option><option value="MIGRACAO">Migração</option>
-                  <option value="ADICAO">Adição de linhas</option>
+                <select v-model="form.order_type_id" class="field" required>
+                  <option value="">Selecione o tipo</option>
+                  <option v-for="type in orderTypes" :key="type.id" :value="type.id">{{ type.name }}</option>
                 </select>
               </label>
               <FormField id="opportunity-forecast" v-model="form.expected_close_at" label="Previsão de fechamento" type="date" />
@@ -215,9 +214,9 @@ async function save() {
   <AppDialog :open="open && showImport" title="Importar linhas" description="Escolha o tipo de operação, informe as linhas e associe um plano ao lote." size="wide" @close="showImport = false">
     <div class="space-y-4">
       <label class="block space-y-2 text-sm font-semibold">Tipo das linhas
-        <select v-model="batchType" class="field">
-          <option value="portability">Portabilidade — já tenho os números</option>
-          <option value="new">Linhas novas — números ainda não definidos</option>
+        <select v-model="batchTypeId" class="field" required>
+          <option value="">Selecione o tipo</option>
+          <option v-for="type in orderTypes" :key="type.id" :value="type.id">{{ type.name }}</option>
         </select>
       </label>
       <label v-if="selectedBatchType && !selectedBatchType.requires_number" class="block space-y-2 text-sm font-semibold">Quantidade de linhas novas
