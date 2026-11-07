@@ -81,6 +81,27 @@ async function open(item: Opportunity | null = null) {
 }
 function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); void load() }
 watch(tenantId, () => { tenant.value = undefined; clients.value = []; orderTypes.value = []; page.value = 1; void setup(); void load() }, { immediate: true })
+function displayOrderType(item: Opportunity): string {
+  const value: unknown = item.order_type
+  if (value && typeof value === 'object') {
+    const type = value as { name?: unknown }
+    return typeof type.name === 'string' ? type.name : '—'
+  }
+  if (item.order_type_id) {
+    const type = orderTypes.value.find(type => type.id === item.order_type_id)
+    if (type) return type.name
+  }
+  if (typeof value === 'string') {
+    if (value.startsWith('{')) {
+      try {
+        const parsed: unknown = JSON.parse(value)
+        if (parsed && typeof parsed === 'object' && 'name' in parsed && typeof parsed.name === 'string') return parsed.name
+      } catch { /* Legacy text type */ }
+    }
+    return value
+  }
+  return '—'
+}
 const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 </script>
 <template>
@@ -108,7 +129,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
         <tbody><tr v-for="item in rows" :key="item.id" class="border-t border-stone-100 hover:bg-stone-50/70">
           <td class="p-4"><p class="font-semibold text-slate-800">{{ item.title }}</p><p class="text-xs text-slate-500">{{ item.code }}</p></td>
           <td class="p-4">{{ item.client?.company_name ?? '—' }}</td>
-          <td class="p-4">{{ item.order_type }}</td>
+          <td class="p-4">{{ displayOrderType(item) }}</td>
           <td class="p-4">{{ item.expected_close_at ? new Date(item.expected_close_at).toLocaleDateString('pt-BR') : '—' }}</td>
           <td class="p-4 font-semibold">{{ money(item.estimated_monthly_amount) }}</td>
           <td class="p-4"><TableActionButton v-if="canEdit && item.status === 'open'" icon="edit" :label="`Editar ${item.title}`" @click="open(item)" /></td>
