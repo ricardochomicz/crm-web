@@ -49,6 +49,8 @@ export const opportunitiesApi = {
   overview: (tenantId: string, from: string, to: string) =>
     request<{ data: CommercialOverview }>(base(tenantId) + '/overview?' + new URLSearchParams({ date_from: from, date_to: to }).toString()),
   stages: (tenantId: string) => request<{ data: FunnelStage[] }>('/api/v1/tenants/' + encodeURIComponent(tenantId) + '/opportunity-funnel-stages'),
+  confirmSale: (tenantId: string, id: string) =>
+    mutate<{ data: { id: string; status: string } }>(base(tenantId) + '/' + encodeURIComponent(id) + '/confirm-sale', {}, 'POST'),
   moveStage: (tenantId: string, id: string, funnel_stage_id: string) => mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/stage', { funnel_stage_id }, 'PATCH'),
   show: (tenantId: string, id: string) => request<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id)),
   create: (tenantId: string, data: OpportunityInput) => mutate<{ data: Opportunity }>(base(tenantId), data),

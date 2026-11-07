@@ -41,6 +41,28 @@ const perPage = ref(20)
 const loading = ref(true)
 const error = ref('')
 const dialogOpen = ref(false)
+const confirmingSale = ref(false)
+const saleCandidate = ref<Opportunity | null>(null)
+function askConfirmSale(item: Opportunity) {
+    if (!canEdit.value || item.status !== 'open') return
+    saleCandidate.value = item
+}
+async function confirmSale() {
+    const item = saleCandidate.value
+    if (!item || confirmingSale.value) return
+    confirmingSale.value = true
+    try {
+        await opportunitiesApi.confirmSale(tenantId.value, item.id)
+        saleCandidate.value = null
+        toast.success('Venda confirmada. Pedido comercial criado.')
+        reload()
+        void commercialOverview.value?.refresh()
+    } catch (error) {
+        toast.error(errorMessage(error))
+    } finally {
+        confirmingSale.value = false
+    }
+}
 const editing = ref<Opportunity | null>(null)
 const canCreate = computed(() => can(tenant.value, 'opportunities.create') && !!tenant.value?.access?.allows_operational_writes)
 const canEdit = computed(() => can(tenant.value, 'opportunities.update') && !!tenant.value?.access?.allows_operational_writes)
@@ -180,7 +202,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
     <AsyncNotice :loading="loading" :error="error" @retry="reload" />
     <div v-if="viewMode === 'kanban' && !loading && !error">
       <p v-if="kanbanLimitReached" class="mb-3 text-sm text-amber-700">Há mais oportunidades do que o limite de carregamento do quadro. Refine os filtros para visualizar todas.</p>
-      <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="open" />
+      <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="open" @confirm-sale="askConfirmSale" />
     </div>
     <section v-if="viewMode === 'list' && !loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <ListTable min-width="750px">
@@ -196,12 +218,32 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
               <span v-if="item.status === 'open' && item.expected_close_at && item.expected_close_at.slice(0, 10) < new Date().toISOString().slice(0, 10)" class="ml-2 rounded-md bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700">Atrasada</span>
             </td>
           <td class="p-4 font-semibold">{{ money(item.estimated_monthly_amount) }}</td>
-          <td class="p-4"><TableActionButton v-if="canEdit && item.status === 'open'" icon="edit" :label="`Editar ${item.title}`" @click="open(item)" /></td>
+          <td class="p-4">
+            <div class="flex items-center gap-2">
+              <TableActionButton v-if="canEdit && item.status === 'open'" icon="edit" :label="`Editar ${item.title}`" @click="open(item)" />
+              <button v-if="canEdit && item.status === 'open'" type="button" class="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100" @click="askConfirmSale(item)">Confirmar venda</button>
+            </div>
+          </td>
         </tr></tbody>
       </ListTable>
       <p v-if="!rows.length" class="p-6 text-center text-sm text-slate-500">Nenhuma oportunidade encontrada.</p>
     </section>
     <PagePagination v-if="viewMode === 'list'" :page="page" :last-page="lastPage" :total="total" :per-page="perPage" :busy="loading" @change="changePage" />
+    <div v-if="saleCandidate" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4" role="presentation" @click.self="!confirmingSale && (saleCandidate = null)">
+      <section role="dialog" aria-modal="true" aria-labelledby="confirm-sale-title" class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+        <h2 id="confirm-sale-title" class="text-lg font-semibold text-slate-900">Confirmar venda</h2>
+        <p class="mt-2 text-sm text-slate-600">Deseja converter a oportunidade <strong>{{ saleCandidate.title }}</strong> em pedido comercial?</p>
+        <div class="mt-4 rounded-xl bg-stone-50 p-4 text-sm">
+          <p><strong>Cliente:</strong> {{ saleCandidate.client?.company_name ?? '—' }}</p>
+          <p class="mt-2"><strong>Valor mensal:</strong> {{ money(saleCandidate.estimated_monthly_amount) }}</p>
+          <p class="mt-2 text-xs text-slate-500">Os itens serão copiados para um pedido em rascunho. A oportunidade será marcada como ganha e sairá da visualização padrão.</p>
+        </div>
+        <div class="mt-6 flex justify-end gap-2">
+          <button type="button" class="secondary-button w-auto" :disabled="confirmingSale" @click="saleCandidate = null">Cancelar</button>
+          <button type="button" class="primary-button w-auto" :disabled="confirmingSale" @click="confirmSale">{{ confirmingSale ? 'Confirmando…' : 'Confirmar e gerar pedido' }}</button>
+        </div>
+      </section>
+    </div>
     <OpportunityDialog :open="dialogOpen" :tenant-id="tenantId" :opportunity="editing" :clients="clients" :products="products" :order-types="orderTypes" @close="dialogOpen = false" @saved="saved" />
   </AppShell>
 </template>
