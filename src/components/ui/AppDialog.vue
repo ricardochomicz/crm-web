@@ -47,7 +47,7 @@ function requestClose() {
       :aria-labelledby="titleId"
       :aria-describedby="description ? descriptionId : undefined"
       :aria-busy="busy"
-      class="flex flex-col overflow-hidden border border-stone-200 bg-white p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/45 backdrop:backdrop-blur-sm"
+      class="flex flex-col [&:not([open])]:hidden overflow-hidden border border-stone-200 bg-white p-0 text-slate-800 shadow-2xl backdrop:bg-slate-950/45 backdrop:backdrop-blur-sm"
       :class="
         drawer
           ? 'fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-full max-w-2xl rounded-none'
