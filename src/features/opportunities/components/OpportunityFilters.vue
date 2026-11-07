@@ -19,10 +19,20 @@ function set(key: keyof OpportunityFilters, value: string | number) {
     emit('update:modelValue', { ...props.modelValue, [key]: value })
 }
 const custom = computed(() => props.modelValue.period === 'custom')
+const activeCount = computed(() => [
+    !!props.modelValue.search?.trim(),
+    !!props.modelValue.order_type_id,
+    props.modelValue.status !== 'open',
+    props.modelValue.period !== 'current',
+    props.modelValue.period === 'custom' && !!props.modelValue.date_from,
+    props.modelValue.period === 'custom' && !!props.modelValue.date_to,
+    props.modelValue.min_amount !== undefined && props.modelValue.min_amount !== '',
+    props.modelValue.max_amount !== undefined && props.modelValue.max_amount !== '',
+].filter(Boolean).length)
 </script>
 
 <template>
-    <ListFilters :busy="busy" :columns="2" :count-label="`${count} oportunidade(s) encontrada(s)`" @search="emit('search')" @clear="emit('clear')">
+    <ListFilters collapsible initially-collapsed :active-count="activeCount" :busy="busy" :columns="2" :count-label="`${count} oportunidade(s) encontrada(s)`" @search="emit('search')" @clear="emit('clear')">
         <label class="text-xs font-semibold text-slate-600">
             Buscar oportunidade ou cliente
             <input :value="modelValue.search" class="field" type="search" placeholder="Código, título, nome, CPF ou CNPJ" @input="set('search', ($event.target as HTMLInputElement).value)" />
