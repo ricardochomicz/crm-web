@@ -6,7 +6,7 @@ import { calendarApi } from '../api'
 import { errorMessage } from '@/lib/feedback'
 import type { CalendarEvent, CalendarEventInput, EventType } from '../types'
 
-const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean }>()
+const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean; canDelete: boolean }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const busy = ref(false)
 const error = ref('')
@@ -48,7 +48,7 @@ async function save() {
   finally { busy.value = false }
 }
 async function remove() {
-  if (!props.event || !props.canWrite || busy.value || !window.confirm('Excluir este compromisso?')) return
+  if (!props.event || !props.canDelete || busy.value || !window.confirm('Excluir este compromisso?')) return
   busy.value = true
   error.value = ''
   try { await calendarApi.remove(props.tenantId, props.event.id); emit('saved') }
@@ -83,7 +83,7 @@ async function remove() {
       </fieldset>
       <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ error }}</p>
       <div class="flex items-center justify-between gap-2 border-t border-stone-100 pt-4">
-        <button v-if="event && canWrite" type="button" class="text-sm font-semibold text-red-700" :disabled="busy" @click="remove">Excluir</button>
+        <button v-if="event && canDelete" type="button" class="text-sm font-semibold text-red-700" :disabled="busy" @click="remove">Excluir</button>
         <span v-else />
         <div class="flex gap-2">
           <button type="button" class="secondary-button" :disabled="busy" @click="emit('close')">Fechar</button>
