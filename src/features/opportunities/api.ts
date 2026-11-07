@@ -30,11 +30,24 @@ export type OpportunityFilters = {
     max_amount?: number
     page?: number
 }
+export type CommercialMetric = { count: number; monthly: string }
+export type CommercialOverview = {
+    open_period: CommercialMetric
+    overdue: CommercialMetric
+    future: CommercialMetric
+    unscheduled: CommercialMetric
+    won: CommercialMetric
+    lost: CommercialMetric
+    conversion_rate: number | null
+    period: { from: string; to: string }
+}
 export type OpportunityPage = { data: Opportunity[]; current_page: number; last_page: number; total: number; per_page: number }
 const base = (tenantId: string) => '/api/v1/tenants/' + encodeURIComponent(tenantId) + '/opportunities'
 export const opportunitiesApi = {
   list: (tenantId: string, filters: OpportunityFilters) =>
     request<OpportunityPage>(base(tenantId) + '?' + new URLSearchParams(Object.entries(filters).filter(([, value]) => value !== undefined && value !== '').map(([key, value]) => [key, String(value)])).toString()),
+  overview: (tenantId: string, from: string, to: string) =>
+    request<{ data: CommercialOverview }>(base(tenantId) + '/overview?' + new URLSearchParams({ date_from: from, date_to: to }).toString()),
   stages: (tenantId: string) => request<{ data: FunnelStage[] }>('/api/v1/tenants/' + encodeURIComponent(tenantId) + '/opportunity-funnel-stages'),
   moveStage: (tenantId: string, id: string, funnel_stage_id: string) => mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/stage', { funnel_stage_id }, 'PATCH'),
   show: (tenantId: string, id: string) => request<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id)),

@@ -15,6 +15,7 @@ import { clientsApi, type Client } from '@/features/clients/api'
 import { opportunitiesApi, type Opportunity, type FunnelStage, type OpportunityFilters } from '../api'
 import OpportunityDialog from '../components/OpportunityDialog.vue'
 import OpportunityKanban from '../components/OpportunityKanban.vue'
+import OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
 
@@ -28,6 +29,7 @@ const stages = ref<FunnelStage[]>([])
 const viewMode = ref<'list' | 'kanban'>('list')
 const kanbanRows = ref<Opportunity[]>([])
 const movingId = ref<string | null>(null)
+const commercialOverview = ref<InstanceType<typeof OpportunityCommercialOverview> | null>(null)
 const kanbanLimitReached = ref(false)
 const defaultFilters = (): OpportunityFilters => ({ search: '', status: 'open', period: 'current', order_type_id: '', date_from: '', date_to: '' })
 const filters = ref<OpportunityFilters>(defaultFilters())
@@ -136,7 +138,7 @@ async function open(item: Opportunity | null = null) {
   } else editing.value = null
   dialogOpen.value = true
 }
-function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); reload() }
+function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); reload(); void commercialOverview.value?.refresh() }
 watch(tenantId, () => { tenant.value = undefined; clients.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
 function displayOrderType(item: Opportunity): string {
   const value: unknown = item.order_type
@@ -167,6 +169,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
       <div><p class="eyebrow">COMERCIAL</p><h1 class="mt-3 text-3xl font-semibold">Oportunidades</h1><p class="mt-2 text-sm text-slate-500">Acompanhe negociações sem misturar pedidos e carteira.</p></div>
       <button v-if="canCreate" type="button" class="primary-button w-auto" @click="open()">+ Nova oportunidade</button>
     </header>
+    <OpportunityCommercialOverview ref="commercialOverview" :tenant-id="tenantId" />
     <OpportunityFiltersPanel v-model="filters" :types="orderTypes" :busy="loading" :count="total" @search="applyFilters" @clear="clearFilters" />
     <div class="mb-4 flex justify-end">
       <div class="inline-flex rounded-xl border border-stone-200 bg-white p-1 shadow-sm" role="group" aria-label="Visualização das oportunidades">
