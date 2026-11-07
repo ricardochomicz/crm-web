@@ -34,7 +34,7 @@ function togglePending(id: string, checked: boolean) {
 const pendingItems = computed(() => order.value?.items?.filter(item => item.status === 'PENDING' && !item.activated_at && item.quantity === 1) ?? [])
 const allLinesWillBeActive = computed(() => !!order.value?.items?.length && order.value.items.every(item => (item.status === 'ACTIVE' && !!item.activated_at) || selectedItems.value.includes(item.id)))
 const canComplete = computed(() => !!order.value?.items?.length && order.value.items.every(item => item.status === 'ACTIVE' && !!item.activated_at) && !order.value.administratively_completed_at)
-const orderLocked = computed(() => !!order.value?.administratively_completed_at || selectedStatusName.value === 'concluído')
+const orderLocked = computed(() => !!order.value?.administratively_completed_at || ['concluido', 'concluído'].includes(selectedStatusName.value))
 const displayActivationDate = computed(() => order.value?.activated_at?.slice(0, 10) || order.value?.items?.filter(item => item.activated_at).map(item => item.activated_at!.slice(0, 10)).sort().at(-1) || '')
 const error = ref('')
 let sequence = 0
