@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
@@ -235,7 +236,11 @@ async function removeClient(c: Client) {
     busy.value = false
   }
 }
-async function details(id: string) {
+async async function openHistory(id: string) {
+  await details(id)
+  if (selected.value?.id === id) tab.value = 'history'
+}
+function details(id: string) {
   try {
     selected.value = (await clientsApi.show(tenantId.value, id)).data
     tab.value = 'data'
@@ -358,6 +363,10 @@ watch(
                     :label="`Ver detalhes de ${c.company_name}`"
                     @click="details(c.id)"
                   /><TableActionButton
+                    icon="message-square"
+                    :label="`Histórico de ${c.company_name}`"
+                    @click="openHistory(c.id)"
+                  /><TableActionButton
                     v-if="writable"
                     icon="edit"
                     :label="`Editar ${c.company_name}`"
@@ -396,6 +405,7 @@ watch(
               { id: 'data', label: 'Dados' },
               { id: 'contacts', label: 'Pessoas de contato' },
               { id: 'sellers', label: 'Histórico de vendedores' },
+              { id: 'history', label: 'Histórico' },
             ] as const"
             :key="item.id"
             class="rounded-lg px-3 py-2 text-sm"
@@ -453,6 +463,7 @@ watch(
             Nenhum contato cadastrado.
           </p>
         </div>
+        <TimelinePanel v-if="tab === 'history' && selected" :tenant-id="tenantId" type="client" :subject-id="selected.id" :can-write="writable" />
         <div v-if="tab === 'sellers'" class="space-y-2">
           <p v-for="s in selected.sellers" :key="s.id" class="border-b py-2 text-sm">
             {{
