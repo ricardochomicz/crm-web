@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
+import FormField from '@/components/ui/FormField.vue'
+import { maskCpf, maskBrazilianPhone, onlyDigits } from '@/lib/masks'
 import { errorMessage } from '@/lib/feedback'
 import { teamApi } from '../api'
 import type { Member, MemberProfile, MemberProfileInput } from '../types'
@@ -21,6 +23,12 @@ const form = ref<MemberProfileInput>({
   cpf: null, birth_date: null, mobile_phone: null,
   secondary_phone: null, hired_at: null, employee_code: null,
 })
+const cpfModel = computed({ get: () => maskCpf(form.value.cpf), set: (v: string) => { form.value.cpf = onlyDigits(v).slice(0, 11) || null } })
+const mobileModel = computed({ get: () => maskBrazilianPhone(form.value.mobile_phone), set: (v: string) => { form.value.mobile_phone = onlyDigits(v).slice(0, 11) || null } })
+const secondaryModel = computed({ get: () => maskBrazilianPhone(form.value.secondary_phone), set: (v: string) => { form.value.secondary_phone = onlyDigits(v).slice(0, 11) || null } })
+const birthDateModel = computed({ get: () => form.value.birth_date ?? '', set: (v: string) => { form.value.birth_date = v || null } })
+const hiredDateModel = computed({ get: () => form.value.hired_at ?? '', set: (v: string) => { form.value.hired_at = v || null } })
+const employeeCodeModel = computed({ get: () => form.value.employee_code ?? '', set: (v: string) => { form.value.employee_code = v || null } })
 const editable = computed(() => props.canEdit && props.canWrite)
 let requestVersion = 0
 
@@ -92,27 +100,14 @@ async function submit() {
       <form id="member-profile-form" class="space-y-4" @submit.prevent="submit">
         <fieldset :disabled="!editable || saving" class="space-y-4">
           <template v-if="section === 'personal'">
-            <label class="block text-sm font-medium text-slate-700">CPF (opcional)
-              <input v-model="form.cpf" inputmode="numeric" autocomplete="off" maxlength="14"
-                placeholder="000.000.000-00" class="form-input mt-2 w-full" />
-            </label>
-            <label class="block text-sm font-medium text-slate-700">Data de nascimento
-              <input v-model="form.birth_date" type="date" class="form-input mt-2 w-full" />
-            </label>
-            <label class="block text-sm font-medium text-slate-700">Celular / WhatsApp
-              <input v-model="form.mobile_phone" type="tel" class="form-input mt-2 w-full" />
-            </label>
-            <label class="block text-sm font-medium text-slate-700">Telefone secundário
-              <input v-model="form.secondary_phone" type="tel" class="form-input mt-2 w-full" />
-            </label>
+            <FormField id="member-cpf" v-model="cpfModel" label="CPF (opcional)" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00" />
+            <FormField id="member-birth-date" v-model="birthDateModel" label="Data de nascimento" type="date" />
+            <FormField id="member-mobile" v-model="mobileModel" label="Celular / WhatsApp" type="tel" maxlength="15" placeholder="(00) 00000-0000" />
+            <FormField id="member-secondary" v-model="secondaryModel" label="Telefone secundário" type="tel" maxlength="15" placeholder="(00) 00000-0000" />
           </template>
           <template v-else>
-            <label class="block text-sm font-medium text-slate-700">Data de admissão
-              <input v-model="form.hired_at" type="date" class="form-input mt-2 w-full" />
-            </label>
-            <label class="block text-sm font-medium text-slate-700">Matrícula / código interno
-              <input v-model="form.employee_code" maxlength="50" class="form-input mt-2 w-full" />
-            </label>
+            <FormField id="member-hired-at" v-model="hiredDateModel" label="Data de admissão" type="date" />
+            <FormField id="member-employee-code" v-model="employeeCodeModel" label="Matrícula / código interno" maxlength="50" />
             <p class="text-xs leading-5 text-slate-500">Cargo, equipe e situação são administrados pelas ações específicas da equipe.</p>
           </template>
         </fieldset>
