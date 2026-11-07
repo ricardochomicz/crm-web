@@ -229,7 +229,7 @@ async function open(item: Opportunity | null = null, tab: 'details' | 'history' 
   dialogOpen.value = true
 }
 function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); reload(); void commercialOverview.value?.refresh() }
-watch(tenantId, () => { section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'list'; tenant.value = undefined; clients.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
+watch(tenantId, () => { section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; tenant.value = undefined; clients.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
 function displayOrderType(item: Opportunity): string {
   const value: unknown = item.order_type
   if (value && typeof value === 'object') {
