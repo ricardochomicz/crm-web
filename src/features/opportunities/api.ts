@@ -18,11 +18,14 @@ export type OpportunityInput = {
   description: string | null; expected_close_at: string | null
   estimated_monthly_amount: number; estimated_one_time_amount: number; items: OpportunityItem[]
 }
+export type FunnelStage = { id: string; name: string; position: number; is_active: boolean }
 export type OpportunityPage = { data: Opportunity[]; current_page: number; last_page: number; total: number; per_page: number }
 const base = (tenantId: string) => '/api/v1/tenants/' + encodeURIComponent(tenantId) + '/opportunities'
 export const opportunitiesApi = {
   list: (tenantId: string, filters: { search?: string; status?: string; page?: number }) =>
     request<OpportunityPage>(base(tenantId) + '?' + new URLSearchParams(Object.entries(filters).filter(([, value]) => value !== undefined && value !== '').map(([key, value]) => [key, String(value)])).toString()),
+  stages: (tenantId: string) => request<{ data: FunnelStage[] }>('/api/v1/tenants/' + encodeURIComponent(tenantId) + '/opportunity-funnel-stages'),
+  moveStage: (tenantId: string, id: string, funnel_stage_id: string) => mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/stage', { funnel_stage_id }, 'PATCH'),
   show: (tenantId: string, id: string) => request<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id)),
   create: (tenantId: string, data: OpportunityInput) => mutate<{ data: Opportunity }>(base(tenantId), data),
   update: (tenantId: string, id: string, data: OpportunityInput) => mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id), data, 'PATCH'),

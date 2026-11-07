@@ -12,8 +12,9 @@ import { can, type Tenant } from '@/features/tenants/types'
 import { orderTypesApi, type OrderType } from '@/features/order-types/api'
 import { productsApi, type Product } from '@/features/products/api'
 import { clientsApi, type Client } from '@/features/clients/api'
-import { opportunitiesApi, type Opportunity } from '../api'
+import { opportunitiesApi, type Opportunity, type FunnelStage } from '../api'
 import OpportunityDialog from '../components/OpportunityDialog.vue'
+import OpportunityKanban from '../components/OpportunityKanban.vue'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
 
@@ -23,6 +24,11 @@ const clients = ref<Client[]>([])
 const products = ref<Product[]>([])
 const orderTypes = ref<OrderType[]>([])
 const rows = ref<Opportunity[]>([])
+const stages = ref<FunnelStage[]>([])
+const viewMode = ref<'list' | 'kanban'>('list')
+const kanbanRows = ref<Opportunity[]>([])
+const movingId = ref<string | null>(null)
+const kanbanLimitReached = ref(false)
 const search = ref('')
 const status = ref('open')
 const applied = ref({ search: '', status: 'open' })
@@ -50,6 +56,46 @@ async function load() {
     perPage.value = result.per_page
   } catch (e) { if (current === version) error.value = errorMessage(e) }
   finally { if (current === version) loading.value = false }
+}
+async function loadKanban() {
+  const current = ++version
+  loading.value = true; error.value = ''
+  try {
+    const items: Opportunity[] = []
+    let next = 1; let pages = 1
+    do {
+      const result = await opportunitiesApi.list(tenantId.value, { ...applied.value, page: next })
+      if (current !== version) return
+      items.push(...result.data); pages = result.last_page; next++
+    } while (next <= pages && next <= 20)
+    kanbanLimitReached.value = next <= pages
+    kanbanRows.value = items
+    total.value = items.length
+  } catch (e) { if (current === version) error.value = errorMessage(e) }
+  finally { if (current === version) loading.value = false }
+}
+function reload() { if (viewMode.value === 'kanban') void loadKanban(); else reload() }
+async function changeView(mode: 'list' | 'kanban') {
+  viewMode.value = mode
+  if (mode === 'kanban') {
+    try { stages.value = (await opportunitiesApi.stages(tenantId.value)).data } catch (e) { toast.error(errorMessage(e)) }
+  }
+  reload()
+}
+async function moveStage(id: string, stageId: string) {
+  if (!canEdit.value || movingId.value || !stageId) return
+  const item = kanbanRows.value.find(i => i.id === id)
+  if (!item || item.funnel_stage_id === stageId) return
+  movingId.value = id
+  const previous = item.funnel_stage_id
+  item.funnel_stage_id = stageId
+  try {
+    await opportunitiesApi.moveStage(tenantId.value, id, stageId)
+    toast.success('Etapa atualizada.')
+  } catch (e) {
+    item.funnel_stage_id = previous
+    toast.error(errorMessage(e))
+  } finally { movingId.value = null }
 }
 async function setup() {
   const id = tenantId.value
@@ -79,8 +125,8 @@ async function open(item: Opportunity | null = null) {
   } else editing.value = null
   dialogOpen.value = true
 }
-function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); void load() }
-watch(tenantId, () => { tenant.value = undefined; clients.value = []; orderTypes.value = []; page.value = 1; void setup(); void load() }, { immediate: true })
+function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); reload() }
+watch(tenantId, () => { tenant.value = undefined; clients.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
 function displayOrderType(item: Opportunity): string {
   const value: unknown = item.order_type
   if (value && typeof value === 'object') {
@@ -120,8 +166,18 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
         </select>
       </label>
     </ListFilters>
+    <div class="mb-4 flex justify-end">
+      <div class="inline-flex rounded-xl border border-stone-200 bg-white p-1 shadow-sm" role="group" aria-label="Visualização das oportunidades">
+        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="viewMode === 'list' ? 'bg-orange-50 text-orange-700' : 'text-slate-600 hover:bg-stone-50'" @click="changeView('list')">☷ Lista</button>
+        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="viewMode === 'kanban' ? 'bg-orange-50 text-orange-700' : 'text-slate-600 hover:bg-stone-50'" @click="changeView('kanban')">▦ Kanban</button>
+      </div>
+    </div>
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
-    <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+    <div v-if="viewMode === 'kanban' && !loading && !error">
+      <p v-if="kanbanLimitReached" class="mb-3 text-sm text-amber-700">Há mais oportunidades do que o limite de carregamento do quadro. Refine os filtros para visualizar todas.</p>
+      <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="open" />
+    </div>
+    <section v-if="viewMode === 'list' && !loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <ListTable min-width="750px">
         <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500"><tr>
           <th class="p-4">Oportunidade</th><th class="p-4">Cliente</th><th class="p-4">Tipo</th><th class="p-4">Previsão</th><th class="p-4">Valor mensal</th><th class="p-4">Ações</th>
@@ -137,7 +193,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
       </ListTable>
       <p v-if="!rows.length" class="p-6 text-center text-sm text-slate-500">Nenhuma oportunidade encontrada.</p>
     </section>
-    <PagePagination :page="page" :last-page="lastPage" :total="total" :per-page="perPage" :busy="loading" @change="changePage" />
+    <PagePagination v-if="viewMode === 'list'" :page="page" :last-page="lastPage" :total="total" :per-page="perPage" :busy="loading" @change="changePage" />
     <OpportunityDialog :open="dialogOpen" :tenant-id="tenantId" :opportunity="editing" :clients="clients" :products="products" :order-types="orderTypes" @close="dialogOpen = false" @saved="saved" />
   </AppShell>
 </template>
