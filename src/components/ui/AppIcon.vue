@@ -1,6 +1,7 @@
 <script setup lang="ts">
 defineProps<{ name?: string }>()
 const paths: Record<string, string> = {
+  calendar: 'M3 5h18v16H3zM7 3v4M17 3v4M3 10h18M7 14h3M14 14h3M7 18h3',
   search: 'm21 21-4.35-4.35M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0z',
   clear: 'M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v7m4-7v7',
   chevronLeft: 'm15 18-6-6 6-6',
