@@ -36,16 +36,17 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
         <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
             <ListTable min-width="750px">
                 <thead class="bg-stone-50 text-xs font-semibold uppercase text-slate-500">
-                    <tr><th class="p-4">Pedido</th><th class="p-4">Cliente</th><th class="p-4">Venda</th><th class="p-4">Linhas</th><th class="p-4">Mensalidade</th><th class="p-4">Status</th></tr>
+                    <tr><th class="p-4">Cliente</th><th class="p-4">Consultor</th><th class="p-4">Venda</th><th class="p-4">Linhas</th><th class="p-4">Mensalidade</th><th class="p-4">Status</th><th class="p-4 text-right">Ações</th></tr>
                 </thead>
                 <tbody>
                     <tr v-for="order in paginated" :key="order.id" class="border-t border-stone-100">
-                        <td class="p-4 font-semibold text-slate-800"><button type="button" class="font-semibold text-orange-700 hover:underline" @click="selectedOrderId = order.id">{{ order.code || order.id.slice(0, 8) }}</button></td>
                         <td class="p-4">{{ order.customer_name }}</td>
+                        <td class="p-4">{{ order.consultant_name || '—' }}</td>
                         <td class="p-4">{{ date(order.sold_on) }}</td>
                         <td class="p-4">{{ order.line_quantity }}</td>
                         <td class="p-4 font-semibold">{{ money(order.monthly_amount) }}</td>
                         <td class="p-4"><span class="rounded-lg bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">{{ order.order_status || order.status }}</span></td>
+                        <td class="p-4 text-right"><button type="button" class="primary-button w-auto whitespace-nowrap" @click="selectedOrderId = order.id">Movimentar Pedido</button></td>
                     </tr>
                 </tbody>
             </ListTable>

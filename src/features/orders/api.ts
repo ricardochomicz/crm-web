@@ -16,6 +16,7 @@ export type CommercialOrder = {
     code: string | null
     opportunity_id?: string | null
     customer_name: string
+    consultant_name?: string | null
     monthly_amount: string
     line_quantity: number
     sold_on: string
