@@ -191,6 +191,8 @@ async function setup() {
     tenant.value = t.data
     const types = await orderTypesApi.active()
     if (id === tenantId.value) orderTypes.value = types.data
+    const stageResult = await opportunitiesApi.stages(id)
+    if (id === tenantId.value) stages.value = stageResult.data
     if (canCreate.value || canEdit.value) {
       const c = await clientsApi.list(id)
       if (id === tenantId.value) clients.value = c.data
@@ -229,7 +231,7 @@ async function open(item: Opportunity | null = null, tab: 'details' | 'history' 
   dialogOpen.value = true
 }
 function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); reload(); void commercialOverview.value?.refresh() }
-watch(tenantId, () => { section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; tenant.value = undefined; clients.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
+watch(tenantId, () => { section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; stages.value = []; tenant.value = undefined; clients.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
 function displayOrderType(item: Opportunity): string {
   const value: unknown = item.order_type
   if (value && typeof value === 'object') {
