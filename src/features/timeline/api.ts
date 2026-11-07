@@ -30,8 +30,8 @@ export type TimelinePage = {
 const base = (tenantId: string) => '/api/v1/tenants/' + encodeURIComponent(tenantId) + '/timeline'
 
 export const timelineApi = {
-    list: (tenantId: string, type: TimelineType, id: string, page = 1) =>
-        request<TimelinePage>(base(tenantId) + '/' + type + '/' + encodeURIComponent(id) + '?page=' + page),
+    list: (tenantId: string, type: TimelineType, id: string, page = 1, origin?: TimelineType) =>
+        request<TimelinePage>(base(tenantId) + '/' + type + '/' + encodeURIComponent(id) + '?page=' + page + (origin ? '&origin=' + encodeURIComponent(origin) : '')),
     create: (tenantId: string, type: TimelineType, id: string, content: string) =>
         mutate<{ data: TimelineComment }>(base(tenantId) + '/' + type + '/' + encodeURIComponent(id), { content }),
     update: (tenantId: string, id: string, content: string) =>
