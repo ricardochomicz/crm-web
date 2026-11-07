@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { toast } from '@/services/toast'
 import { errorMessage } from '@/lib/feedback'
 import { ordersApi, type CommercialOrder } from '../api'
@@ -15,6 +15,11 @@ const statusId = ref('')
 const expected = ref('')
 const loading = ref(false)
 const saving = ref(false)
+const selectedItems = ref<string[]>([])
+const activationDate = ref(new Date().toLocaleDateString('en-CA'))
+const moving = ref(false)
+const pendingItems = computed(() => order.value?.items?.filter(item => item.status === 'PENDING' && !item.activated_at && item.quantity === 1) ?? [])
+const canComplete = computed(() => !!order.value?.items?.length && order.value.items.every(item => item.status === 'ACTIVE' && !!item.activated_at) && !order.value.administratively_completed_at)
 const error = ref('')
 let sequence = 0
 
@@ -29,6 +34,7 @@ async function load() {
         ])
         if (current !== sequence) return
         order.value = detail.data
+        selectedItems.value = []
         statuses.value = options.data
         statusId.value = detail.data.order_status_id ?? ''
         expected.value = detail.data.expected_activation_at?.slice(0, 10) ?? ''
@@ -56,6 +62,39 @@ async function save() {
         saving.value = false
     }
 }
+async function activateSelected() {
+    if (!selectedItems.value.length || !activationDate.value || moving.value) return
+    moving.value = true
+    try {
+        await ordersApi.activateItems(props.tenantId, props.orderId, {
+            item_ids: selectedItems.value,
+            activated_at: activationDate.value,
+        })
+        toast.success('Linhas ativadas com sucesso.')
+        await load()
+        emit('saved')
+    } catch (failure) {
+        toast.error(errorMessage(failure))
+    } finally {
+        moving.value = false
+    }
+}
+
+async function completeOrder() {
+    if (!canComplete.value || moving.value) return
+    moving.value = true
+    try {
+        await ordersApi.complete(props.tenantId, props.orderId)
+        toast.success('Pedido concluído.')
+        await load()
+        emit('saved')
+    } catch (failure) {
+        toast.error(errorMessage(failure))
+    } finally {
+        moving.value = false
+    }
+}
+
 watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate: true })
 </script>
 
@@ -108,10 +147,36 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                         </label>
                     </div>
                     <div class="mt-4 flex justify-end">
-                        <button type="submit" class="primary-button w-auto" :disabled="saving || !statusId">{{ saving ? 'Salvando…' : 'Salvar alterações' }}</button>
+                        <button type="submit" class="primary-button w-auto" :disabled="saving || !statusId || !!order.administratively_completed_at">{{ saving ? 'Salvando…' : 'Salvar alterações' }}</button>
                     </div>
                 </form>
 
+                <section class="rounded-xl border border-stone-200 p-5">
+                    <h3 class="font-semibold text-slate-800">Ativação das linhas</h3>
+                    <p class="mt-2 text-sm text-slate-600">
+                        {{ order.activation_summary?.active ?? order.items?.filter(item => item.status === 'ACTIVE').length ?? 0 }}
+                        ativas de {{ order.activation_summary?.total ?? order.line_quantity }} linhas.
+                    </p>
+                    <div v-if="!order.administratively_completed_at && pendingItems.length" class="mt-4 space-y-3">
+                        <label class="block text-sm font-semibold text-slate-700">Data de ativação das linhas selecionadas
+                            <input v-model="activationDate" type="date" class="field mt-2 w-full" :max="new Date().toLocaleDateString('en-CA')" />
+                        </label>
+                        <p class="text-xs text-slate-500">Selecione apenas as linhas que deseja ativar agora.</p>
+                        <div class="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-stone-200 p-3">
+                            <label v-for="item in pendingItems" :key="item.id" class="flex items-center gap-3 text-sm text-slate-700">
+                                <input v-model="selectedItems" type="checkbox" :value="item.id" />
+                                <span>{{ item.line_number || 'Linha' }} — {{ item.description || item.id.slice(0, 8) }}</span>
+                            </label>
+                        </div>
+                        <button type="button" class="primary-button w-auto" :disabled="moving || !selectedItems.length || !activationDate" @click="activateSelected">
+                            {{ moving ? 'Processando…' : `Ativar ${selectedItems.length} linha(s)` }}
+                        </button>
+                    </div>
+                    <p v-else-if="order.administratively_completed_at" class="mt-3 text-sm text-slate-600">Pedido concluído administrativamente.</p>
+                    <button v-if="canComplete" type="button" class="primary-button mt-4 w-auto" :disabled="moving" @click="completeOrder">
+                        Concluir pedido
+                    </button>
+                </section>
                 <OrderItemsSection :items="order.items || []" :count="order.line_quantity" />
             </div>
 
