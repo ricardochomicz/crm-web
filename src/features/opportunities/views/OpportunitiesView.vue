@@ -119,7 +119,7 @@ function applyFilters() {
         return
     }
     page.value = 1
-    applied.value = { ...filters.value, search: filters.value.search?.trim() }
+    applied.value = { ...filters.value, search: filters.value.search?.trim(), period: filters.value.status !== 'open' && filters.value.period === 'current' ? 'all' : filters.value.period }
     reload()
 }
 function clearFilters() {
