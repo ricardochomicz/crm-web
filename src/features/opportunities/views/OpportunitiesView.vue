@@ -72,6 +72,7 @@ const lastPage = ref(1)
 const perPage = ref(20)
 const loading = ref(true)
 const error = ref('')
+const dialogTab = ref<'details' | 'history'>('details')
 const dialogOpen = ref(false)
 const confirmingSale = ref(false)
 const lostCandidate = ref<Opportunity | null>(null)
@@ -217,7 +218,8 @@ function clearFilters() {
     applyFilters()
 }
 function changePage(next: number) { page.value = next; void load() }
-async function open(item: Opportunity | null = null) {
+async function open(item: Opportunity | null = null, tab: 'details' | 'history' = 'details') {
+  dialogTab.value = tab
   if (item) {
     try {
       const detail = await opportunitiesApi.show(tenantId.value, item.id)
@@ -273,7 +275,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
     <AsyncNotice :loading="loading" :error="error" @retry="reload" />
     <div v-if="section === 'open' && viewMode === 'kanban' && !loading && !error">
       <p v-if="kanbanLimitReached" class="mb-3 text-sm text-amber-700">Há mais oportunidades do que o limite de carregamento do quadro. Refine os filtros para visualizar todas.</p>
-      <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="open" @won="askConfirmSale" @lost="askMarkLost" />
+      <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @won="askConfirmSale" @lost="askMarkLost" />
     </div>
     <section v-if="(section === 'closed' || viewMode === 'list') && !loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <ListTable min-width="750px">
@@ -296,6 +298,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
           </td>
           <td class="p-4">
             <div class="flex items-center gap-2">
+              <TableActionButton icon="message-square" :label="`Histórico de ${item.title}`" @click="open(item, 'history')" />
               <TableActionButton v-if="section === 'open' && canEdit && item.status === 'open'" icon="edit" :label="`Editar ${item.title}`" @click="open(item)" />
               <button v-if="canEdit && section === 'closed' && item.status === 'lost'" type="button" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100" :disabled="!!recoveringId" @click="recover(item)">{{ recoveringId === item.id ? 'Recuperando…' : 'Recuperar negociação' }}</button>
               <button v-if="section === 'open' && canEdit && item.status === 'open'" type="button" class="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100" @click="askConfirmSale(item)">Confirmar venda</button>
@@ -333,6 +336,6 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
         </div>
       </section>
     </div>
-    <OpportunityDialog :open="dialogOpen" :tenant-id="tenantId" :opportunity="editing" :clients="clients" :products="products" :order-types="orderTypes" @close="dialogOpen = false" @saved="saved" />
+    <OpportunityDialog :initial-tab="dialogTab" :open="dialogOpen" :tenant-id="tenantId" :opportunity="editing" :clients="clients" :products="products" :order-types="orderTypes" @close="dialogOpen = false" @saved="saved" />
   </AppShell>
 </template>

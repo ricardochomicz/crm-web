@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
 import AppCurrencyField from '@/components/ui/AppCurrencyField.vue'
@@ -14,8 +15,9 @@ import type { OrderType } from '@/features/order-types/api'
 import type { Product } from '@/features/products/api'
 import type { Client } from '@/features/clients/api'
 
-const props = defineProps<{ open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; orderTypes: OrderType[] }>()
+const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; orderTypes: OrderType[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
+const activeTab = ref<'details' | 'history'>('details')
 const busy = ref(false)
 const error = ref('')
 const showImport = ref(false)
@@ -129,6 +131,7 @@ function validateLines(): boolean {
 }
 watch(() => [props.open, props.opportunity] as const, () => {
   if (!props.open) return
+  activeTab.value = props.opportunity ? (props.initialTab ?? 'details') : 'details'
   error.value = ''
   showImport.value = false
   editingLineIndex.value = null
@@ -163,7 +166,12 @@ async function save() {
 <template>
   <AppDialog :open="open" :title="opportunity ? 'Editar oportunidade' : 'Nova oportunidade'"
     description="Organize a negociação, seus serviços e valores." :busy="busy" size="full" @close="emit('close')">
-    <form class="flex min-h-full flex-col gap-5" @submit.prevent="save">
+    <div v-if="opportunity" class="mb-5 flex gap-2 border-b border-stone-200 pb-3">
+        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'details' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'details'">Dados da oportunidade</button>
+        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'history' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'history'">Histórico</button>
+    </div>
+    <TimelinePanel v-if="open && opportunity && activeTab === 'history'" :tenant-id="tenantId" type="opportunity" :subject-id="opportunity.id" :can-write="true" />
+    <form v-show="activeTab === 'details'" class="flex min-h-full flex-col gap-5" @submit.prevent="save">
       <div class="grid flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
         <fieldset :disabled="busy" class="min-w-0 space-y-6">
           <OpportunityDetailsForm v-model="form" :clients="clients" :order-types="orderTypes" />
