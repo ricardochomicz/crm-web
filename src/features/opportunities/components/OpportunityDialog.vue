@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import OpportunityDetailsForm from './OpportunityDetailsForm.vue'
 import OpportunityReceipt from './OpportunityReceipt.vue'
+import OpportunityLineEditDialog from './OpportunityLineEditDialog.vue'
 import { opportunitiesApi, type Opportunity, type OpportunityInput } from '../api'
 import { errorMessage } from '@/lib/feedback'
 import type { OrderType } from '@/features/order-types/api'
@@ -16,6 +17,10 @@ const emit = defineEmits<{ close: []; saved: [] }>()
 const busy = ref(false)
 const error = ref('')
 const showImport = ref(false)
+const editingLineIndex = ref<number | null>(null)
+const editingLine = computed(() => editingLineIndex.value === null ? null : form.value.items[editingLineIndex.value] ?? null)
+const otherNumbers = computed(() => form.value.items.filter((_, i) => i !== editingLineIndex.value).map(i => (i.line_number ?? '').replace(/\D/g, '')).filter(Boolean))
+function updateLine(item: OpportunityInput['items'][number]) { if (editingLineIndex.value !== null) form.value.items.splice(editingLineIndex.value, 1, item); editingLineIndex.value = null }
 const pastedNumbers = ref('')
 const batchProductId = ref('')
 const batchTypeId = ref('')
@@ -100,6 +105,7 @@ watch(() => [props.open, props.opportunity] as const, () => {
   if (!props.open) return
   error.value = ''
   showImport.value = false
+  editingLineIndex.value = null
   form.value = props.opportunity ? {
     code: props.opportunity.code, title: props.opportunity.title,
     client_id: props.opportunity.client_id, order_type_id: props.opportunity.order_type_id ?? '',
@@ -145,7 +151,7 @@ async function save() {
                 <tbody><tr v-for="(item, index) in form.items" :key="item.id ?? index" class="border-t border-stone-100">
                   <td class="p-3 font-medium">{{ item.line_number || 'Número pendente' }}<span class="ml-2 text-xs text-slate-400">{{ typeName(item.order_type_id) }}</span></td><td class="p-3">{{ item.description }}</td>
                   <td class="p-3 text-right">{{ money(Number(item.monthly_unit_amount) * Number(item.quantity)) }}</td>
-                  <td class="p-3 text-right"><button type="button" class="font-semibold text-red-600 hover:underline" @click="form.items.splice(index, 1)">Excluir</button></td>
+                  <td class="p-3 text-right"><div class="flex justify-end gap-3"><button type="button" class="font-semibold text-blue-700 hover:underline" @click="editingLineIndex = index">Editar</button><button type="button" class="font-semibold text-red-600 hover:underline" @click="form.items.splice(index, 1)">Excluir</button></div></td>
                 </tr></tbody>
               </table>
             </div>
@@ -167,6 +173,7 @@ async function save() {
       </footer>
     </form>
   </AppDialog>
+  <OpportunityLineEditDialog :open="open && editingLineIndex !== null" :item="editingLine" :products="products" :order-types="orderTypes" :existing-numbers="otherNumbers" @close="editingLineIndex = null" @save="updateLine" />
   <AppDialog :open="open && showImport" title="Importar linhas" description="Escolha o tipo de operação, informe as linhas e associe um plano ao lote." size="wide" @close="showImport = false">
     <div class="space-y-4">
       <AppAutocomplete v-model="batchTypeId" label="Tipo das linhas" placeholder="Buscar tipo das linhas" :options="orderTypes" />
