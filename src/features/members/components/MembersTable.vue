@@ -67,7 +67,7 @@ defineEmits<{ action: [action: TeamAction]; profile: [member: Member] }>()
               v-if="canViewProfiles || (member.can_manage && (canChangeRole || canChangeStatus || canRemove))"
               class="flex justify-end gap-2"
             >
-              <TableActionButton v-if="canViewProfiles" icon="pencil" :label="`${canEditProfiles ? 'Editar' : 'Visualizar'} cadastro de ${member.name}`" :disabled="busy" @click="$emit('profile', member)" />
+              <TableActionButton v-if="canViewProfiles" icon="edit" :label="`${canEditProfiles ? 'Editar' : 'Visualizar'} cadastro de ${member.name}`" :disabled="busy" @click="$emit('profile', member)" />
               <TableActionButton v-if="member.can_manage && canChangeRole" icon="shield" :label="`Alterar cargo de ${member.name}`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'role', member })" />
               <TableActionButton v-if="member.can_manage && canChangeStatus" :icon="member.status === 'ACTIVE' ? 'pause' : 'play'" :label="`${member.status === 'ACTIVE' ? 'Suspender' : 'Reativar'} ${member.name}`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'status', member })" />
               <TableActionButton v-if="member.can_manage && canRemove" icon="user-x" tone="danger" :label="`Desvincular ${member.name} da empresa`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'remove', member })" />
