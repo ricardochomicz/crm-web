@@ -93,7 +93,7 @@ const form = ref<ClientInput>(blank()),
   editing = ref(''),
   modal = ref(false),
   selected = ref<Client | null>(null),
-  tab = ref<'data' | 'contacts' | 'sellers'>('data')
+  tab = ref<'data' | 'contacts' | 'sellers' | 'history'>('data')
 const contactBlank = (): ContactInput => ({
   name: '',
   position: null,
