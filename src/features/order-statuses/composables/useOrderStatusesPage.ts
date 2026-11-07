@@ -64,6 +64,22 @@ export function useOrderStatusesPage(tenantId: Ref<string>) {
         }
     }
 
+    async function setInitial(status: OrderStatus) {
+        if (!writable.value || busy.value || status.is_initial) return
+        const id = tenantId.value
+        busy.value = true
+        try {
+            await orderStatusesApi.setInitial(id, status.id)
+            if (id !== tenantId.value) return
+            toast.success('Status inicial atualizado.')
+            await load()
+        } catch (failure) {
+            if (id === tenantId.value) toast.error(errorMessage(failure))
+        } finally {
+            busy.value = false
+        }
+    }
+
     async function remove(status: OrderStatus) {
         if (!writable.value || busy.value || !window.confirm(`Excluir o status "${status.name}"?`)) return
         const id = tenantId.value
@@ -90,5 +106,5 @@ export function useOrderStatusesPage(tenantId: Ref<string>) {
         void load()
     }, { immediate: true })
 
-    return { tenant, statuses, loading, busy, error, name, editingId, writable, load, edit, cancel, save, remove }
+    return { tenant, statuses, loading, busy, error, name, editingId, writable, load, edit, cancel, save, setInitial, remove }
 }

@@ -7,7 +7,7 @@ import { useOrderStatusesPage } from '../composables/useOrderStatusesPage'
 
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
-const { tenant, statuses, loading, busy, error, name, editingId, writable, load, edit, cancel, save, remove } =
+const { tenant, statuses, loading, busy, error, name, editingId, writable, load, edit, cancel, save, setInitial, remove } =
     useOrderStatusesPage(tenantId)
 </script>
 
@@ -39,8 +39,9 @@ const { tenant, statuses, loading, busy, error, name, editingId, writable, load,
                 </div>
                 <p v-if="!statuses.length" class="px-5 py-8 text-sm text-slate-500">Nenhum status cadastrado. Adicione o primeiro para configurar os pedidos.</p>
                 <div v-for="status in statuses" :key="status.id" class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4 last:border-0">
-                    <span class="font-medium text-slate-800">{{ status.name }}</span>
-                    <div v-if="writable" class="flex gap-2">
+                    <span class="font-medium text-slate-800">{{ status.name }} <span v-if="status.is_initial" class="ml-2 rounded-lg bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">Inicial</span></span>
+                    <div v-if="writable" class="flex flex-wrap gap-2">
+                        <button v-if="!status.is_initial" type="button" class="secondary-button w-auto" :disabled="busy" @click="setInitial(status)">Definir como inicial</button>
                         <button type="button" class="secondary-button w-auto" :disabled="busy" @click="edit(status)">Editar</button>
                         <button type="button" class="rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50" :disabled="busy" @click="remove(status)">Excluir</button>
                     </div>

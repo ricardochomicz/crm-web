@@ -52,6 +52,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Plano e assinatura' },
     },
     {
+      path: '/empresas/:tenantId/pedidos',
+      component: () => import('@/features/orders/views/OrdersView.vue'),
+      meta: { requiresAuth: true, title: 'Pedidos comerciais' },
+    },
+    {
       path: '/empresas/:tenantId/oportunidades',
       component: () => import('@/features/opportunities/views/OpportunitiesView.vue'),
       meta: { requiresAuth: true, title: 'Oportunidades' },
