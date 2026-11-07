@@ -10,6 +10,8 @@ import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { useAuthStore } from '@/features/auth/store'
 import { useTeamManagement } from '../composables/useTeamManagement'
 import MembersTable from '../components/MembersTable.vue'
+import MemberProfileDialog from '../components/MemberProfileDialog.vue'
+import type { Member } from '../types'
 import InvitationsTable from '../components/InvitationsTable.vue'
 import InviteMemberDialog from '../components/InviteMemberDialog.vue'
 import TeamActionDialog from '../components/TeamActionDialog.vue'
@@ -54,6 +56,7 @@ watch([canViewMembers, canViewInvitations], () => {
   else if (!canViewInvitations.value && canViewMembers.value) tab.value = 'members'
 })
 const inviteOpen = ref(false)
+const profileMember = ref<Member | null>(null)
 const action = ref<TeamAction | null>(null)
 const actionAllowed = computed(() =>
   action.value
@@ -68,7 +71,7 @@ const actionAllowed = computed(() =>
       )
     : false,
 )
-const modalOpen = computed(() => inviteOpen.value || !!action.value)
+const modalOpen = computed(() => inviteOpen.value || !!action.value || !!profileMember.value)
 const usedSeats = computed(() =>
   subscription.value
     ? subscription.value.usage.users + subscription.value.usage.reserved_invitations
@@ -82,6 +85,11 @@ const usagePercent = computed(() =>
 const actionResendBlocked = computed(() =>
   action.value?.kind === 'resend' ? resendBlockedReason(action.value.invitation) : '',
 )
+function profileSaved() {
+  profileMember.value = null
+  toast.success('Cadastro do colaborador atualizado.')
+  void loadMembers()
+}
 function openInvite() {
   if (!inviteBlockedReason.value) inviteOpen.value = true
 }
@@ -292,12 +300,15 @@ onMounted(load)
           ><MembersTable
             :members="members.data"
             :can-write="canWrite"
+            :can-view-profiles="has('members.profile.view')"
+            :can-edit-profiles="has('members.profile.update')"
             :can-change-role="has('members.role')"
             :can-change-status="has('members.status')"
             :can-remove="has('members.remove')"
             :busy="modalOpen"
             :user-id="auth.user?.id"
-            @action="openAction" /><PagePagination
+            @action="openAction"
+            @profile="profileMember = $event" /><PagePagination
             :page="members.current_page"
             :last-page="members.last_page"
             :total="members.total"
@@ -361,6 +372,9 @@ onMounted(load)
         </p>
       </section>
     </template>
+    <MemberProfileDialog :tenant-id="tenantId" :member="profileMember"
+      :can-edit="has('members.profile.update')" :can-write="canWrite"
+      @close="profileMember = null" @saved="profileSaved" />
     <InviteMemberDialog
       :open="inviteOpen"
       :allowed-roles="allowedRoles"

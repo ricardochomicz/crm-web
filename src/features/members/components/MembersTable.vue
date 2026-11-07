@@ -8,13 +8,15 @@ import type { Member, TeamAction } from '../types'
 defineProps<{
   members: Member[]
   canWrite: boolean
+  canViewProfiles: boolean
+  canEditProfiles: boolean
   canChangeRole: boolean
   canChangeStatus: boolean
   canRemove: boolean
   busy?: boolean
   userId?: number
 }>()
-defineEmits<{ action: [action: TeamAction] }>()
+defineEmits<{ action: [action: TeamAction]; profile: [member: Member] }>()
 </script>
 <template>
   <div class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
@@ -62,12 +64,13 @@ defineEmits<{ action: [action: TeamAction] }>()
           <td class="px-5 py-5 text-xs text-slate-500">{{ dateLabel(member.joined_at) }}</td>
           <td class="px-6 py-5">
             <div
-              v-if="member.can_manage && (canChangeRole || canChangeStatus || canRemove)"
+              v-if="canViewProfiles || (member.can_manage && (canChangeRole || canChangeStatus || canRemove))"
               class="flex justify-end gap-2"
             >
-              <TableActionButton v-if="canChangeRole" icon="shield" :label="`Alterar cargo de ${member.name}`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'role', member })" />
-              <TableActionButton v-if="canChangeStatus" :icon="member.status === 'ACTIVE' ? 'pause' : 'play'" :label="`${member.status === 'ACTIVE' ? 'Suspender' : 'Reativar'} ${member.name}`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'status', member })" />
-              <TableActionButton v-if="canRemove" icon="user-x" tone="danger" :label="`Desvincular ${member.name} da empresa`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'remove', member })" />
+              <TableActionButton v-if="canViewProfiles" icon="pencil" :label="`${canEditProfiles ? 'Editar' : 'Visualizar'} cadastro de ${member.name}`" :disabled="busy" @click="$emit('profile', member)" />
+              <TableActionButton v-if="member.can_manage && canChangeRole" icon="shield" :label="`Alterar cargo de ${member.name}`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'role', member })" />
+              <TableActionButton v-if="member.can_manage && canChangeStatus" :icon="member.status === 'ACTIVE' ? 'pause' : 'play'" :label="`${member.status === 'ACTIVE' ? 'Suspender' : 'Reativar'} ${member.name}`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'status', member })" />
+              <TableActionButton v-if="member.can_manage && canRemove" icon="user-x" tone="danger" :label="`Desvincular ${member.name} da empresa`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'remove', member })" />
             </div>
             <p v-else class="text-right text-xs text-slate-400">
               {{ member.role === 'OWNER' ? 'Acesso protegido' : 'Sem ações disponíveis' }}

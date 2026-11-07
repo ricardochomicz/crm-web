@@ -46,3 +46,17 @@ export const assignableRoles: { value: AssignableRole; label: string }[] = [
   { value: 'CONSULTANT', label: 'Consultor' },
   { value: 'ASSISTANT', label: 'Assistente' },
 ]
+
+export interface MemberProfile {
+  id: string
+  user_id: number
+  name: string
+  email: string
+  cpf: string | null
+  birth_date: string | null
+  mobile_phone: string | null
+  secondary_phone: string | null
+  hired_at: string | null
+  employee_code: string | null
+}
+export type MemberProfileInput = Pick<MemberProfile, 'cpf' | 'birth_date' | 'mobile_phone' | 'secondary_phone' | 'hired_at' | 'employee_code'>

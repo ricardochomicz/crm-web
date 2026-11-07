@@ -6,10 +6,16 @@ import type {
   InvitationResult,
   InvitationStatus,
   Member,
+  MemberProfile,
+  MemberProfileInput,
 } from './types'
 export interface CompanyRole { id: string; code: string; name: string; legacy_role: AssignableRole | 'OWNER'; permissions: string[]; is_system: boolean; is_active: boolean }
 const base = (tenantId: string) => `/api/v1/tenants/${encodeURIComponent(tenantId)}`
 export const teamApi = {
+  profile: (tenantId: string, membershipId: string) =>
+    request<{ data: MemberProfile }>(`${base(tenantId)}/members/${encodeURIComponent(membershipId)}/profile`),
+  updateProfile: (tenantId: string, membershipId: string, data: MemberProfileInput) =>
+    mutate<{ data: MemberProfile }>(`${base(tenantId)}/members/${encodeURIComponent(membershipId)}/profile`, data, 'PATCH'),
   roles: (tenantId: string) => request<{ data: CompanyRole[] }>(`${base(tenantId)}/roles`),
   members: (tenantId: string, page = 1) =>
     request<Page<Member>>(`${base(tenantId)}/members?page=${page}`),
