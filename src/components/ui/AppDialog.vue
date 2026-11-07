@@ -7,6 +7,7 @@ const props = withDefaults(
     description?: string
     busy?: boolean
     drawer?: boolean
+    size?: 'default' | 'wide'
   }>(),
   { busy: false },
 )
@@ -50,7 +51,7 @@ function requestClose() {
       :class="
         drawer
           ? 'fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-full max-w-2xl rounded-none'
-          : 'm-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg rounded-3xl'
+          : size === 'wide' ? 'm-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-5xl rounded-3xl' : 'm-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg rounded-3xl'
       "
       @cancel.prevent="requestClose"
     >
