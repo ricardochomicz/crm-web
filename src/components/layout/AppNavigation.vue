@@ -98,7 +98,6 @@ watch(() => route.path, (path) => {
             :class="{ 'nav-active': route.path.endsWith('/operadoras') }"
             >Minhas operadoras</RouterLink
           >
-                    >
           <RouterLink
             v-if="tenant.access?.can_manage_permissions"
             :to="`/empresas/${tenant.id}/permissoes`"
