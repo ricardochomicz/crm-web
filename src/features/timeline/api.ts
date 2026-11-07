@@ -13,6 +13,7 @@ export type TimelineComment = {
     id: string
     tenant_user_id: string
     content: string
+    can_edit: boolean
     created_at: string
     edited_at: string | null
     author?: { user?: { name: string } }
