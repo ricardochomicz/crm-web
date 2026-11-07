@@ -63,12 +63,38 @@ async function load() {
 
 async function save() {
     if (!statusId.value || saving.value) return
-    if (showLineActivation.value && (pendingItems.value.length || canComplete.value)) {
-        if (!expected.value && pendingItems.value.length) { toast.error('Informe a data de ativação.'); return }
-        if (expected.value > new Date().toLocaleDateString('en-CA')) { toast.error('A data de ativação não pode ser futura.'); return }
-        activationDate.value = expected.value
-        selectedItems.value = pendingItems.value.map(item => item.id)
-        confirmationOpen.value = true
+    if (showLineActivation.value) {
+        saving.value = true
+        try {
+            // Reconsulta o banco antes de selecionar linhas para evitar dados antigos.
+            const detail = await ordersApi.show(props.tenantId, props.orderId)
+            order.value = detail.data
+            if (detail.data.administratively_completed_at) {
+                toast.error('Este pedido já está concluído.')
+                return
+            }
+            const pending = detail.data.items?.filter(item => item.status === 'PENDING' && !item.activated_at && item.quantity === 1) ?? []
+            const active = detail.data.items?.length && detail.data.items.every(item => item.status === 'ACTIVE' && !!item.activated_at)
+            if (!pending.length && !active) {
+                toast.error('Não há linhas pendentes disponíveis para ativação. Confira os status das linhas.')
+                return
+            }
+            if (pending.length && !expected.value) {
+                toast.error('Informe a data de ativação.')
+                return
+            }
+            if (expected.value && expected.value > new Date().toLocaleDateString('en-CA')) {
+                toast.error('A data de ativação não pode ser futura.')
+                return
+            }
+            activationDate.value = expected.value
+            selectedItems.value = pending.map(item => item.id)
+            confirmationOpen.value = true
+        } catch (failure) {
+            toast.error(errorMessage(failure))
+        } finally {
+            saving.value = false
+        }
         return
     }
     saving.value = true
