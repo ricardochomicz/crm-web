@@ -22,7 +22,9 @@ const confirmationOpen = ref(false)
 const activationDate = ref('')
 const moving = ref(false)
 const timelineVersion = ref(0)
-const showLineActivation = computed(() => statuses.value.find(status => status.id === statusId.value)?.name.trim().toLocaleLowerCase('pt-BR') === 'ativo')
+const selectedStatusName = computed(() => statuses.value.find(status => status.id === statusId.value)?.name.trim().toLocaleLowerCase('pt-BR') ?? '')
+const showLineActivation = computed(() => ['ativo', 'parcialmente ativado'].includes(selectedStatusName.value))
+
 const allPendingSelected = computed(() => pendingItems.value.length > 0 && pendingItems.value.every(item => selectedItems.value.includes(item.id)))
 const somePendingSelected = computed(() => selectedItems.value.length > 0 && !allPendingSelected.value)
 function toggleAllPending(checked: boolean) { selectedItems.value = checked ? pendingItems.value.map(item => item.id) : [] }
