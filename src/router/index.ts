@@ -52,6 +52,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Plano e assinatura' },
     },
     {
+      path: '/empresas/:tenantId/oportunidades',
+      component: () => import('@/features/opportunities/views/OpportunitiesView.vue'),
+      meta: { requiresAuth: true, title: 'Oportunidades' },
+    },
+    {
       path: '/empresas/:tenantId/agenda',
       component: () => import('@/features/calendar/views/CalendarView.vue'),
       meta: { requiresAuth: true, title: 'Agenda' },

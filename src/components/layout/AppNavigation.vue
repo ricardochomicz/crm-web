@@ -18,7 +18,7 @@ const canViewGoals = () => hasPermission('commercial-goals.view') || hasPermissi
 const canViewTeamCommissions = () => hasPermission('team-commissions.view') || hasPermission('commissions.view')
 watch(() => route.path, (path) => {
   if (/\/(equipe|equipes|participantes-comerciais)$/.test(path)) teamOpen.value = true
-  if (/\/(produtos|clientes)$/.test(path)) commercialOpen.value = true
+  if (/\/(produtos|clientes|oportunidades)$/.test(path)) commercialOpen.value = true
   if (/\/(comissoes|comissoes-equipe|metas-comerciais|classificacoes)$/.test(path)) managementOpen.value = true
   if (/\/(dados|unidades|permissoes|assinatura|operadoras)$/.test(path)) settingsOpen.value = true
 }, { immediate: true })
@@ -56,9 +56,10 @@ watch(() => route.path, (path) => {
             <RouterLink v-if="can(tenant, 'commissions.view')" :to="`/empresas/${tenant.id}/participantes-comerciais`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/participantes-comerciais') }">Parceiros e indicadores</RouterLink>
           </div>
         </div>
-        <div v-if="can(tenant, 'products.view') || can(tenant, 'clients.view')" class="space-y-2">
+        <div v-if="can(tenant, 'products.view') || can(tenant, 'clients.view') || can(tenant, 'opportunities.view')" class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="commercialOpen" @click="commercialOpen = !commercialOpen">Comercial <span aria-hidden="true">{{ commercialOpen ? '⌄' : '›' }}</span></button>
           <div v-show="commercialOpen" class="space-y-1 border-l border-stone-200 pl-2">
+            <RouterLink v-if="can(tenant, 'opportunities.view')" :to="`/empresas/${tenant.id}/oportunidades`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/oportunidades') }">Oportunidades</RouterLink>
             <RouterLink v-if="can(tenant, 'clients.view')" :to="`/empresas/${tenant.id}/clientes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/clientes') }">Clientes</RouterLink>
             <RouterLink v-if="can(tenant, 'products.view')" :to="`/empresas/${tenant.id}/produtos`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/produtos') }" :aria-current="route.path.endsWith('/produtos') ? 'page' : undefined">Produtos e planos</RouterLink>
           </div>
