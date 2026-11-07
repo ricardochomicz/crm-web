@@ -1,4 +1,4 @@
-import { request } from '@/lib/http'
+import { mutate, request } from '@/lib/http'
 
 export type CommercialOrder = {
     id: string
@@ -15,6 +15,10 @@ export type CommercialOrder = {
 }
 
 export const ordersApi = {
+    show: (tenantId: string, id: string) =>
+        request<{ data: CommercialOrder }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders/${id}`),
+    updateWorkflow: (tenantId: string, id: string, data: { order_status_id: string; expected_activation_at: string | null }) =>
+        mutate<{ data: CommercialOrder }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders/${id}/workflow`, data, 'PATCH'),
     list: (tenantId: string) =>
         request<{ data: CommercialOrder[] }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders`),
 }
