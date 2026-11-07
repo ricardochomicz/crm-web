@@ -30,7 +30,9 @@ function togglePending(id: string, checked: boolean) {
     selectedItems.value = checked ? [...selectedItems.value.filter(value => value !== id), id] : selectedItems.value.filter(value => value !== id)
 }
 const pendingItems = computed(() => order.value?.items?.filter(item => item.status === 'PENDING' && !item.activated_at && item.quantity === 1) ?? [])
+const allLinesWillBeActive = computed(() => !!order.value?.items?.length && order.value.items.every(item => (item.status === 'ACTIVE' && !!item.activated_at) || selectedItems.value.includes(item.id)))
 const canComplete = computed(() => !!order.value?.items?.length && order.value.items.every(item => item.status === 'ACTIVE' && !!item.activated_at) && !order.value.administratively_completed_at)
+const displayActivationDate = computed(() => order.value?.activated_at?.slice(0, 10) || order.value?.items?.filter(item => item.activated_at).map(item => item.activated_at!.slice(0, 10)).sort().at(-1) || '')
 const error = ref('')
 let sequence = 0
 
@@ -49,7 +51,7 @@ async function load() {
         confirmationOpen.value = false
         statuses.value = options.data
         statusId.value = detail.data.order_status_id ?? ''
-        expected.value = detail.data.expected_activation_at?.slice(0, 10) ?? ''
+        expected.value = detail.data.activated_at?.slice(0, 10) || detail.data.items?.filter(item => item.activated_at).map(item => item.activated_at!.slice(0, 10)).sort().at(-1) || ''
     } catch (failure) {
         if (current === sequence) error.value = errorMessage(failure)
     } finally {
@@ -59,8 +61,8 @@ async function load() {
 
 async function save() {
     if (!statusId.value || saving.value) return
-    if (showLineActivation.value && pendingItems.value.length) {
-        if (!expected.value) { toast.error('Informe a data de ativação.'); return }
+    if (showLineActivation.value && (pendingItems.value.length || canComplete.value)) {
+        if (!expected.value && pendingItems.value.length) { toast.error('Informe a data de ativação.'); return }
         if (expected.value > new Date().toLocaleDateString('en-CA')) { toast.error('A data de ativação não pode ser futura.'); return }
         activationDate.value = expected.value
         selectedItems.value = pendingItems.value.map(item => item.id)
@@ -84,14 +86,21 @@ async function save() {
     }
 }
 async function activateSelected() {
-    if (!selectedItems.value.length || !activationDate.value || moving.value) return
+    if (moving.value || (!selectedItems.value.length && !canComplete.value) || (selectedItems.value.length > 0 && !activationDate.value)) return
     moving.value = true
     try {
-        await ordersApi.activateItems(props.tenantId, props.orderId, {
-            item_ids: selectedItems.value,
-            activated_at: activationDate.value,
-        })
-        toast.success('Linhas ativadas com sucesso.')
+        if (selectedItems.value.length) {
+            await ordersApi.activateItems(props.tenantId, props.orderId, {
+                item_ids: selectedItems.value,
+                activated_at: activationDate.value,
+            })
+        }
+        if (allLinesWillBeActive.value) {
+            await ordersApi.complete(props.tenantId, props.orderId)
+            toast.success('Linhas ativadas e pedido concluído.')
+        } else {
+            toast.success('Linhas selecionadas ativadas. As demais continuam pendentes.')
+        }
         confirmationOpen.value = false
         await load()
         timelineVersion.value++
@@ -103,21 +112,6 @@ async function activateSelected() {
     }
 }
 
-async function completeOrder() {
-    if (!canComplete.value || moving.value) return
-    moving.value = true
-    try {
-        await ordersApi.complete(props.tenantId, props.orderId)
-        toast.success('Pedido concluído.')
-        await load()
-        timelineVersion.value++
-        emit('saved')
-    } catch (failure) {
-        toast.error(errorMessage(failure))
-    } finally {
-        moving.value = false
-    }
-}
 
 watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate: true })
 </script>
@@ -167,7 +161,7 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                             </select>
                         </label>
                         <label class="text-sm font-semibold text-slate-700">Data de ativação
-                            <input v-model="expected" type="date" class="field mt-2 w-full" />
+                            <input v-model="expected" type="date" class="field mt-2 w-full" :max="new Date().toLocaleDateString('en-CA')" :disabled="!!order.administratively_completed_at" />
                         </label>
                     </div>
                     <div class="mt-4 flex justify-end">
@@ -175,9 +169,7 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                     </div>
                 </form>
 
-                <div v-if="canComplete" class="flex justify-end">
-                    <button type="button" class="primary-button w-auto" :disabled="moving" @click="completeOrder">Concluir pedido</button>
-                </div>
+                <p v-if="displayActivationDate" class="text-sm text-slate-600">Última ativação registrada: <strong>{{ displayActivationDate.split('-').reverse().join('/') }}</strong></p>
                 <OrderItemsSection :items="order.items || []" :count="order.line_quantity" />
             </div>
 
@@ -188,10 +180,12 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
         </div>
         <AppDialog :open="confirmationOpen" title="Confirmar ativação das linhas" size="wide" :busy="moving" @close="confirmationOpen = false">
             <div class="space-y-4">
-                <p class="text-sm text-slate-700">Confirma a data de ativação <strong>{{ activationDate.split('-').reverse().join('/') }}</strong> para as linhas selecionadas?</p>
-                <p class="text-sm text-slate-500">Todas as linhas pendentes estão selecionadas. Desmarque as que ainda não foram ativadas.</p>
-                <p class="text-sm font-semibold text-slate-700">{{ selectedItems.length }} de {{ pendingItems.length }} linhas selecionadas</p>
-                        <div class="overflow-hidden rounded-lg border border-stone-200">
+                <p v-if="pendingItems.length" class="text-sm text-slate-700">Confirma a data de ativação <strong>{{ activationDate.split('-').reverse().join('/') }}</strong> para as linhas selecionadas?</p>
+                <p v-else class="text-sm text-slate-700">Todas as linhas já estão ativadas. Confirma a conclusão do pedido?</p>
+                <p v-if="pendingItems.length" class="text-sm text-slate-500">Todas as linhas pendentes estão selecionadas. Desmarque as que ainda não foram ativadas.</p>
+                <p v-if="pendingItems.length" class="text-sm font-semibold text-slate-700">{{ selectedItems.length }} de {{ pendingItems.length }} linhas selecionadas</p>
+                <p v-if="allLinesWillBeActive" class="rounded-lg bg-orange-50 p-3 text-sm font-medium text-orange-800">Todas as linhas estarão ativas. Ao confirmar, o pedido também será concluído.</p>
+                        <div v-if="pendingItems.length" class="overflow-hidden rounded-lg border border-stone-200">
                             <div class="flex items-center gap-3 border-b border-stone-200 bg-stone-50 px-3 py-2">
                                 <AppCheckbox :model-value="allPendingSelected" :indeterminate="somePendingSelected"
                                     label="Selecionar todas as linhas" @update:model-value="toggleAllPending" />
@@ -205,11 +199,11 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                                 </div>
                             </div>
                         </div>
-                <p v-if="!selectedItems.length" class="text-sm text-rose-700">Selecione pelo menos uma linha para continuar.</p>
+                <p v-if="pendingItems.length && !selectedItems.length" class="text-sm text-rose-700">Selecione pelo menos uma linha para continuar.</p>
                 <div class="flex flex-wrap justify-end gap-2 border-t border-stone-200 pt-4">
                     <button type="button" class="secondary-button w-auto" :disabled="moving" @click="confirmationOpen = false">Cancelar</button>
-                    <button type="button" class="primary-button w-auto" :disabled="moving || !selectedItems.length" @click="activateSelected">
-                        {{ moving ? 'Confirmando…' : 'Confirmar ativação' }}
+                    <button type="button" class="primary-button w-auto" :disabled="moving || (!selectedItems.length && !canComplete)" @click="activateSelected">
+                        {{ moving ? 'Confirmando…' : allLinesWillBeActive ? 'Confirmar e concluir pedido' : 'Confirmar ativação' }}
                     </button>
                 </div>
             </div>
