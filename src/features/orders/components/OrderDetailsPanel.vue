@@ -34,6 +34,7 @@ function togglePending(id: string, checked: boolean) {
 const pendingItems = computed(() => order.value?.items?.filter(item => item.status === 'PENDING' && !item.activated_at && item.quantity === 1) ?? [])
 const allLinesWillBeActive = computed(() => !!order.value?.items?.length && order.value.items.every(item => (item.status === 'ACTIVE' && !!item.activated_at) || selectedItems.value.includes(item.id)))
 const canComplete = computed(() => !!order.value?.items?.length && order.value.items.every(item => item.status === 'ACTIVE' && !!item.activated_at) && !order.value.administratively_completed_at)
+const orderLocked = computed(() => !!order.value?.administratively_completed_at || selectedStatusName.value === 'concluído')
 const displayActivationDate = computed(() => order.value?.activated_at?.slice(0, 10) || order.value?.items?.filter(item => item.activated_at).map(item => item.activated_at!.slice(0, 10)).sort().at(-1) || '')
 const error = ref('')
 let sequence = 0
@@ -62,7 +63,7 @@ async function load() {
 }
 
 async function save() {
-    if (!statusId.value || saving.value) return
+    if (!statusId.value || saving.value || orderLocked.value) return
     if (showLineActivation.value) {
         saving.value = true
         try {
@@ -124,8 +125,7 @@ async function activateSelected() {
             })
         }
         if (allLinesWillBeActive.value) {
-            await ordersApi.complete(props.tenantId, props.orderId)
-            toast.success('Linhas ativadas e pedido concluído.')
+            toast.success('Todas as linhas ativadas. Pedido concluído.')
         } else {
             toast.success('Linhas selecionadas ativadas. As demais continuam pendentes.')
         }
@@ -183,20 +183,21 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                     <h3 class="mb-4 font-semibold text-slate-800">Acompanhamento do pedido</h3>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <label class="text-sm font-semibold text-slate-700">Status do pedido
-                            <select v-model="statusId" class="field mt-2 w-full" required>
+                            <select v-model="statusId" class="field mt-2 w-full" required :disabled="orderLocked">
                                 <option value="" disabled>Selecione</option>
                                 <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
                             </select>
                         </label>
                         <label class="text-sm font-semibold text-slate-700">Data de ativação
-                            <input v-model="expected" type="date" class="field mt-2 w-full" :max="new Date().toLocaleDateString('en-CA')" :disabled="!!order.administratively_completed_at" />
+                            <input v-model="expected" type="date" class="field mt-2 w-full" :max="new Date().toLocaleDateString('en-CA')" :disabled="orderLocked" />
                         </label>
                     </div>
                     <div class="mt-4 flex justify-end">
-                        <button type="submit" class="primary-button w-auto" :disabled="saving || !statusId || !!order.administratively_completed_at">{{ saving ? 'Salvando…' : 'Salvar alterações' }}</button>
+                        <button type="submit" class="primary-button w-auto" :disabled="saving || !statusId || orderLocked">{{ saving ? 'Salvando…' : 'Salvar alterações' }}</button>
                     </div>
                 </form>
 
+                <p v-if="orderLocked" class="text-sm font-medium text-slate-600">Pedido concluído. Status e data de ativação bloqueados para edição.</p>
                 <p v-if="displayActivationDate" class="text-sm text-slate-600">Última ativação registrada: <strong>{{ displayActivationDate.split('-').reverse().join('/') }}</strong></p>
                 <OrderItemsSection :items="order.items || []" :count="order.line_quantity" />
             </div>
