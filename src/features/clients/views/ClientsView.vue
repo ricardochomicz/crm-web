@@ -236,11 +236,11 @@ async function removeClient(c: Client) {
     busy.value = false
   }
 }
-async async function openHistory(id: string) {
+async function openHistory(id: string) {
   await details(id)
   if (selected.value?.id === id) tab.value = 'history'
 }
-function details(id: string) {
+async function details(id: string) {
   try {
     selected.value = (await clientsApi.show(tenantId.value, id)).data
     tab.value = 'data'
