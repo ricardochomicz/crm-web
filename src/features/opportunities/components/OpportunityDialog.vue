@@ -12,6 +12,27 @@ const props = defineProps<{ open: boolean; tenantId: string; opportunity: Opport
 const emit = defineEmits<{ close: []; saved: [] }>()
 const busy = ref(false)
 const error = ref('')
+const clientSearch = ref('')
+const clientMenuOpen = ref(false)
+const filteredClients = computed(() => {
+  const term = clientSearch.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+  const digits = term.replace(/\D/g, '')
+  return props.clients.filter(client => {
+    const name = client.company_name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    return !term || name.includes(term) || (digits.length >= 2 && client.document.replace(/\D/g, '').includes(digits))
+  }).slice(0, 30)
+})
+function selectClient(client: Client) {
+  form.value.client_id = client.id
+  clientSearch.value = client.company_name + ' · ' + client.document
+  clientMenuOpen.value = false
+}
+function generateCode(): string {
+  const now = new Date()
+  const stamp = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0'),
+    String(now.getHours()).padStart(2, '0'), String(now.getMinutes()).padStart(2, '0'), String(now.getSeconds()).padStart(2, '0')].join('')
+  return 'OP-' + stamp + '-' + Math.random().toString(36).slice(2, 6).toUpperCase()
+}
 const showImport = ref(false)
 const pastedNumbers = ref('')
 const batchProductId = ref('')
@@ -107,8 +128,16 @@ watch(() => [props.open, props.opportunity] as const, () => {
     estimated_monthly_amount: Number(props.opportunity.estimated_monthly_amount),
     estimated_one_time_amount: Number(props.opportunity.estimated_one_time_amount),
     items: (props.opportunity.items ?? []).map(item => ({ ...item, quantity: Number(item.quantity), monthly_unit_amount: Number(item.monthly_unit_amount), one_time_unit_amount: Number(item.one_time_unit_amount) })),
-  } : blank()
+  } : { ...blank(), code: generateCode() }
+  const selected = props.clients.find(client => client.id === form.value.client_id)
+  clientSearch.value = selected ? selected.company_name + ' · ' + selected.document : ''
+  clientMenuOpen.value = false
 }, { immediate: true })
+watch(() => props.clients, clients => {
+  if (!form.value.client_id) return
+  const selected = clients.find(client => client.id === form.value.client_id)
+  if (selected && !clientMenuOpen.value) clientSearch.value = selected.company_name + ' · ' + selected.document
+})
 async function save() {
   if (busy.value) return
   if (!form.value.client_id) { error.value = 'Selecione um cliente.'; return }
@@ -134,23 +163,41 @@ async function save() {
           <section class="space-y-4">
             <h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Dados da oportunidade</h3>
             <div class="grid gap-4 sm:grid-cols-2">
-              <FormField id="opportunity-code" v-model="form.code" label="Código" required maxlength="40" placeholder="OP-0001" />
+              <FormField id="opportunity-code" v-model="form.code" label="Código" required readonly class="bg-stone-100 text-slate-600" />
               <FormField id="opportunity-title" v-model="form.title" label="Título" required maxlength="200" placeholder="Ex.: Portabilidade de 5 linhas" />
             </div>
-            <label class="block space-y-2 text-sm font-semibold text-slate-700">Cliente
-              <select v-model="form.client_id" class="field" required>
-                <option value="">Selecione um cliente</option>
-                <option v-for="client in clients" :key="client.id" :value="client.id">{{ client.company_name }}</option>
-              </select>
-            </label>
+            <div class="space-y-2">
+              <label for="opportunity-client" class="block text-sm font-semibold text-slate-700">Cliente</label>
+              <div class="relative">
+                <input id="opportunity-client" v-model="clientSearch" class="field" type="search"
+                  autocomplete="off" placeholder="Buscar por nome, CPF ou CNPJ" role="combobox"
+                  aria-autocomplete="list" :aria-expanded="clientMenuOpen" aria-controls="opportunity-client-options"
+                  @focus="clientMenuOpen = true"
+                  @input="form.client_id = ''; clientMenuOpen = true"
+                  @keydown.esc="clientMenuOpen = false"
+                  @keydown.enter.prevent="filteredClients.length && selectClient(filteredClients[0]!)"
+                  @blur="clientMenuOpen = false" />
+                <div v-if="clientMenuOpen" id="opportunity-client-options" role="listbox"
+                  class="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-stone-200 bg-white py-1 shadow-lg">
+                  <button v-for="client in filteredClients" :key="client.id" type="button" role="option"
+                    :aria-selected="form.client_id === client.id"
+                    class="block w-full px-4 py-3 text-left hover:bg-orange-50"
+                    @mousedown.prevent="selectClient(client)">
+                    <span class="block text-sm font-semibold text-slate-800">{{ client.company_name }}</span>
+                    <span class="text-xs text-slate-500">{{ client.document }}</span>
+                  </button>
+                  <p v-if="!filteredClients.length" class="px-4 py-3 text-sm text-slate-500">Nenhum cliente encontrado.</p>
+                </div>
+              </div>
+            </div>
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="block space-y-2 text-sm font-semibold text-slate-700">Tipo de negociação
-                <select v-model="form.order_type_id" class="field" required>
+                <select v-model="form.order_type_id" class="field min-h-[44px]" required>
                   <option value="">Selecione o tipo</option>
                   <option v-for="type in orderTypes" :key="type.id" :value="type.id">{{ type.name }}</option>
                 </select>
               </label>
-              <FormField id="opportunity-forecast" v-model="form.expected_close_at" label="Previsão de fechamento" type="date" />
+              <FormField id="opportunity-forecast" v-model="form.expected_close_at" label="Previsão de fechamento" type="date" class="min-h-[44px]" />
             </div>
           </section>
           <section class="space-y-4 rounded-2xl border border-stone-200 bg-stone-50/60 p-4 sm:p-5">
