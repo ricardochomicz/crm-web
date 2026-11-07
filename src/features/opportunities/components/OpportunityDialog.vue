@@ -63,7 +63,7 @@ function addBatch() {
   if (!selectedBatchType.value) { batchError.value = 'Selecione o tipo das linhas.'; return }
   if (selectedBatchType.value.requires_number && !numbers.length) { batchError.value = 'Cole pelo menos um número.'; return }
   if (!selectedBatchType.value.requires_number && (!Number.isInteger(Number(batchQuantity.value)) || Number(batchQuantity.value) < 1)) { batchError.value = 'Informe a quantidade de linhas novas.'; return }
-  const count = batchType.value === 'new' ? Number(batchQuantity.value) : numbers.length
+  const count = !selectedBatchType.value.requires_number ? Number(batchQuantity.value) : numbers.length
   if (!product) { batchError.value = 'Selecione um plano ativo.'; return }
   if (!Number.isFinite(Number(batchMonthly.value)) || Number(batchMonthly.value) < 0) { batchError.value = 'Valor mensal inválido.'; return }
   if (count + form.value.items.length > maxItems) { batchError.value = 'Limite de 200 itens por oportunidade.'; return }
@@ -75,7 +75,7 @@ function addBatch() {
   }
   form.value.items.push(...Array.from({ length: count }, (_, index) => ({
     order_type_id: batchTypeId.value,
-    product_id: product.id, line_number: batchType.value === 'portability' ? numbers[index] : null, description: product.name,
+    product_id: product.id, line_number: selectedBatchType.value.requires_number ? numbers[index] : null, description: product.name,
     quantity: 1, monthly_unit_amount: Number(batchMonthly.value),
     one_time_unit_amount: 0, notes: null,
   })))
