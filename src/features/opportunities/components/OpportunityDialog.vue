@@ -4,24 +4,27 @@ import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import { opportunitiesApi, type Opportunity, type OpportunityInput } from '../api'
 import { errorMessage } from '@/lib/feedback'
+import type { OrderType } from '@/features/order-types/api'
 import type { Product } from '@/features/products/api'
 import type { Client } from '@/features/clients/api'
 
-const props = defineProps<{ open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[] }>()
+const props = defineProps<{ open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; orderTypes: OrderType[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const busy = ref(false)
 const error = ref('')
 const showImport = ref(false)
 const pastedNumbers = ref('')
 const batchProductId = ref('')
-const batchType = ref<'portability' | 'new'>('portability')
+const batchTypeId = ref('')
+const selectedBatchType = computed(() => props.orderTypes.find(type => type.id === batchTypeId.value))
+const typeName = (id: string) => props.orderTypes.find(type => type.id === id)?.name ?? 'Tipo anterior'
 const batchQuantity = ref(1)
 const batchMonthly = ref(0)
 const batchError = ref('')
 const maxItems = 200
 const lineCount = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0))
 const blank = (): OpportunityInput => ({
-  code: '', title: '', client_id: '', order_type: 'NOVO',
+  code: '', title: '', client_id: '', order_type_id: '',
   description: null, expected_close_at: null,
   estimated_monthly_amount: 0, estimated_one_time_amount: 0, items: [],
 })
@@ -33,8 +36,8 @@ const parsedNumbers = computed(() => pastedNumbers.value.split(/[\s,;]+/).map(va
 const receiptGroups = computed(() => {
   const groups = new Map<string, { name: string; count: number; total: number }>()
   for (const item of form.value.items) {
-    const key = item.operation_type + ':' + item.product_id + ':' + item.monthly_unit_amount
-    const group = groups.get(key) ?? { name: (item.operation_type === 'portability' ? 'Portabilidade · ' : 'Nova · ') + item.description, count: 0, total: 0 }
+    const key = item.order_type_id + ':' + item.product_id + ':' + item.monthly_unit_amount
+    const group = groups.get(key) ?? { name: typeName(item.order_type_id) + ' · ' + item.description, count: 0, total: 0 }
     group.count += Number(item.quantity)
     group.total += Number(item.monthly_unit_amount) * Number(item.quantity)
     groups.set(key, group)
@@ -44,7 +47,7 @@ const receiptGroups = computed(() => {
 function openImport() {
   pastedNumbers.value = ''
   batchProductId.value = ''
-  batchType.value = 'portability'
+  batchTypeId.value = ''
   batchQuantity.value = 1
   batchMonthly.value = 0
   batchError.value = ''
@@ -57,20 +60,21 @@ function addBatch() {
   batchError.value = ''
   const numbers = parsedNumbers.value
   const product = props.products.find(p => p.id === batchProductId.value && p.is_active)
-  if (batchType.value === 'portability' && !numbers.length) { batchError.value = 'Cole pelo menos um número.'; return }
-  if (batchType.value === 'new' && (!Number.isInteger(Number(batchQuantity.value)) || Number(batchQuantity.value) < 1)) { batchError.value = 'Informe a quantidade de linhas novas.'; return }
+  if (!selectedBatchType.value) { batchError.value = 'Selecione o tipo das linhas.'; return }
+  if (selectedBatchType.value.requires_number && !numbers.length) { batchError.value = 'Cole pelo menos um número.'; return }
+  if (!selectedBatchType.value.requires_number && (!Number.isInteger(Number(batchQuantity.value)) || Number(batchQuantity.value) < 1)) { batchError.value = 'Informe a quantidade de linhas novas.'; return }
   const count = batchType.value === 'new' ? Number(batchQuantity.value) : numbers.length
   if (!product) { batchError.value = 'Selecione um plano ativo.'; return }
   if (!Number.isFinite(Number(batchMonthly.value)) || Number(batchMonthly.value) < 0) { batchError.value = 'Valor mensal inválido.'; return }
   if (count + form.value.items.length > maxItems) { batchError.value = 'Limite de 200 itens por oportunidade.'; return }
   const seen = new Set(form.value.items.map(item => (item.line_number ?? '').replace(/\D/g, '')).filter(Boolean))
-  for (const number of batchType.value === 'portability' ? numbers : []) {
+  for (const number of selectedBatchType.value.requires_number ? numbers : []) {
     if (![10, 11].includes(number.length)) { batchError.value = 'Número inválido: ' + number; return }
     if (seen.has(number)) { batchError.value = 'Número duplicado: ' + number; return }
     seen.add(number)
   }
   form.value.items.push(...Array.from({ length: count }, (_, index) => ({
-    operation_type: batchType.value,
+    order_type_id: batchTypeId.value,
     product_id: product.id, line_number: batchType.value === 'portability' ? numbers[index] : null, description: product.name,
     quantity: 1, monthly_unit_amount: Number(batchMonthly.value),
     one_time_unit_amount: 0, notes: null,
@@ -81,7 +85,7 @@ function validateLines(): boolean {
   if (!form.value.items.length) { error.value = 'Adicione pelo menos uma linha ou serviço.'; return false }
   const numbers = new Set<string>()
   for (const [index, item] of form.value.items.entries()) {
-    if (item.operation_type === 'portability' && !item.line_number) { error.value = `Portabilidade exige número no item ${index + 1}.`; return false }
+    if (props.orderTypes.find(type => type.id === item.order_type_id)?.requires_number && !item.line_number) { error.value = `O tipo do item ${index + 1} exige número.`; return false }
     if (!item.product_id) { error.value = `Selecione o plano do item ${index + 1}.`; return false }
     const number = (item.line_number ?? '').replace(/\D/g, '')
     if (number && ![10, 11].includes(number.length)) { error.value = `Informe o telefone com DDD no item ${index + 1}.`; return false }
@@ -97,7 +101,7 @@ watch(() => [props.open, props.opportunity] as const, () => {
   showImport.value = false
   form.value = props.opportunity ? {
     code: props.opportunity.code, title: props.opportunity.title,
-    client_id: props.opportunity.client_id, order_type: props.opportunity.order_type,
+    client_id: props.opportunity.client_id, order_type_id: props.opportunity.order_type_id ?? '',
     description: props.opportunity.description,
     expected_close_at: props.opportunity.expected_close_at?.slice(0, 10) ?? null,
     estimated_monthly_amount: Number(props.opportunity.estimated_monthly_amount),
@@ -108,6 +112,7 @@ watch(() => [props.open, props.opportunity] as const, () => {
 async function save() {
   if (busy.value) return
   if (!form.value.client_id) { error.value = 'Selecione um cliente.'; return }
+  if (!form.value.order_type_id) { error.value = 'Selecione o tipo da negociação.'; return }
   if (!validateLines()) return
   busy.value = true
   error.value = ''
@@ -159,7 +164,7 @@ async function save() {
               <table class="w-full min-w-[500px] text-left text-sm">
                 <thead class="sticky top-0 bg-stone-100 text-xs uppercase text-slate-500"><tr><th class="p-3">Número</th><th class="p-3">Plano</th><th class="p-3 text-right">Mensal</th><th class="p-3 text-right">Ação</th></tr></thead>
                 <tbody><tr v-for="(item, index) in form.items" :key="item.id ?? index" class="border-t border-stone-100">
-                  <td class="p-3 font-medium">{{ item.line_number || 'Número pendente' }}<span class="ml-2 text-xs text-slate-400">{{ item.operation_type === 'portability' ? 'Portabilidade' : 'Nova' }}</span></td><td class="p-3">{{ item.description }}</td>
+                  <td class="p-3 font-medium">{{ item.line_number || 'Número pendente' }}<span class="ml-2 text-xs text-slate-400">{{ typeName(item.order_type_id) }}</span></td><td class="p-3">{{ item.description }}</td>
                   <td class="p-3 text-right">{{ money(Number(item.monthly_unit_amount) * Number(item.quantity)) }}</td>
                   <td class="p-3 text-right"><button type="button" class="font-semibold text-red-600 hover:underline" @click="form.items.splice(index, 1)">Excluir</button></td>
                 </tr></tbody>
@@ -215,10 +220,10 @@ async function save() {
           <option value="new">Linhas novas — números ainda não definidos</option>
         </select>
       </label>
-      <label v-if="batchType === 'new'" class="block space-y-2 text-sm font-semibold">Quantidade de linhas novas
+      <label v-if="selectedBatchType && !selectedBatchType.requires_number" class="block space-y-2 text-sm font-semibold">Quantidade de linhas novas
         <input v-model.number="batchQuantity" class="field" type="number" min="1" :max="maxItems - form.items.length" />
       </label>
-      <label v-else class="block space-y-2 text-sm font-semibold">Números (um por linha)
+      <label v-else-if="selectedBatchType?.requires_number" class="block space-y-2 text-sm font-semibold">Números (um por linha)
         <textarea v-model="pastedNumbers" class="field min-h-48 font-mono" rows="8" placeholder="42988080544&#10;42988080541&#10;42988080542" />
       </label>
       <div class="grid gap-4 sm:grid-cols-2">
@@ -232,11 +237,11 @@ async function save() {
           <input v-model.number="batchMonthly" class="field" type="number" min="0" step="0.01" />
         </label>
       </div>
-      <p class="rounded-xl bg-stone-50 p-4 text-sm">{{ batchType === 'new' ? batchQuantity : parsedNumbers.length }} linhas · Total mensal do lote: <strong>{{ money((batchType === 'new' ? Number(batchQuantity) : parsedNumbers.length) * Number(batchMonthly || 0)) }}</strong></p>
+      <p class="rounded-xl bg-stone-50 p-4 text-sm">{{ selectedBatchType && !selectedBatchType.requires_number ? batchQuantity : parsedNumbers.length }} linhas · Total mensal do lote: <strong>{{ money((selectedBatchType && !selectedBatchType.requires_number ? Number(batchQuantity) : parsedNumbers.length) * Number(batchMonthly || 0)) }}</strong></p>
       <p v-if="batchError" role="alert" class="text-sm text-red-700">{{ batchError }}</p>
       <div class="flex justify-end gap-3 border-t pt-4">
         <button type="button" class="secondary-button w-auto" @click="showImport = false">Cancelar</button>
-        <button type="button" class="primary-button w-auto" @click="addBatch">Adicionar {{ batchType === 'new' ? batchQuantity : parsedNumbers.length }} linhas</button>
+        <button type="button" class="primary-button w-auto" @click="addBatch">Adicionar {{ selectedBatchType && !selectedBatchType.requires_number ? batchQuantity : parsedNumbers.length }} linhas</button>
       </div>
     </div>
   </AppDialog>

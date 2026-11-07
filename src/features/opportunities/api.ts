@@ -1,20 +1,20 @@
 import { request, mutate } from '@/lib/http'
 
 export type OpportunityItem = {
-  id?: string; operation_type: 'portability' | 'new'; product_id: string; line_number: string | null; description: string
+  id?: string; order_type_id: string; product_id: string; line_number: string | null; description: string
   quantity: number; monthly_unit_amount: number; one_time_unit_amount: number; notes: string | null
 }
 export type Opportunity = {
   items?: OpportunityItem[];
   id: string; code: string; title: string; status: 'open' | 'won' | 'lost' | 'cancelled'
   client_id: string; tenant_user_id: string; funnel_stage_id: string | null
-  operator_id: number | null; order_type: string; description: string | null
+  operator_id: number | null; order_type: string; order_type_id: string | null; description: string | null
   expected_close_at: string | null; estimated_monthly_amount: string
   estimated_one_time_amount: string; client?: { id: string; company_name: string }
   stage?: { id: string; name: string }; operator?: { id: number; name: string }
 }
 export type OpportunityInput = {
-  code: string; title: string; client_id: string; order_type: string
+  code: string; title: string; client_id: string; order_type_id: string
   description: string | null; expected_close_at: string | null
   estimated_monthly_amount: number; estimated_one_time_amount: number; items: OpportunityItem[]
 }

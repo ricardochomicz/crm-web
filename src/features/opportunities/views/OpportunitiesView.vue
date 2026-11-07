@@ -9,6 +9,7 @@ import PagePagination from '@/components/ui/PagePagination.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import { tenantApi } from '@/features/tenants/api'
 import { can, type Tenant } from '@/features/tenants/types'
+import { orderTypesApi, type OrderType } from '@/features/order-types/api'
 import { productsApi, type Product } from '@/features/products/api'
 import { clientsApi, type Client } from '@/features/clients/api'
 import { opportunitiesApi, type Opportunity } from '../api'
@@ -20,6 +21,7 @@ const tenantId = computed(() => String(useRoute().params.tenantId))
 const tenant = ref<Tenant>()
 const clients = ref<Client[]>([])
 const products = ref<Product[]>([])
+const orderTypes = ref<OrderType[]>([])
 const rows = ref<Opportunity[]>([])
 const search = ref('')
 const status = ref('open')
@@ -55,6 +57,8 @@ async function setup() {
     const t = await tenantApi.show(id)
     if (id !== tenantId.value) return
     tenant.value = t.data
+    const types = await orderTypesApi.active()
+    if (id === tenantId.value) orderTypes.value = types.data
     if (canCreate.value || canEdit.value) {
       const c = await clientsApi.list(id)
       if (id === tenantId.value) clients.value = c.data
@@ -76,7 +80,7 @@ async function open(item: Opportunity | null = null) {
   dialogOpen.value = true
 }
 function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); void load() }
-watch(tenantId, () => { tenant.value = undefined; clients.value = []; page.value = 1; void setup(); void load() }, { immediate: true })
+watch(tenantId, () => { tenant.value = undefined; clients.value = []; orderTypes.value = []; page.value = 1; void setup(); void load() }, { immediate: true })
 const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 </script>
 <template>
@@ -113,6 +117,6 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
       <p v-if="!rows.length" class="p-6 text-center text-sm text-slate-500">Nenhuma oportunidade encontrada.</p>
     </section>
     <PagePagination :page="page" :last-page="lastPage" :total="total" :per-page="perPage" :busy="loading" @change="changePage" />
-    <OpportunityDialog :open="dialogOpen" :tenant-id="tenantId" :opportunity="editing" :clients="clients" :products="products" @close="dialogOpen = false" @saved="saved" />
+    <OpportunityDialog :open="dialogOpen" :tenant-id="tenantId" :opportunity="editing" :clients="clients" :products="products" :order-types="orderTypes" @close="dialogOpen = false" @saved="saved" />
   </AppShell>
 </template>
