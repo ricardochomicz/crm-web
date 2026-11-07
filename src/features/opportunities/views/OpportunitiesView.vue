@@ -49,7 +49,12 @@ function switchSection(next: 'open' | 'closed') {
     page.value = 1
     filters.value = defaultFilters(next)
     applied.value = { ...filters.value }
-    if (next === 'closed') viewMode.value = 'list'
+    viewMode.value = next === 'closed' ? 'list' : 'kanban'
+    if (next === 'open' && stages.value.length === 0) {
+        void opportunitiesApi.stages(tenantId.value).then(result => {
+            stages.value = result.data
+        }).catch(e => toast.error(errorMessage(e)))
+    }
     reload()
 }
 const kanbanRows = ref<Opportunity[]>([])
