@@ -11,9 +11,11 @@ const props = defineProps<{ open: boolean; tenantId: string; opportunity: Opport
 const emit = defineEmits<{ close: []; saved: [] }>()
 const busy = ref(false)
 const error = ref('')
-const showQuantity = ref(false)
-const quantityToAdd = ref(1)
-const replicatePlan = ref(false)
+const showImport = ref(false)
+const pastedNumbers = ref('')
+const batchProductId = ref('')
+const batchMonthly = ref(0)
+const batchError = ref('')
 const maxItems = 200
 const lineCount = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0))
 const blank = (): OpportunityInput => ({
@@ -25,44 +27,48 @@ const form = ref<OpportunityInput>(blank())
 const totalMonthly = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.monthly_unit_amount || 0) * Number(item.quantity || 0), 0))
 const totalOnce = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.one_time_unit_amount || 0) * Number(item.quantity || 0), 0))
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-function addLines() {
-  const quantity = Number(quantityToAdd.value)
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > maxItems || form.value.items.length + quantity > maxItems) {
-    error.value = `Informe de 1 a ${maxItems - form.value.items.length} linhas.`
-    return
+const parsedNumbers = computed(() => pastedNumbers.value.split(/[\s,;]+/).map(value => value.replace(/\D/g, '')).filter(Boolean))
+const receiptGroups = computed(() => {
+  const groups = new Map<string, { name: string; count: number; total: number }>()
+  for (const item of form.value.items) {
+    const key = item.product_id + ':' + item.monthly_unit_amount
+    const group = groups.get(key) ?? { name: item.description, count: 0, total: 0 }
+    group.count += Number(item.quantity)
+    group.total += Number(item.monthly_unit_amount) * Number(item.quantity)
+    groups.set(key, group)
   }
-  const source = replicatePlan.value ? form.value.items.find(item => item.product_id) : undefined
-  for (let index = 0; index < quantity; index++) {
-    form.value.items.push({
-      product_id: source?.product_id ?? '', line_number: null,
-      description: source?.description ?? '', quantity: 1,
-      monthly_unit_amount: source ? Number(source.monthly_unit_amount) : 0,
-      one_time_unit_amount: source ? Number(source.one_time_unit_amount) : 0, notes: null,
-    })
+  return [...groups.entries()].map(([key, group]) => ({ key, ...group }))
+})
+function openImport() {
+  pastedNumbers.value = ''
+  batchProductId.value = ''
+  batchMonthly.value = 0
+  batchError.value = ''
+  showImport.value = true
+}
+function chooseBatchPlan() {
+  batchMonthly.value = Number(props.products.find(product => product.id === batchProductId.value)?.price ?? 0)
+}
+function addBatch() {
+  batchError.value = ''
+  const numbers = parsedNumbers.value
+  const product = props.products.find(p => p.id === batchProductId.value && p.is_active)
+  if (!numbers.length) { batchError.value = 'Cole pelo menos um número.'; return }
+  if (!product) { batchError.value = 'Selecione um plano ativo.'; return }
+  if (!Number.isFinite(Number(batchMonthly.value)) || Number(batchMonthly.value) < 0) { batchError.value = 'Valor mensal inválido.'; return }
+  if (numbers.length + form.value.items.length > maxItems) { batchError.value = 'Limite de 200 itens por oportunidade.'; return }
+  const seen = new Set(form.value.items.map(item => (item.line_number ?? '').replace(/\D/g, '')).filter(Boolean))
+  for (const number of numbers) {
+    if (![10, 11].includes(number.length)) { batchError.value = 'Número inválido: ' + number; return }
+    if (seen.has(number)) { batchError.value = 'Número duplicado: ' + number; return }
+    seen.add(number)
   }
-  error.value = ''
-  quantityToAdd.value = 1
-  showQuantity.value = false
-}
-function replicateFrom(index: number) {
-  const source = form.value.items[index]
-  if (!source?.product_id) return
-  form.value.items.forEach((item, position) => {
-    if (position === index) return
-    item.product_id = source.product_id
-    item.description = source.description
-    item.monthly_unit_amount = source.monthly_unit_amount
-    item.one_time_unit_amount = source.one_time_unit_amount
-  })
-}
-function choosePlan(index: number) {
-  const item = form.value.items[index]
-  if (!item) return
-  const product = props.products.find(p => p.id === item.product_id)
-  if (!product) return
-  item.description = product.name
-  item.monthly_unit_amount = Number(product.price)
-  if (replicatePlan.value) replicateFrom(index)
+  form.value.items.push(...numbers.map(number => ({
+    product_id: product.id, line_number: number, description: product.name,
+    quantity: 1, monthly_unit_amount: Number(batchMonthly.value),
+    one_time_unit_amount: 0, notes: null,
+  })))
+  showImport.value = false
 }
 function validateLines(): boolean {
   if (!form.value.items.length) { error.value = 'Adicione pelo menos uma linha ou serviço.'; return false }
@@ -80,9 +86,7 @@ function validateLines(): boolean {
 watch(() => [props.open, props.opportunity] as const, () => {
   if (!props.open) return
   error.value = ''
-  showQuantity.value = false
-  quantityToAdd.value = 1
-  replicatePlan.value = false
+  showImport.value = false
   form.value = props.opportunity ? {
     code: props.opportunity.code, title: props.opportunity.title,
     client_id: props.opportunity.client_id, order_type: props.opportunity.order_type,
@@ -139,47 +143,21 @@ async function save() {
           </section>
           <section class="space-y-4 rounded-2xl border border-stone-200 bg-stone-50/60 p-4 sm:p-5">
             <div class="flex flex-wrap items-center justify-between gap-3">
-              <div><h3 class="text-lg font-semibold text-slate-800">Linhas e serviços</h3>
-                <p class="text-xs text-slate-500">Cadastre cada número com seu plano e valor.</p></div>
-              <button type="button" class="secondary-button w-auto" :disabled="form.items.length >= maxItems" @click="showQuantity = !showQuantity">+ Adicionar linhas</button>
+              <div><h3 class="text-lg font-semibold">Linhas e serviços</h3><p class="text-xs text-slate-500">Cole números do Excel em lotes, cada lote com seu plano.</p></div>
+              <button type="button" class="primary-button w-auto" :disabled="form.items.length >= maxItems" @click="openImport">+ Importar linhas</button>
             </div>
-            <div v-if="showQuantity" class="flex flex-wrap items-end gap-3 rounded-xl border border-orange-200 bg-orange-50 p-4">
-              <label class="space-y-1 text-xs font-semibold text-slate-700">Quantidade de novas linhas
-                <input v-model.number="quantityToAdd" type="number" class="field w-32" min="1" :max="maxItems - form.items.length" />
-              </label>
-              <button type="button" class="primary-button w-auto" @click="addLines">Adicionar</button>
-              <button type="button" class="secondary-button w-auto" @click="showQuantity = false">Cancelar</button>
+            <p v-if="!form.items.length" class="rounded-xl border border-dashed border-stone-300 bg-white p-8 text-center text-sm text-slate-500">Nenhuma linha adicionada.</p>
+            <div v-else class="max-h-[420px] overflow-auto rounded-xl border border-stone-200 bg-white">
+              <table class="w-full min-w-[500px] text-left text-sm">
+                <thead class="sticky top-0 bg-stone-100 text-xs uppercase text-slate-500"><tr><th class="p-3">Número</th><th class="p-3">Plano</th><th class="p-3 text-right">Mensal</th><th class="p-3 text-right">Ação</th></tr></thead>
+                <tbody><tr v-for="(item, index) in form.items" :key="item.id ?? index" class="border-t border-stone-100">
+                  <td class="p-3 font-medium">{{ item.line_number || '—' }}</td><td class="p-3">{{ item.description }}</td>
+                  <td class="p-3 text-right">{{ money(Number(item.monthly_unit_amount) * Number(item.quantity)) }}</td>
+                  <td class="p-3 text-right"><button type="button" class="font-semibold text-red-600 hover:underline" @click="form.items.splice(index, 1)">Excluir</button></td>
+                </tr></tbody>
+              </table>
             </div>
-            <label class="flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm font-medium text-slate-700">
-              <input v-model="replicatePlan" type="checkbox" class="size-4 accent-orange-600" />
-              Replicar o próximo plano selecionado para todas as linhas
-            </label>
-            <div v-if="!form.items.length" class="rounded-xl border border-dashed border-stone-300 bg-white p-8 text-center text-sm text-slate-500">
-              Nenhuma linha adicionada. Clique em “Adicionar linhas” para começar.
-            </div>
-            <div v-for="(item, index) in form.items" :key="item.id ?? index" class="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
-              <div class="mb-3 flex items-center justify-between">
-                <strong class="text-sm text-slate-800">Linha {{ index + 1 }}</strong>
-                <button type="button" class="text-xs font-semibold text-red-600 hover:underline" @click="form.items.splice(index, 1)">Remover</button>
-              </div>
-              <div class="grid gap-3 sm:grid-cols-2">
-                <label class="space-y-1 text-xs font-semibold text-slate-600">Número com DDD
-                  <input v-model="item.line_number" class="field" type="tel" inputmode="numeric" maxlength="20" placeholder="41999999999" />
-                </label>
-                <label class="space-y-1 text-xs font-semibold text-slate-600">Plano
-                  <select v-model="item.product_id" class="field" required @change="choosePlan(index)">
-                    <option value="">Selecione o plano</option>
-                    <option v-for="product in products.filter(p => p.is_active)" :key="product.id" :value="product.id">{{ product.name }} — {{ money(Number(product.price)) }}</option>
-                  </select>
-                </label>
-                <label class="space-y-1 text-xs font-semibold text-slate-600">Valor mensal (R$)
-                  <input v-model.number="item.monthly_unit_amount" class="field" type="number" min="0" step="0.01" required />
-                </label>
-                <label class="space-y-1 text-xs font-semibold text-slate-600">Quantidade
-                  <input v-model.number="item.quantity" class="field" type="number" min="1" :readonly="!!item.line_number" required />
-                </label>
-              </div>
-            </div>
+            <p class="text-sm font-semibold">{{ lineCount }} linha(s) · {{ money(totalMonthly) }}/mês</p>
           </section>
           <label class="block space-y-2 text-sm font-semibold text-slate-700">Observações
             <textarea v-model="form.description" class="field" rows="3" placeholder="Detalhes da negociação" />
@@ -193,12 +171,10 @@ async function save() {
               <p class="mt-1 text-xs text-slate-300">{{ form.code || 'Sem código' }} · {{ lineCount }} linha(s)/serviço(s)</p>
             </div>
             <div class="max-h-[40vh] space-y-3 overflow-y-auto px-5 py-4">
-              <p v-if="!form.items.length" class="py-8 text-center text-sm text-slate-400">Os itens adicionados aparecerão aqui.</p>
-              <div v-for="(item, index) in form.items" :key="item.id ?? index" class="flex items-start justify-between gap-3 border-b border-dashed border-stone-200 pb-3 text-sm">
-                <div class="min-w-0"><p class="font-semibold text-slate-800">Linha {{ index + 1 }} <span v-if="item.quantity > 1" class="font-normal text-slate-500">× {{ item.quantity }}</span></p>
-                  <p class="truncate text-xs text-slate-500">{{ item.line_number || 'Número não informado' }}</p>
-                  <p class="mt-1 text-xs text-slate-500">{{ item.description || 'Plano não selecionado' }}</p></div>
-                <span class="shrink-0 font-semibold text-slate-800">{{ money(Number(item.monthly_unit_amount || 0) * Number(item.quantity || 0)) }}</span>
+              <p v-if="!receiptGroups.length" class="py-8 text-center text-sm text-slate-400">Os lotes aparecerão aqui.</p>
+              <div v-for="group in receiptGroups" :key="group.key" class="flex justify-between gap-3 border-b border-dashed border-stone-200 pb-3 text-sm">
+                <div><strong>{{ group.name }}</strong><p class="text-xs text-slate-500">{{ group.count }} linha(s)</p></div>
+                <strong>{{ money(group.total) }}</strong>
               </div>
             </div>
             <div class="space-y-3 border-t border-dashed border-stone-300 bg-stone-50 px-5 py-5">
@@ -222,5 +198,29 @@ async function save() {
         </div>
       </footer>
     </form>
+  </AppDialog>
+  <AppDialog :open="open && showImport" title="Importar linhas" description="Cole os números do Excel e associe um plano a todo o lote." size="wide" @close="showImport = false">
+    <div class="space-y-4">
+      <label class="block space-y-2 text-sm font-semibold">Números (um por linha)
+        <textarea v-model="pastedNumbers" class="field min-h-48 font-mono" rows="8" placeholder="42988080544&#10;42988080541&#10;42988080542" />
+      </label>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="block space-y-2 text-sm font-semibold">Plano do lote
+          <select v-model="batchProductId" class="field" @change="chooseBatchPlan">
+            <option value="">Selecione o plano</option>
+            <option v-for="product in products.filter(p => p.is_active)" :key="product.id" :value="product.id">{{ product.name }} — {{ money(Number(product.price)) }}</option>
+          </select>
+        </label>
+        <label class="block space-y-2 text-sm font-semibold">Valor mensal por linha
+          <input v-model.number="batchMonthly" class="field" type="number" min="0" step="0.01" />
+        </label>
+      </div>
+      <p class="rounded-xl bg-stone-50 p-4 text-sm">{{ parsedNumbers.length }} números · Total mensal do lote: <strong>{{ money(parsedNumbers.length * Number(batchMonthly || 0)) }}</strong></p>
+      <p v-if="batchError" role="alert" class="text-sm text-red-700">{{ batchError }}</p>
+      <div class="flex justify-end gap-3 border-t pt-4">
+        <button type="button" class="secondary-button w-auto" @click="showImport = false">Cancelar</button>
+        <button type="button" class="primary-button w-auto" @click="addBatch">Adicionar {{ parsedNumbers.length }} linhas</button>
+      </div>
+    </div>
   </AppDialog>
 </template>
