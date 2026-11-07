@@ -1,21 +1,49 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import { opportunitiesApi, type Opportunity, type OpportunityInput } from '../api'
 import { errorMessage } from '@/lib/feedback'
+import type { Product } from '@/features/products/api'
 import type { Client } from '@/features/clients/api'
 
-const props = defineProps<{ open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[] }>()
+const props = defineProps<{ open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const busy = ref(false)
 const error = ref('')
 const blank = (): OpportunityInput => ({
   code: '', title: '', client_id: '', order_type: 'NOVO',
   description: null, expected_close_at: null,
-  estimated_monthly_amount: 0, estimated_one_time_amount: 0,
+  estimated_monthly_amount: 0, estimated_one_time_amount: 0, items: [],
 })
 const form = ref<OpportunityInput>(blank())
+const totalMonthly = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.monthly_unit_amount || 0) * Number(item.quantity || 0), 0))
+const totalOnce = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.one_time_unit_amount || 0) * Number(item.quantity || 0), 0))
+const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+function addLine() {
+  form.value.items.push({ product_id: '', line_number: null, description: '', quantity: 1, monthly_unit_amount: 0, one_time_unit_amount: 0, notes: null })
+}
+function choosePlan(index: number) {
+  const item = form.value.items[index]
+  if (!item) return
+  const product = props.products.find(p => p.id === item.product_id)
+  if (!product) return
+  item.description = product.name
+  item.monthly_unit_amount = Number(product.price)
+}
+function validateLines(): boolean {
+  if (!form.value.items.length) { error.value = 'Adicione pelo menos uma linha ou serviço.'; return false }
+  const numbers = new Set<string>()
+  for (const [index, item] of form.value.items.entries()) {
+    if (!item.product_id) { error.value = `Selecione o plano do item ${index + 1}.`; return false }
+    const number = (item.line_number ?? '').replace(/\D/g, '')
+    if (number && ![10, 11].includes(number.length)) { error.value = `Informe o telefone com DDD no item ${index + 1}.`; return false }
+    if (number && numbers.has(number)) { error.value = 'Existem números de linha duplicados.'; return false }
+    if (number) numbers.add(number)
+    if (number && Number(item.quantity) !== 1) { error.value = 'Uma linha identificada deve ter quantidade 1.'; return false }
+  }
+  return true
+}
 watch(() => [props.open, props.opportunity] as const, () => {
   if (!props.open) return
   error.value = ''
@@ -26,15 +54,17 @@ watch(() => [props.open, props.opportunity] as const, () => {
     expected_close_at: props.opportunity.expected_close_at?.slice(0, 10) ?? null,
     estimated_monthly_amount: Number(props.opportunity.estimated_monthly_amount),
     estimated_one_time_amount: Number(props.opportunity.estimated_one_time_amount),
+    items: (props.opportunity.items ?? []).map(item => ({ ...item, quantity: Number(item.quantity), monthly_unit_amount: Number(item.monthly_unit_amount), one_time_unit_amount: Number(item.one_time_unit_amount) })),
   } : blank()
 }, { immediate: true })
 async function save() {
   if (busy.value) return
   if (!form.value.client_id) { error.value = 'Selecione um cliente.'; return }
+  if (!validateLines()) return
   busy.value = true
   error.value = ''
   try {
-    const payload = { ...form.value, expected_close_at: form.value.expected_close_at || null }
+    const payload = { ...form.value, expected_close_at: form.value.expected_close_at || null, estimated_monthly_amount: totalMonthly.value, estimated_one_time_amount: totalOnce.value, items: form.value.items.map(item => ({ ...item, line_number: item.line_number?.replace(/\D/g, '') || null })) }
     if (props.opportunity) await opportunitiesApi.update(props.tenantId, props.opportunity.id, payload)
     else await opportunitiesApi.create(props.tenantId, payload)
     emit('saved')
@@ -43,7 +73,7 @@ async function save() {
 }
 </script>
 <template>
-  <AppDialog :open="open" :title="opportunity ? 'Editar oportunidade' : 'Nova oportunidade'" description="Registre e acompanhe negociações comerciais." :busy="busy" @close="emit('close')">
+  <AppDialog :open="open" :title="opportunity ? 'Editar oportunidade' : 'Nova oportunidade'" description="Registre e acompanhe negociações comerciais." :busy="busy" drawer @close="emit('close')">
     <form class="space-y-4" @submit.prevent="save">
       <fieldset :disabled="busy" class="space-y-4">
         <div class="grid gap-4 sm:grid-cols-2">
@@ -67,9 +97,39 @@ async function save() {
             </select>
           </label>
           <FormField id="opportunity-forecast" v-model="form.expected_close_at" label="Previsão de fechamento" type="date" />
-          <FormField id="opportunity-monthly" v-model.number="form.estimated_monthly_amount" label="Valor mensal estimado" type="number" min="0" step="0.01" />
-          <FormField id="opportunity-once" v-model.number="form.estimated_one_time_amount" label="Valor pontual estimado" type="number" min="0" step="0.01" />
+
         </div>
+        <section class="space-y-3 rounded-2xl border border-stone-200 bg-stone-50/50 p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div><h3 class="font-semibold text-slate-800">Linhas e serviços</h3><p class="text-xs text-slate-500">Informe número, plano e valor de cada linha.</p></div>
+            <button type="button" class="secondary-button w-auto" @click="addLine">+ Adicionar linha</button>
+          </div>
+          <div v-for="(item, index) in form.items" :key="index" class="space-y-3 rounded-xl border border-stone-200 bg-white p-4">
+            <div class="flex items-center justify-between"><strong class="text-sm">Item {{ index + 1 }}</strong><button type="button" class="text-sm font-semibold text-red-600 hover:underline" @click="form.items.splice(index, 1)">Remover</button></div>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="space-y-1 text-xs font-semibold text-slate-600">Número da linha (DDD)
+                <input v-model="item.line_number" class="field" type="tel" inputmode="numeric" maxlength="20" placeholder="41999999999" />
+              </label>
+              <label class="space-y-1 text-xs font-semibold text-slate-600">Plano
+                <select v-model="item.product_id" class="field" required @change="choosePlan(index)">
+                  <option value="">Selecione o plano</option>
+                  <option v-for="product in products.filter(p => p.is_active)" :key="product.id" :value="product.id">{{ product.name }} — {{ money(Number(product.price)) }}</option>
+                </select>
+              </label>
+              <label class="space-y-1 text-xs font-semibold text-slate-600">Valor mensal (R$)
+                <input v-model.number="item.monthly_unit_amount" class="field" type="number" min="0" step="0.01" required />
+              </label>
+              <label class="space-y-1 text-xs font-semibold text-slate-600">Quantidade
+                <input v-model.number="item.quantity" class="field" type="number" min="1" :readonly="!!item.line_number" required />
+              </label>
+            </div>
+          </div>
+          <p v-if="!form.items.length" class="rounded-xl border border-dashed border-stone-300 p-4 text-center text-sm text-slate-500">Nenhuma linha adicionada.</p>
+          <div class="flex flex-wrap justify-between gap-2 border-t border-stone-200 pt-3 text-sm font-semibold">
+            <span>{{ form.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0) }} linha(s)/serviço(s)</span>
+            <span>Mensal: {{ money(totalMonthly) }} · Pontual: {{ money(totalOnce) }}</span>
+          </div>
+        </section>
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Observações
           <textarea v-model="form.description" class="field" rows="3" placeholder="Detalhes da negociação" />
         </label>

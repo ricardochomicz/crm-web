@@ -9,6 +9,7 @@ import PagePagination from '@/components/ui/PagePagination.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import { tenantApi } from '@/features/tenants/api'
 import { can, type Tenant } from '@/features/tenants/types'
+import { productsApi, type Product } from '@/features/products/api'
 import { clientsApi, type Client } from '@/features/clients/api'
 import { opportunitiesApi, type Opportunity } from '../api'
 import OpportunityDialog from '../components/OpportunityDialog.vue'
@@ -18,6 +19,7 @@ import { toast } from '@/services/toast'
 const tenantId = computed(() => String(useRoute().params.tenantId))
 const tenant = ref<Tenant>()
 const clients = ref<Client[]>([])
+const products = ref<Product[]>([])
 const rows = ref<Opportunity[]>([])
 const search = ref('')
 const status = ref('open')
@@ -56,13 +58,23 @@ async function setup() {
     if (canCreate.value || canEdit.value) {
       const c = await clientsApi.list(id)
       if (id === tenantId.value) clients.value = c.data
+      const p = await productsApi.list(id, 1, { search: '', operator_id: '', category: '', is_active: 'active' })
+      if (id === tenantId.value) products.value = p.data
     }
   } catch (e) { error.value = errorMessage(e) }
 }
 function applyFilters() { page.value = 1; applied.value = { search: search.value.trim(), status: status.value }; void load() }
 function clearFilters() { search.value = ''; status.value = 'open'; applyFilters() }
 function changePage(next: number) { page.value = next; void load() }
-function open(item: Opportunity | null = null) { editing.value = item; dialogOpen.value = true }
+async function open(item: Opportunity | null = null) {
+  if (item) {
+    try {
+      const detail = await opportunitiesApi.show(tenantId.value, item.id)
+      editing.value = detail.data
+    } catch (e) { toast.error(errorMessage(e)); return }
+  } else editing.value = null
+  dialogOpen.value = true
+}
 function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); void load() }
 watch(tenantId, () => { tenant.value = undefined; clients.value = []; page.value = 1; void setup(); void load() }, { immediate: true })
 const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -101,6 +113,6 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
       <p v-if="!rows.length" class="p-6 text-center text-sm text-slate-500">Nenhuma oportunidade encontrada.</p>
     </section>
     <PagePagination :page="page" :last-page="lastPage" :total="total" :per-page="perPage" :busy="loading" @change="changePage" />
-    <OpportunityDialog :open="dialogOpen" :tenant-id="tenantId" :opportunity="editing" :clients="clients" @close="dialogOpen = false" @saved="saved" />
+    <OpportunityDialog :open="dialogOpen" :tenant-id="tenantId" :opportunity="editing" :clients="clients" :products="products" @close="dialogOpen = false" @saved="saved" />
   </AppShell>
 </template>
