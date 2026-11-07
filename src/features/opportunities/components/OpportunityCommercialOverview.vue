@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { opportunitiesApi, type CommercialOverview, type CommercialMetric } from '../api'
+import { opportunitiesApi, type CommercialOverview } from '../api'
 import { errorMessage } from '@/lib/feedback'
 
 const props = defineProps<{ tenantId: string }>()
