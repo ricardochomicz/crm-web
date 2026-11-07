@@ -6,6 +6,7 @@ import { ordersApi, type CommercialOrder } from '../api'
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
 import OrderItemsSection from './OrderItemsSection.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
+import AppDialog from '@/components/ui/AppDialog.vue'
 import { orderStatusesApi, type OrderStatus } from '@/features/order-statuses/api'
 
 const props = defineProps<{ tenantId: string; orderId: string }>()
@@ -17,7 +18,8 @@ const expected = ref('')
 const loading = ref(false)
 const saving = ref(false)
 const selectedItems = ref<string[]>([])
-const activationDate = ref(new Date().toLocaleDateString('en-CA'))
+const confirmationOpen = ref(false)
+const activationDate = ref('')
 const moving = ref(false)
 const timelineVersion = ref(0)
 const showLineActivation = computed(() => statuses.value.find(status => status.id === statusId.value)?.name.trim().toLocaleLowerCase('pt-BR') === 'ativo')
@@ -44,6 +46,7 @@ async function load() {
         if (current !== sequence) return
         order.value = detail.data
         selectedItems.value = []
+        confirmationOpen.value = false
         statuses.value = options.data
         statusId.value = detail.data.order_status_id ?? ''
         expected.value = detail.data.expected_activation_at?.slice(0, 10) ?? ''
@@ -56,6 +59,14 @@ async function load() {
 
 async function save() {
     if (!statusId.value || saving.value) return
+    if (showLineActivation.value && pendingItems.value.length) {
+        if (!expected.value) { toast.error('Informe a data de ativação.'); return }
+        if (expected.value > new Date().toLocaleDateString('en-CA')) { toast.error('A data de ativação não pode ser futura.'); return }
+        activationDate.value = expected.value
+        selectedItems.value = pendingItems.value.map(item => item.id)
+        confirmationOpen.value = true
+        return
+    }
     saving.value = true
     try {
         await ordersApi.updateWorkflow(props.tenantId, props.orderId, {
@@ -81,7 +92,9 @@ async function activateSelected() {
             activated_at: activationDate.value,
         })
         toast.success('Linhas ativadas com sucesso.')
+        confirmationOpen.value = false
         await load()
+        timelineVersion.value++
         emit('saved')
     } catch (failure) {
         toast.error(errorMessage(failure))
@@ -97,6 +110,7 @@ async function completeOrder() {
         await ordersApi.complete(props.tenantId, props.orderId)
         toast.success('Pedido concluído.')
         await load()
+        timelineVersion.value++
         emit('saved')
     } catch (failure) {
         toast.error(errorMessage(failure))
@@ -161,17 +175,22 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                     </div>
                 </form>
 
-                <section v-if="showLineActivation" class="rounded-xl border border-stone-200 p-5">
-                    <h3 class="font-semibold text-slate-800">Ativação das linhas</h3>
-                    <p class="mt-2 text-sm text-slate-600">
-                        {{ order.activation_summary?.active ?? order.items?.filter(item => item.status === 'ACTIVE').length ?? 0 }}
-                        ativas de {{ order.activation_summary?.total ?? order.line_quantity }} linhas.
-                    </p>
-                    <div v-if="!order.administratively_completed_at && pendingItems.length" class="mt-4 space-y-3">
-                        <label class="block text-sm font-semibold text-slate-700">Data de ativação das linhas selecionadas
-                            <input v-model="activationDate" type="date" class="field mt-2 w-full" :max="new Date().toLocaleDateString('en-CA')" />
-                        </label>
-                        <p class="text-xs text-slate-500">Selecione apenas as linhas que deseja ativar agora.</p>
+                <div v-if="canComplete" class="flex justify-end">
+                    <button type="button" class="primary-button w-auto" :disabled="moving" @click="completeOrder">Concluir pedido</button>
+                </div>
+                <OrderItemsSection :items="order.items || []" :count="order.line_quantity" />
+            </div>
+
+            <aside class="min-w-0 rounded-xl border border-stone-200 p-5">
+                <h3 class="mb-4 font-semibold text-slate-800">Timeline do pedido</h3>
+                <TimelinePanel :key="timelineVersion" :tenant-id="tenantId" type="commercial_order" :subject-id="order.id" :can-write="true" />
+            </aside>
+        </div>
+        <AppDialog :open="confirmationOpen" title="Confirmar ativação das linhas" size="wide" :busy="moving" @close="confirmationOpen = false">
+            <div class="space-y-4">
+                <p class="text-sm text-slate-700">Confirma a data de ativação <strong>{{ activationDate.split('-').reverse().join('/') }}</strong> para as linhas selecionadas?</p>
+                <p class="text-sm text-slate-500">Todas as linhas pendentes estão selecionadas. Desmarque as que ainda não foram ativadas.</p>
+                <p class="text-sm font-semibold text-slate-700">{{ selectedItems.length }} de {{ pendingItems.length }} linhas selecionadas</p>
                         <div class="overflow-hidden rounded-lg border border-stone-200">
                             <div class="flex items-center gap-3 border-b border-stone-200 bg-stone-50 px-3 py-2">
                                 <AppCheckbox :model-value="allPendingSelected" :indeterminate="somePendingSelected"
@@ -186,22 +205,14 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                                 </div>
                             </div>
                         </div>
-                        <button type="button" class="primary-button w-auto" :disabled="moving || !selectedItems.length || !activationDate" @click="activateSelected">
-                            {{ moving ? 'Processando…' : `Ativar ${selectedItems.length} linha(s)` }}
-                        </button>
-                    </div>
-                    <p v-else-if="order.administratively_completed_at" class="mt-3 text-sm text-slate-600">Pedido concluído administrativamente.</p>
-                    <button v-if="canComplete" type="button" class="primary-button mt-4 w-auto" :disabled="moving" @click="completeOrder">
-                        Concluir pedido
+                <p v-if="!selectedItems.length" class="text-sm text-rose-700">Selecione pelo menos uma linha para continuar.</p>
+                <div class="flex flex-wrap justify-end gap-2 border-t border-stone-200 pt-4">
+                    <button type="button" class="secondary-button w-auto" :disabled="moving" @click="confirmationOpen = false">Cancelar</button>
+                    <button type="button" class="primary-button w-auto" :disabled="moving || !selectedItems.length" @click="activateSelected">
+                        {{ moving ? 'Confirmando…' : 'Confirmar ativação' }}
                     </button>
-                </section>
-                <OrderItemsSection :items="order.items || []" :count="order.line_quantity" />
+                </div>
             </div>
-
-            <aside class="min-w-0 rounded-xl border border-stone-200 p-5">
-                <h3 class="mb-4 font-semibold text-slate-800">Timeline do pedido</h3>
-                <TimelinePanel :key="timelineVersion" :tenant-id="tenantId" type="commercial_order" :subject-id="order.id" :can-write="true" />
-            </aside>
-        </div>
+        </AppDialog>
     </section>
 </template>
