@@ -6,6 +6,7 @@ import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
 import { productsApi, type Product, type ProductPromotion } from '../api'
 import { useProductsList } from './useProductsList'
+import { useProductFormValidation } from './useProductFormValidation'
 
 /** Estado e operações da página de produtos, sem dependências de apresentação. */
 export function useProductsPage(tenantId: Ref<string>) {
@@ -23,6 +24,7 @@ const categories = [
 ]
 const blank = () => ({ operator_id: 0, name: '', description: '', category: 'BROADBAND', price: '', is_active: true })
 const form = ref(blank())
+const { productErrors, promotionErrors, validateProduct, validatePromotion, applyApiErrors } = useProductFormValidation()
 const editingId = ref('')
 const promoProductId = ref('')
 const promoEditingId = ref('')
@@ -37,7 +39,7 @@ const promotionPriceDisplay = computed({ get: () => promo.value.promotional_pric
 const currentPromotion = (p: Product): ProductPromotion | undefined => p.promotions?.find(pr => pr.is_active && pr.starts_at <= new Date().toISOString().slice(0, 10) && pr.ends_at >= new Date().toISOString().slice(0, 10))
 const promotionPrice = (p: Product): string | null => { const active = currentPromotion(p); return active ? money(active.promotional_price) : null }
 const selectedProduct = computed(() => products.value.find(p => p.id === promoProductId.value))
-function newProduct() { reset(); productModalOpen.value = true }
+function newProduct() { reset(); productErrors.value = {}; productModalOpen.value = true }
 function closeProduct() { if (!busy.value) productModalOpen.value = false }
 function closePromotion() { if (!busy.value) promotionModalOpen.value = false }
 const writable = computed(() => canManage.value && !!tenant.value?.access?.allows_operational_writes)
@@ -61,12 +63,14 @@ async function load() {
 }
 function edit(p: Product) {
   productModalOpen.value = true
+  productErrors.value = {}
   editingId.value = p.id
   form.value = { operator_id: p.operator_id, name: p.name, description: p.description ?? '', category: p.category, price: money(p.price), is_active: p.is_active }
 }
 function reset() { editingId.value = ''; form.value = blank() }
 async function save() {
   if (!(editingId.value ? canUpdateWritable.value : canCreateWritable.value) || busy.value) return
+  if (!validateProduct(form.value, operators.value.map(o => o.id), categories.map(c => c[0]!))) return
   busy.value = true
   try {
     const payload = { ...form.value, operator_id: Number(form.value.operator_id), price: parseBrl(form.value.price) }
@@ -75,10 +79,11 @@ async function save() {
     reset()
     productModalOpen.value = false
     await load()
-  } catch (e) { toast.error(errorMessage(e)) }
+  } catch (e) { applyApiErrors(e, 'product'); toast.error(errorMessage(e)) }
   finally { busy.value = false }
 }
 function promotion(p: Product, existing?: ProductPromotion) {
+  promotionErrors.value = {}
   promotionModalOpen.value = true
   promoProductId.value = p.id
   promoEditingId.value = existing?.id ?? ''
@@ -86,6 +91,7 @@ function promotion(p: Product, existing?: ProductPromotion) {
 }
 async function savePromotion() {
   if (!canPromoteWritable.value || busy.value) return
+  if (!validatePromotion(promo.value)) return
   busy.value = true
   try {
     await productsApi.savePromotion(tenantId.value, promoProductId.value, { ...promo.value, promotional_price: parseBrl(promo.value.promotional_price) }, promoEditingId.value || undefined)
@@ -93,10 +99,10 @@ async function savePromotion() {
     promoProductId.value = ''
     promotionModalOpen.value = false
     await load()
-  } catch (e) { toast.error(errorMessage(e)) }
+  } catch (e) { applyApiErrors(e, 'promotion'); toast.error(errorMessage(e)) }
   finally { busy.value = false }
 }
 watch(tenantId, () => { productModalOpen.value = false; promotionModalOpen.value = false; nameFilter.value = ''; operatorFilter.value = ''; categoryFilter.value = ''; statusFilter.value = ''; productPage.value = 1; void load() }, { immediate: true })
 
-return { tenant, products, productPage, lastPage, totalProducts, filtersLoading, canManage, canCreate, canUpdate, canManagePromotions, nameFilter, operatorFilter, categoryFilter, statusFilter, loadProducts, applyFilters, clearFilters, operators, loading, busy, error, categories, form, editingId, promoProductId, promoEditingId, promo, productModalOpen, promotionModalOpen, money, priceDisplay, promotionPriceDisplay, currentPromotion, promotionPrice, selectedProduct, newProduct, closeProduct, closePromotion, writable, canCreateWritable, canUpdateWritable, canPromoteWritable, load, edit, reset, save, promotion, savePromotion }
+return { productErrors, promotionErrors, tenant, products, productPage, lastPage, totalProducts, filtersLoading, canManage, canCreate, canUpdate, canManagePromotions, nameFilter, operatorFilter, categoryFilter, statusFilter, loadProducts, applyFilters, clearFilters, operators, loading, busy, error, categories, form, editingId, promoProductId, promoEditingId, promo, productModalOpen, promotionModalOpen, money, priceDisplay, promotionPriceDisplay, currentPromotion, promotionPrice, selectedProduct, newProduct, closeProduct, closePromotion, writable, canCreateWritable, canUpdateWritable, canPromoteWritable, load, edit, reset, save, promotion, savePromotion }
 }
