@@ -47,9 +47,7 @@ async function recover(item: Opportunity) {
 function switchSection(next: 'open' | 'closed') {
     section.value = next
     page.value = 1
-    filters.value = next === 'closed'
-        ? { search: '', status: 'all', period: 'closed', date_from: '', date_to: '' }
-        : defaultFilters()
+    filters.value = defaultFilters(next)
     applied.value = { ...filters.value }
     if (next === 'closed') viewMode.value = 'list'
     reload()
@@ -58,7 +56,14 @@ const kanbanRows = ref<Opportunity[]>([])
 const movingId = ref<string | null>(null)
 const commercialOverview = ref<InstanceType<typeof OpportunityCommercialOverview> | null>(null)
 const kanbanLimitReached = ref(false)
-const defaultFilters = (): OpportunityFilters => ({ search: '', status: 'open', period: 'current', order_type_id: '', date_from: '', date_to: '' })
+const defaultFilters = (area: 'open' | 'closed' = 'open'): OpportunityFilters => ({
+    search: '',
+    status: area === 'closed' ? 'all' : 'open',
+    period: area === 'closed' ? 'closed' : 'current',
+    order_type_id: '',
+    date_from: '',
+    date_to: '',
+})
 const filters = ref<OpportunityFilters>(defaultFilters())
 const applied = ref<OpportunityFilters>(defaultFilters())
 const page = ref(1)
@@ -199,11 +204,16 @@ function applyFilters() {
         return
     }
     page.value = 1
-    applied.value = { ...filters.value, search: filters.value.search?.trim(), period: filters.value.status !== 'open' && filters.value.period === 'current' ? 'all' : filters.value.period }
+    applied.value = {
+        ...filters.value,
+        search: filters.value.search?.trim(),
+        status: section.value === 'open' ? 'open' : filters.value.status === 'open' ? 'all' : filters.value.status,
+        period: section.value === 'closed' ? 'closed' : filters.value.period,
+    }
     reload()
 }
 function clearFilters() {
-    filters.value = defaultFilters()
+    filters.value = defaultFilters(section.value)
     applyFilters()
 }
 function changePage(next: number) { page.value = next; void load() }
@@ -253,7 +263,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
     </div>
     <OpportunityCommercialOverview ref="commercialOverview" :tenant-id="tenantId" />
     <div v-if="section === 'closed'" class="mb-3 text-xs text-slate-500">Histórico de oportunidades ganhas e perdidas. Utilize os filtros para pesquisar por cliente, período e situação.</div>
-    <OpportunityFiltersPanel v-model="filters" :types="orderTypes" :busy="loading" :count="total" @search="applyFilters" @clear="clearFilters" />
+    <OpportunityFiltersPanel v-model="filters" :section="section" :types="orderTypes" :busy="loading" :count="total" @search="applyFilters" @clear="clearFilters" />
     <div v-if="section === 'open'" class="mb-4 flex justify-end">
       <div class="inline-flex rounded-xl border border-stone-200 bg-white p-1 shadow-sm" role="group" aria-label="Visualização das oportunidades">
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="viewMode === 'list' ? 'bg-orange-50 text-orange-700' : 'text-slate-600 hover:bg-stone-50'" @click="changeView('list')">☷ Lista</button>
@@ -286,9 +296,9 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
           </td>
           <td class="p-4">
             <div class="flex items-center gap-2">
-              <TableActionButton v-if="canEdit && item.status === 'open'" icon="edit" :label="`Editar ${item.title}`" @click="open(item)" />
+              <TableActionButton v-if="section === 'open' && canEdit && item.status === 'open'" icon="edit" :label="`Editar ${item.title}`" @click="open(item)" />
               <button v-if="canEdit && section === 'closed' && item.status === 'lost'" type="button" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100" :disabled="!!recoveringId" @click="recover(item)">{{ recoveringId === item.id ? 'Recuperando…' : 'Recuperar negociação' }}</button>
-              <button v-if="canEdit && item.status === 'open'" type="button" class="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100" @click="askConfirmSale(item)">Confirmar venda</button>
+              <button v-if="section === 'open' && canEdit && item.status === 'open'" type="button" class="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100" @click="askConfirmSale(item)">Confirmar venda</button>
             </div>
           </td>
         </tr></tbody>

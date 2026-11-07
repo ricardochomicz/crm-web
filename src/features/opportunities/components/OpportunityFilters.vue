@@ -5,6 +5,7 @@ import type { OpportunityFilters } from '../api'
 import type { OrderType } from '@/features/order-types/api'
 
 const props = defineProps<{
+    section: 'open' | 'closed'
     modelValue: OpportunityFilters
     types: OrderType[]
     busy: boolean
@@ -18,12 +19,12 @@ const emit = defineEmits<{
 function set(key: keyof OpportunityFilters, value: string | number) {
     emit('update:modelValue', { ...props.modelValue, [key]: value })
 }
-const custom = computed(() => props.modelValue.period === 'custom')
+const custom = computed(() => props.modelValue.period === 'custom' || (props.section === 'closed' && props.modelValue.period === 'closed'))
 const activeCount = computed(() => [
     !!props.modelValue.search?.trim(),
     !!props.modelValue.order_type_id,
-    props.modelValue.status !== 'open',
-    props.modelValue.period !== 'current',
+    props.section === 'closed' ? props.modelValue.status !== 'all' : props.modelValue.status !== 'open',
+    props.section === 'closed' ? false : props.modelValue.period !== 'current',
     props.modelValue.period === 'custom' && !!props.modelValue.date_from,
     props.modelValue.period === 'custom' && !!props.modelValue.date_to,
     props.modelValue.min_amount !== undefined && props.modelValue.min_amount !== '',
@@ -40,11 +41,11 @@ const activeCount = computed(() => [
         <label class="text-xs font-semibold text-slate-600">
             Situação
             <select :value="modelValue.status" class="field" @change="set('status', ($event.target as HTMLSelectElement).value)">
-                <option value="open">Em aberto</option>
+                <option v-if="section === 'open'" value="open">Em aberto</option>
                 <option value="won">Ganhas</option>
                 <option value="lost">Perdidas</option>
                 <option value="cancelled">Canceladas</option>
-                <option value="all">Todas</option>
+                <option v-if="section === 'closed'" value="all">Todas as encerradas</option>
             </select>
         </label>
         <label class="text-xs font-semibold text-slate-600">
@@ -55,22 +56,23 @@ const activeCount = computed(() => [
             </select>
         </label>
         <label class="text-xs font-semibold text-slate-600">
-            Período do forecast
+            {{ section === 'closed' ? 'Período do encerramento' : 'Período do forecast' }}
             <select :value="modelValue.period" class="field" @change="set('period', ($event.target as HTMLSelectElement).value)">
-                <option value="current">Mês atual + atrasadas + sem previsão</option>
-                <option value="overdue">Somente atrasadas</option>
-                <option value="future">Próximos meses</option>
-                <option value="custom">Intervalo personalizado</option>
-                <option value="all">Todas as datas</option>
+                <option v-if="section === 'closed'" value="closed">Todas as datas de encerramento</option>
+                <option v-if="section === 'open'" value="current">Mês atual + atrasadas + sem previsão</option>
+                <option v-if="section === 'open'" value="overdue">Somente atrasadas</option>
+                <option v-if="section === 'open'" value="future">Próximos meses</option>
+                <option v-if="section === 'open'" value="custom">Intervalo personalizado</option>
+                <option v-if="section === 'open'" value="all">Todas as datas</option>
             </select>
         </label>
         <template v-if="custom">
             <label class="text-xs font-semibold text-slate-600">
-                Previsão inicial
+                {{ section === 'closed' ? 'Encerramento inicial' : 'Previsão inicial' }}
                 <input type="date" class="field" :value="modelValue.date_from" @input="set('date_from', ($event.target as HTMLInputElement).value)" />
             </label>
             <label class="text-xs font-semibold text-slate-600">
-                Previsão final
+                {{ section === 'closed' ? 'Encerramento final' : 'Previsão final' }}
                 <input type="date" class="field" :min="modelValue.date_from" :value="modelValue.date_to" @input="set('date_to', ($event.target as HTMLInputElement).value)" />
             </label>
         </template>
