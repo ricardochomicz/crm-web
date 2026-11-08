@@ -5,6 +5,7 @@ export interface CalendarEvent {
   id: string
   tenant_user_id: string
   client_id: string | null
+  opportunity_id: string | null
   title: string
   description: string | null
   type: EventType
@@ -15,6 +16,8 @@ export interface CalendarEvent {
   ends_at: string
 }
 export interface CalendarEventInput {
+  opportunity_id?: string | null
+  client_id?: string | null
   title: string
   description: string | null
   type: EventType
