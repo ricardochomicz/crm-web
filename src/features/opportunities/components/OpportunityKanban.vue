@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import type { FunnelStage, Opportunity } from '../api'
 const props = defineProps<{ stages: FunnelStage[]; items: Opportunity[]; canEdit: boolean; busyId: string | null }>()
-const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity]; resend: [item: Opportunity] }>()
+const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; schedule: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity]; resend: [item: Opportunity] }>()
 const dragging = ref<string | null>(null)
 const hover = ref<string | null>(null)
 const columns = computed(() => [
@@ -66,7 +67,10 @@ function drop(stageId: string) {
                 <span v-if="isOverdue(item)" class="ml-1 rounded-md bg-rose-100 px-1.5 py-0.5 text-rose-800">Atrasada</span>
               </p>
             </button>
-            <button type="button" class="mt-3 w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-stone-100" @click="emit('history', item)">💬 Histórico</button>
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <button type="button" class="flex items-center justify-center gap-1 rounded-lg border border-stone-200 bg-stone-50 px-2 py-2 text-xs font-semibold text-slate-700 hover:bg-stone-100" @click="emit('history', item)"><AppIcon name="message-square" :size="14" /> Histórico</button>
+              <button v-if="item.status === 'open'" type="button" class="flex items-center justify-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-2 text-xs font-semibold text-orange-800 hover:bg-orange-100" @click="emit('schedule', item)"><AppIcon name="calendar-plus" :size="14" /> Agendar</button>
+            </div>
             <button v-if="canEdit && item.status === 'open' && /para correção/i.test(stage.name)" type="button" class="mt-3 w-full rounded-lg bg-orange-600 px-3 py-2 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50" :disabled="!!busyId" @click="emit('resend', item)">Reenviar ao Backoffice</button>
             <div v-if="canEdit && item.status === 'open' && !/para correção/i.test(stage.name)" class="mt-3 grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
               <button type="button" class="flex items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-500" :disabled="!!busyId" @click="emit('won', item)">
