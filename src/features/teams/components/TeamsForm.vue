@@ -39,11 +39,11 @@ const showSupervisor = computed(() => props.mode !== 'name')
     <label for="team-supervisor" class="text-sm font-semibold text-slate-700">Supervisor</label>
     <SearchSelect
       :model-value="supervisorMembershipId"
-      :options="[{value:'',label:'Selecione um supervisor de equipe'}, ...activeMembers.map(member => ({value:member.id,label:member.name ?? member.email ?? member.id}))]"
+      :options="[{value:'',label:'Sem supervisor por enquanto'}, ...activeMembers.map(member => ({value:member.id,label:member.name ?? member.email ?? member.id}))]"
       :disabled="busy || membersLoading"
       @update:model-value="emit('update:supervisorMembershipId', String($event))"
     />
-    <p v-if="!membersLoading && activeMembers.length === 0" class="text-xs text-slate-500">Nenhum membro ativo com o cargo Supervisor de Equipe. Atribua esse cargo em Membros e convites.</p>
+    <p v-if="!membersLoading && activeMembers.length === 0" class="text-xs text-slate-500">Nenhum membro ativo com o cargo Supervisor de Equipe. Você pode criar a equipe sem supervisor e atribuir o cargo em Membros e convites depois.</p>
     <p v-if="supervisorError" class="text-xs text-red-600">{{ supervisorError }}</p>
   </div>
 </template>
