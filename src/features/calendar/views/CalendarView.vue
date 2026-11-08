@@ -24,7 +24,7 @@ const selectedDate = ref('')
 const canCreate = computed(() => can(tenant.value, 'calendar.create') && !!tenant.value?.access?.allows_operational_writes)
 const canEdit = computed(() => can(tenant.value, 'calendar.update') && !!tenant.value?.access?.allows_operational_writes)
 const canDelete = computed(() => can(tenant.value, 'calendar.delete') && !!tenant.value?.access?.allows_operational_writes)
-const teamAllowed = computed(() => can(tenant.value, 'calendar.team.view'))
+const teamAllowed = computed(() => can(tenant.value, 'calendar.team.view') || tenant.value?.access?.role_name?.trim().toLocaleLowerCase('pt-BR') === 'supervisor de equipe')
 const title = computed(() => new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(month.value))
 const dateKey = (date: Date) => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
 const range = computed(() => {
