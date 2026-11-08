@@ -63,14 +63,14 @@ const { form, editing, busy, operators, classesForOperator, sellers, showSellerS
           <div v-if="!editing && (checkingDocument || duplicate?.exists)" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm md:col-span-2 xl:col-span-3">
             <p v-if="checkingDocument">Verificando cadastro...</p>
             <template v-else-if="duplicate?.exists">
-              <p class="font-semibold text-amber-900">Este CPF/CNPJ já está cadastrado neste tenant.</p>
+              <p class="font-semibold text-amber-900">Esse CPF/CNPJ já possui cadastro.</p>
               <p class="mt-1">Responsável: {{ duplicate.owner_name ?? 'Não identificado' }}.</p>
               <p v-if="duplicate.assigned_to_me" class="mt-1">Este cliente já pertence à sua carteira.</p>
               <template v-else>
-                <p class="mt-1" v-if="duplicate.transfer?.eligible">O cliente está sem interação há mais de 90 dias. A transferência depende de aprovação do supervisor.</p>
-                <p v-else class="mt-1">Carteira protegida: ainda não completou 90 dias sem interação registrada.</p>
+                <p class="mt-1">Você pode solicitar a transferência de carteira. O supervisor ou gerente avaliará o histórico de interações e os vínculos comerciais antes de decidir.</p>
+                <p v-if="duplicate.transfer && !duplicate.transfer.inactive_for_90_days" class="mt-1 text-amber-900">Há interação registrada nos últimos 90 dias. A solicitação exigirá avaliação do gestor.</p>
                 <p v-if="duplicate.transfer?.requires_special_review" class="mt-1 font-medium text-amber-900">Atenção: há pedidos ou oportunidades em andamento. O supervisor deverá avaliar esses vínculos antes de decidir.</p>
-                <button v-if="duplicate.transfer?.eligible" type="button" class="primary-button mt-3" :disabled="transferBusy" @click="emit('requestTransfer')">
+                <button type="button" class="primary-button mt-3" :disabled="transferBusy" @click="emit('requestTransfer')">
                   {{ transferBusy ? 'Solicitando...' : 'Solicitar transferência de carteira' }}
                 </button>
               </template>
