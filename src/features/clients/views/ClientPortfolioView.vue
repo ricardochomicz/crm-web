@@ -174,12 +174,7 @@ watch(tenantId, () => void initialize(), { immediate: true })
           <tbody class="divide-y divide-stone-100">
             <tr v-for="contract in rows" :key="contract.order_id" class="hover:bg-stone-50/70">
               <td class="p-4">
-                <RouterLink
-                  v-if="contract.client_id"
-                  :to="`/empresas/${tenantId}/clientes`"
-                  class="font-semibold text-slate-800 hover:text-orange-700"
-                >{{ contract.client_name }}</RouterLink>
-                <span v-else class="font-semibold text-slate-800">{{ contract.client_name }}</span>
+                <span class="font-semibold text-slate-800">{{ contract.client_name }}</span>
                 <p class="mt-1 text-xs text-slate-400">{{ contract.order_code ?? 'Pedido sem código' }}</p>
               </td>
               <td class="p-4">{{ contract.operator_name ?? '—' }}</td>
