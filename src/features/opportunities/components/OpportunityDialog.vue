@@ -4,6 +4,8 @@ import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
 import AppCurrencyField from '@/components/ui/AppCurrencyField.vue'
 import { computed, ref, watch } from 'vue'
+import { tenantApi } from '@/features/tenants/api'
+import type { Tenant } from '@/features/tenants/types'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import OpportunityDetailsForm from './OpportunityDetailsForm.vue'
 import OpportunityReceipt from './OpportunityReceipt.vue'
@@ -21,6 +23,12 @@ import type { Client } from '@/features/clients/api'
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const activeTab = ref<'details' | 'history' | 'comparison' | 'appointments'>('details')
+const viewerTenant = ref<Tenant | null>(null)
+const showResponsible = computed(() => !!viewerTenant.value && (['OWNER', 'MANAGER'].includes(viewerTenant.value.role) || viewerTenant.value.role === 'CONSULTANT' && viewerTenant.value.tenant_role?.code === 'SUPERVISOR'))
+watch(() => [props.open, props.tenantId], async () => {
+  if (!props.open) return
+  try { viewerTenant.value = (await tenantApi.show(props.tenantId)).data } catch { viewerTenant.value = null }
+}, { immediate: true })
 const busy = ref(false)
 const error = ref('')
 const showImport = ref(false)
@@ -186,6 +194,7 @@ async function save() {
 <template>
   <AppDialog :open="open" :title="opportunity ? 'Editar oportunidade' : 'Nova oportunidade'"
     description="Organize a negociação, seus serviços e valores." :busy="busy" size="full" @close="emit('close')">
+    <div v-if="opportunity && showResponsible" class="mb-3 flex items-center gap-2 text-sm text-slate-600"><span class="font-medium">Consultor responsável:</span><span class="font-semibold text-slate-900">{{ opportunity.assignee?.user?.name || "Não atribuído" }}</span></div>
     <div v-if="opportunity" class="mb-5 flex gap-2 border-b border-stone-200 pb-3">
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'details' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'details'">Dados da oportunidade</button>
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'history' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'history'">Histórico</button>
