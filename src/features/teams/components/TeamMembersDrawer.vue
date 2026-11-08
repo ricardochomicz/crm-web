@@ -14,7 +14,7 @@ import type { Page } from '@/features/tenants/types'
 const props = defineProps<{
   tenantId: string
   team: Team | null
-  allMembers: { id: string; name: string | null; email: string | null; status: string; role: string }[]
+  allMembers: { id: string; name: string | null; email: string | null; status: string; role: string; role_name?: string | null }[]
   canManage: boolean
 }>()
 
@@ -24,7 +24,7 @@ const saving = ref(false)
 const actionError = ref('')
 const assignedIds = ref(new Set<string>())
 const availableMembers = computed(() => props.allMembers
-  .filter(m => m.status === 'ACTIVE' && m.role === 'CONSULTANT' && !assignedIds.value.has(m.id))
+  .filter(m => m.status === 'ACTIVE' && m.role_name?.trim().toLocaleLowerCase('pt-BR') === 'consultor' && !assignedIds.value.has(m.id))
   .map(m => ({ value: m.id, label: `${m.name || m.email} — ${m.email || ''}` })))
 async function changeMember(membershipId: string, teamId: string | null) {
   if (!props.team || !props.canManage || saving.value) return
@@ -91,7 +91,7 @@ async function load(nextPage = page.value) {
       <p class="text-sm font-semibold text-slate-800">Adicionar membro à equipe</p>
       <label class="block text-xs font-medium text-slate-600">Consultor</label>
       <SearchSelect v-model="selectedMemberId" :options="availableMembers" placeholder="Busque um consultor por nome ou e-mail" :disabled="saving || loading" />
-      <p v-if="!loading && !availableMembers.length" class="text-xs text-slate-500">Nenhum consultor ativo disponível para adicionar.</p>
+      <p v-if="!loading && !availableMembers.length" class="text-xs text-slate-500">Nenhum consultor disponível para adicionar à equipe.</p>
       <p class="text-xs text-slate-500">Se o membro já pertence a outra equipe, ele será transferido para esta.</p>
       <button type="button" class="primary-button w-auto" :disabled="saving || !selectedMemberId" @click="changeMember(selectedMemberId, team.id)">{{ saving ? 'Salvando…' : 'Adicionar membro' }}</button>
     </div>
