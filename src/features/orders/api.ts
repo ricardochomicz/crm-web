@@ -33,7 +33,7 @@ export type CommercialOrder = {
 export const ordersApi = {
     show: (tenantId: string, id: string) =>
         request<{ data: CommercialOrder }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders/${id}`),
-    updateWorkflow: (tenantId: string, id: string, data: { order_status_id: string; expected_activation_at: string | null }) =>
+    updateWorkflow: (tenantId: string, id: string, data: { order_status_id: string; expected_activation_at: string | null; correction_reason?: string }) =>
         mutate<{ data: CommercialOrder }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders/${id}/workflow`, data, 'PATCH'),
     activateItems: (tenantId: string, id: string, data: { item_ids: string[]; activated_at: string }) =>
         mutate<{ data: CommercialOrder }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders/${id}/activate-items`, data, 'POST'),
