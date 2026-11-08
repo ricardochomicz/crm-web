@@ -1,4 +1,6 @@
 import { request, mutate } from '@/lib/http'
+export type ClientTransferLookup = {exists:boolean;client_id?:string;assigned_to_me?:boolean;owner_name?:string|null;transfer?:{eligible:boolean;last_interaction_at:string|null;inactive_for_90_days:boolean;has_open_opportunities:boolean;has_open_orders:boolean}}
+export type ClientTransferPending = {id:string;client_name:string;from_name:string|null;to_name:string|null;reason:string|null;created_at:string}
 export type Seller = {id:string;name:string}
 export type Classification = {id:number;operator_id:number;tenant_id:string|null;code:string;name:string;description:string|null;is_active:boolean;sort_order:number;operator?:{id:number;name:string};rules:RenewalRule[]}
 export type RenewalRule = {id:string;classification_id:number;tenant_id:string|null;minimum_months:number;valid_from:string;valid_until:string|null;is_active:boolean;notes:string|null}
@@ -14,6 +16,10 @@ export type ClassificationInput = Pick<Classification,'operator_id'|'code'|'name
 export type RuleInput = Pick<RenewalRule,'minimum_months'|'valid_from'|'valid_until'|'is_active'|'notes'>
 const base=(id:string)=>'/api/v1/tenants/'+encodeURIComponent(id)
 export const clientsApi={
+ transferLookup:(id:string,document:string)=>request<{data:ClientTransferLookup}>(base(id)+'/clients/transfer-lookup?document='+encodeURIComponent(document)),
+ requestTransfer:(id:string,clientId:string,reason:string)=>mutate(base(id)+'/clients/transfers',{client_id:clientId,reason},'POST'),
+ pendingTransfers:(id:string)=>request<{data:ClientTransferPending[]}>(base(id)+'/clients/transfers'),
+ reviewTransfer:(id:string,transferId:string,decision:'APPROVED'|'REJECTED',reviewNote:string)=>mutate(base(id)+'/clients/transfers/'+transferId+'/review',{decision,review_note:reviewNote},'POST'),
  consolidationOptions:(id:string,clientId:string)=>request<ConsolidationOptions>(base(id)+'/clients/'+clientId+'/consolidation-options'),
  consolidate:(id:string,clientId:string,orderId:string,contractId?:string)=>mutate(base(id)+'/clients/'+clientId+'/orders/'+orderId+'/consolidate',{contract_id:contractId??null},'POST'),
  consolidatedPortfolio:(id:string,params:{search?:string;operator_id?:number;page?:number;per_page?:number})=>request<PortfolioResponse>(base(id)+'/client-portfolio/consolidated?'+new URLSearchParams(Object.entries(params).filter(([,value])=>value!==undefined&&value!=='').map(([key,value])=>[key,String(value)])).toString()),
