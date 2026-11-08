@@ -55,11 +55,6 @@ async function submit() {
     document.getElementById('team-name')?.focus()
     return
   }
-  if (!supervisorMembershipId.value) {
-    supervisorError.value = 'Selecione um supervisor para a equipe.'
-    return
-  }
-
   busy.value = true
   try {
     await teamsApi.create(props.tenantId, trimmedName, supervisorMembershipId.value)
