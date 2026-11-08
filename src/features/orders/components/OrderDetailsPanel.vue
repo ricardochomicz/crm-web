@@ -19,6 +19,9 @@ const loading = ref(false)
 const saving = ref(false)
 const selectedItems = ref<string[]>([])
 const confirmationOpen = ref(false)
+const correctionOpen = ref(false)
+const correctionReason = ref('')
+const correctionStatusId = ref('')
 const activationDate = ref('')
 const moving = ref(false)
 const timelineVersion = ref(0)
@@ -155,17 +158,31 @@ async function selectStatus(value: string | number) {
     return
   }
   if (selected.id === order.value?.order_status_id) return
+  if (selected.name.trim().toLocaleLowerCase('pt-BR') === 'para correção') {
+    correctionStatusId.value = selected.id
+    correctionReason.value = ''
+    correctionOpen.value = true
+    return
+  }
   statusId.value = selected.id
   await save()
 }
 
-async function save() {
+async function submitCorrection() {
+  if (!correctionReason.value.trim() || saving.value || !correctionStatusId.value) return
+  statusId.value = correctionStatusId.value
+  await save(correctionReason.value.trim())
+  if (order.value?.order_status_id === correctionStatusId.value) correctionOpen.value = false
+}
+
+async function save(correctionReason?: string) {
   if (!statusId.value || saving.value || moving.value || !canEditWorkflow.value) return
   saving.value = true
   try {
     await ordersApi.updateWorkflow(props.tenantId, props.orderId, {
       order_status_id: statusId.value,
       expected_activation_at: order.value?.expected_activation_at?.slice(0, 10) || null,
+      ...(correctionReason ? { correction_reason: correctionReason } : {}),
     })
     toast.success('Pedido atualizado.')
     await load()
@@ -343,6 +360,15 @@ watch(
         />
       </aside>
     </div>
+    <AppDialog :open="correctionOpen" title="Devolver pedido para correção" :busy="saving" @close="correctionOpen = false">
+      <form class="space-y-4" @submit.prevent="submitCorrection">
+        <p class="text-sm text-slate-600">Informe o que o consultor precisa corrigir. A oportunidade retornará ao Kanban na coluna Para Correção.</p>
+        <label class="block text-sm font-semibold text-slate-700">Motivo da devolução
+          <textarea v-model="correctionReason" class="field mt-2 min-h-28 w-full" maxlength="2000" required placeholder="Ex.: Renegociar o plano e confirmar o valor mensal." />
+        </label>
+        <div class="flex justify-end gap-2"><button type="button" class="secondary-button w-auto" :disabled="saving" @click="correctionOpen = false">Cancelar</button><button type="submit" class="primary-button w-auto" :disabled="saving || !correctionReason.trim()">Confirmar devolução</button></div>
+      </form>
+    </AppDialog>
     <AppDialog
       :open="confirmationOpen"
       :title="canComplete ? 'Concluir pedido' : 'Registrar ativação'"
