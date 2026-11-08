@@ -459,6 +459,11 @@ watch(
             {{ selected.contract_ends_on ?? '—' }}
           </p>
         </div>
+        <RouterLink
+          v-if="tab === 'contracts' && writable"
+          :to="`/empresas/${tenantId}/clientes/${selected.id}/consolidar`"
+          class="secondary-button mb-4 inline-flex"
+        >Consolidar pedidos deste cliente</RouterLink>
         <ClientContractRenewals
           v-if="tab === 'contracts'"
           :contracts="selected.contract_renewals ?? []"
