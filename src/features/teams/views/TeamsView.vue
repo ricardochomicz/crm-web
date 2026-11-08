@@ -11,6 +11,7 @@ import CreateTeamDialog from '../components/CreateTeamDialog.vue'
 import EditTeamDialog from '../components/EditTeamDialog.vue'
 import TeamMembersDrawer from '../components/TeamMembersDrawer.vue'
 import { useTeamsPage } from '../composables/useTeamsPage'
+import { can } from '@/features/tenants/types'
 
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
@@ -157,6 +158,6 @@ const {
       @completed="onCompleted"
     />
 
-    <TeamMembersDrawer :tenant-id="tenantId" :team="viewingTeam" @close="viewingTeam = null" />
+    <TeamMembersDrawer :tenant-id="tenantId" :team="viewingTeam" :all-members="allMembers" :can-manage="canWrite && can(tenant, 'members.team')" @changed="refresh()" @close="viewingTeam = null" />
   </AppShell>
 </template>
