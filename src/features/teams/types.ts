@@ -18,6 +18,7 @@ export interface TeamMember {
   name: string | null
   email: string | null
   role: TenantRole
+  role_name?: string | null
   status: 'ACTIVE' | 'SUSPENDED'
   team_id: string | null
   joined_at: string | null
