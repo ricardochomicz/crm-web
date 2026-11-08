@@ -21,6 +21,16 @@ const paths: Record<string, string> = {
   mail: 'M3 5h18v14H3zM3 5l9 7 9-7',
   'message-square': 'M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z',
   grid: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
+  briefcase: 'M3 7h18v14H3zM8 7V4h8v3M3 12h18',
+  fileText: 'M6 2h9l5 5v15H6zM15 2v5h5M9 12h8M9 16h8',
+  layers: 'm12 2 9 5-9 5-9-5 9-5zm-9 10 9 5 9-5m-18 5 9 5 9-5',
+  userRound: 'M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10',
+  package: 'm12 2 9 5v10l-9 5-9-5V7l9-5zm-9 5 9 5 9-5m-9 5v10',
+  chart: 'M3 3v18h18M7 16v-5m5 5V6m5 10V9',
+  target: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-5a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-5h.01',
+  building: 'M4 22V3h16v19M2 22h20M8 7h2m4 0h2M8 11h2m4 0h2M8 15h2m4 0h2',
+  settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v3m0 14v3M4.9 4.9 7 7m10 10 2.1 2.1M2 12h3m14 0h3M4.9 19.1 7 17M17 7l2.1-2.1',
+  creditCard: 'M2 5h20v14H2zM2 10h20M6 15h4',
   logout: 'M9 5H4v14h5m5-14 7 7-7 7m-6-7h13',
 }
 </script>
