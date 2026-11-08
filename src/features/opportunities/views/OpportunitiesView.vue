@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
+import type { Opportunity } from '../types'
+import { toast } from '@/services/toast'
+const scheduling = ref<Opportunity | null>(null)
 import AppShell from '@/components/layout/AppShell.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
@@ -58,6 +63,7 @@ const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages
           </td>
           <td class="p-4">
             <div class="flex items-center gap-2">
+              <TableActionButton v-if="section === 'open' && canEdit && item.status === 'open'" icon="calendar" :label="`Agendar atividade para ${item.title}`" @click="scheduling = item" />
               <TableActionButton icon="message-square" :label="`Histórico de ${item.title}`" @click="open(item, 'history')" />
               <TableActionButton v-if="section === 'open' && canEdit && item.status === 'open'" icon="edit" :label="`Editar ${item.title}`" @click="open(item)" />
               <button v-if="canEdit && section === 'closed' && item.status === 'lost'" type="button" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100" :disabled="!!recoveringId" @click="recover(item)">{{ recoveringId === item.id ? 'Recuperando…' : 'Recuperar negociação' }}</button>
@@ -70,6 +76,19 @@ const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages
       <p v-if="!rows.length" class="p-6 text-center text-sm text-slate-500">Nenhuma oportunidade encontrada.</p>
     </section>
     <PagePagination v-if="section === 'closed' || viewMode === 'list'" :page="page" :last-page="lastPage" :total="total" :per-page="perPage" :busy="loading" @change="changePage" />
+    <CalendarEventDialog
+      :open="!!scheduling"
+      :tenant-id="tenantId"
+      :event="null"
+      date=""
+      :opportunity-id="scheduling?.id"
+      :client-id="scheduling?.client_id ?? undefined"
+      :opportunity-title="scheduling?.title"
+      :can-write="canEdit"
+      :can-delete="false"
+      @close="scheduling = null"
+      @saved="scheduling = null; toast.success('Compromisso agendado na oportunidade.')"
+    />
     <AppDialog
       :open="!!resendCandidate"
       title="Reenviar pedido ao Backoffice"
