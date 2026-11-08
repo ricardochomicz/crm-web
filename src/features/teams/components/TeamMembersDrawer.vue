@@ -4,7 +4,6 @@ import { toast } from '@/services/toast'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
-import { roleLabels } from '@/features/tenants/types'
 import { errorMessage } from '@/lib/feedback'
 import { teamsApi } from '../api'
 import type { Team, TeamMember } from '../types'
@@ -160,7 +159,7 @@ async function load(nextPage = page.value) {
               {{ member.name ?? '—' }}
             </p>
             <p class="truncate text-xs text-slate-500">
-              {{ member.email }} · {{ roleLabels[member.role] }}
+              {{ member.email }}<template v-if="member.role_name"> · {{ member.role_name }}</template>
             </p>
           </div>
           <button v-if="canManage" type="button" class="rounded-lg border border-rose-200 px-2 py-1 text-xs text-rose-700 hover:bg-rose-50" :disabled="saving" @click="changeMember(member.id, null)">Remover</button>
