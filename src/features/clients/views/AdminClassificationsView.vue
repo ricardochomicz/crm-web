@@ -26,6 +26,7 @@ const form = ref<ClassificationInput>({
   is_active: true,
   sort_order: 0,
 })
+const months = ref(21)
 const editing = ref<number | null>(null),
   modal = ref(false),
   ruleFor = ref<Classification | null>(null)
@@ -60,6 +61,7 @@ async function load() {
 }
 function edit(c?: Classification) {
   editing.value = c?.id ?? null
+  months.value = c?.rules.find((rule) => rule.is_active && !rule.valid_until)?.minimum_months ?? c?.rules.find((rule) => rule.is_active)?.minimum_months ?? 21
   form.value = c
     ? {
         operator_id: c.operator_id,
@@ -82,7 +84,35 @@ function edit(c?: Classification) {
 async function save() {
   busy.value = true
   try {
-    await clientsApi.saveGlobalClassification(form.value, editing.value ?? undefined)
+    if (!Number.isInteger(months.value) || months.value < 1 || months.value > 1200) {
+      toast.error('Informe um prazo válido em meses.')
+      return
+    }
+
+    const classificationCode = form.value.name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-')
+    const payload = { ...form.value, code: editing.value ? form.value.code : classificationCode }
+    if (!payload.code) {
+      toast.error('Informe o nome da classificação.')
+      return
+    }
+
+    const response = await clientsApi.saveGlobalClassification(payload, editing.value ?? undefined)
+    const classificationId = editing.value ?? response.data.id
+    const current = rows.value.find((item) => item.id === classificationId)
+    const activeRule = current?.rules.find((item) => item.is_active && !item.valid_until)
+    if (!activeRule || activeRule.minimum_months !== months.value) {
+      if (activeRule) {
+        toast.error('Esta classificação já possui regra vigente. Edite o prazo pela ação de regras para preservar o histórico.')
+        return
+      }
+      await clientsApi.addGlobalRule(classificationId, {
+        minimum_months: months.value,
+        valid_from: new Date().toISOString().slice(0, 10),
+        valid_until: null,
+        is_active: true,
+        notes: null,
+      })
+    }
     modal.value = false
     toast.success('Classificação global salva.')
     await load()
@@ -173,7 +203,7 @@ const { page, total, lastPage, pageRows, changePage } = useListPagination(filter
           ><thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
               <th scope="col" class="px-5 py-4">Operadora</th>
-              <th scope="col" class="px-5 py-4">Código</th>
+              <th scope="col" class="px-5 py-4">Prazo de renovação</th>
               <th scope="col" class="px-5 py-4">Classificação</th>
               <th scope="col" class="px-5 py-4">Regras</th>
               <th scope="col" class="px-5 py-4 text-right">Ações</th>
@@ -182,7 +212,7 @@ const { page, total, lastPage, pageRows, changePage } = useListPagination(filter
           <tbody class="divide-y divide-stone-100">
             <tr v-for="c in pageRows" :key="c.id" class="hover:bg-stone-50/70">
               <td class="px-5 py-4">{{ c.operator?.name }}</td>
-              <td class="px-5 py-4">{{ c.code }}</td>
+              <td class="px-5 py-4">{{ c.rules.find((rule) => rule.is_active && !rule.valid_until)?.minimum_months ?? c.rules.find((rule) => rule.is_active)?.minimum_months ?? "—" }} meses</td>
               <td class="px-5 py-4 font-semibold text-slate-800">{{ c.name }}</td>
               <td class="px-5 py-4">
                 <p v-for="r in c.rules" :key="r.id">
@@ -233,7 +263,7 @@ const { page, total, lastPage, pageRows, changePage } = useListPagination(filter
             v-model="form.operator_id"
             :options="operators.map((o) => ({ value: o.id, label: o.name }))" /></label
         ><label class="block text-sm"
-          >Código<input v-model="form.code" required class="field" /></label
+          >Prazo de renovação (meses)<input v-model.number="months" type="number" min="1" max="1200" required class="field" /></label
         ><label class="block text-sm"
           >Nome<input v-model="form.name" required class="field" /></label
         ><label class="block text-sm"
