@@ -35,7 +35,7 @@ function removeLine(index: number) {
   selectedLineIndices.value = selectedLineIndices.value.filter(i => i !== index).map(i => i > index ? i - 1 : i)
 }
 function applyBulk(changes: { order_type_id?: string; product_id?: string; monthly_unit_amount?: number }) {
-  const product = changes.product_id ? props.products.find(p => p.id === changes.product_id) : null
+  const product = changes.product_id ? filteredProducts.value.find(p => p.id === changes.product_id) : null
   for (const index of selectedLineIndices.value) {
     const item = form.value.items[index]
     if (!item) continue
@@ -52,7 +52,9 @@ function updateLine(item: OpportunityInput['items'][number]) { if (editingLineIn
 const pastedNumbers = ref('')
 const batchProductId = ref('')
 const batchTypeId = ref('')
-const activePlanOptions = computed(() => props.products.filter(p => p.is_active).map(p => ({
+const filteredProducts = computed(() => props.products.filter(p => p.is_active && Number(p.operator_id) === Number(form.value.operator_id)))
+const operatorOptions = computed(() => [...new Map(props.products.filter(p => p.is_active).map(p => [p.operator_id, { id: p.operator_id, name: p.operator?.name ?? `Operadora ${p.operator_id}` }])).values()])
+const activePlanOptions = computed(() => filteredProducts.value.map(p => ({
   id: p.id, name: p.name + ' — ' + money(Number(p.price)),
 })))
 watch(batchProductId, () => chooseBatchPlan())
@@ -64,7 +66,7 @@ const batchError = ref('')
 const maxItems = 200
 const lineCount = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0))
 const blank = (): OpportunityInput => ({
-  code: '', title: '', client_id: '', order_type_id: '',
+  code: '', title: '', client_id: '', order_type_id: '', operator_id: null,
   description: null, expected_close_at: null,
   estimated_monthly_amount: 0, estimated_one_time_amount: 0, items: [],
 })
@@ -88,12 +90,12 @@ function openImport() {
   showImport.value = true
 }
 function chooseBatchPlan() {
-  batchMonthly.value = Number(props.products.find(product => product.id === batchProductId.value)?.price ?? 0)
+  batchMonthly.value = Number(filteredProducts.value.find(product => product.id === batchProductId.value)?.price ?? 0)
 }
 function addBatch() {
   batchError.value = ''
   const numbers = parsedNumbers.value
-  const product = props.products.find(p => p.id === batchProductId.value && p.is_active)
+  const product = filteredProducts.value.find(p => p.id === batchProductId.value && p.is_active)
   if (!selectedBatchType.value) { batchError.value = 'Selecione o tipo das linhas.'; return }
   if (selectedBatchType.value.requires_number && !numbers.length) { batchError.value = 'Cole pelo menos um número.'; return }
   if (!selectedBatchType.value.requires_number && (!Number.isInteger(Number(batchQuantity.value)) || Number(batchQuantity.value) < 1)) { batchError.value = 'Informe a quantidade de linhas novas.'; return }
@@ -115,11 +117,20 @@ function addBatch() {
   })))
   showImport.value = false
 }
+function changeOperator(id: number | null) {
+  if (id === form.value.operator_id) return
+  if (form.value.items.length && !window.confirm('Alterar a operadora removerá as linhas e planos da oportunidade. Deseja continuar?')) return
+  form.value.items = []
+  selectedLineIndices.value = []
+  batchProductId.value = ''
+  form.value.operator_id = id
+}
 function validateLines(): boolean {
   if (!form.value.items.length) { error.value = 'Adicione pelo menos uma linha ou serviço.'; return false }
   const numbers = new Set<string>()
   for (const [index, item] of form.value.items.entries()) {
     if (props.orderTypes.find(type => type.id === item.order_type_id)?.requires_number && !item.line_number) { error.value = `O tipo do item ${index + 1} exige número.`; return false }
+    if (!filteredProducts.value.some(product => product.id === item.product_id)) { error.value = `O plano do item ${index + 1} não pertence à operadora selecionada.`; return false }
     if (!item.product_id) { error.value = `Selecione o plano do item ${index + 1}.`; return false }
     const number = (item.line_number ?? '').replace(/\D/g, '')
     if (number && ![10, 11].includes(number.length)) { error.value = `Informe o telefone com DDD no item ${index + 1}.`; return false }
@@ -139,16 +150,17 @@ watch(() => [props.open, props.opportunity] as const, () => {
   showBulkEdit.value = false
   form.value = props.opportunity ? {
     code: props.opportunity.code, title: props.opportunity.title,
-    client_id: props.opportunity.client_id, order_type_id: props.opportunity.order_type_id ?? '',
+    client_id: props.opportunity.client_id, order_type_id: props.opportunity.order_type_id ?? '', operator_id: props.opportunity.operator_id,
     description: props.opportunity.description,
     expected_close_at: props.opportunity.expected_close_at?.slice(0, 10) ?? null,
     estimated_monthly_amount: Number(props.opportunity.estimated_monthly_amount),
     estimated_one_time_amount: Number(props.opportunity.estimated_one_time_amount),
     items: (props.opportunity.items ?? []).map(item => ({ ...item, quantity: Number(item.quantity), monthly_unit_amount: Number(item.monthly_unit_amount), one_time_unit_amount: Number(item.one_time_unit_amount) })),
-  } : { ...blank(), code: generateCode() }
+  } : { ...blank(), code: generateCode(), operator_id: operatorOptions.value.length === 1 ? operatorOptions.value[0]!.id : null }
 }, { immediate: true })
 async function save() {
   if (busy.value) return
+  if (!form.value.operator_id) { error.value = 'Selecione a operadora da oportunidade.'; return }
   if (!form.value.client_id) { error.value = 'Selecione um cliente.'; return }
   if (!form.value.order_type_id) { error.value = 'Selecione o tipo da negociação.'; return }
   if (!validateLines()) return
@@ -174,7 +186,7 @@ async function save() {
     <form v-show="activeTab === 'details'" class="flex min-h-full flex-col gap-5" @submit.prevent="save">
       <div class="grid flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
         <fieldset :disabled="busy" class="min-w-0 space-y-6">
-          <OpportunityDetailsForm v-model="form" :clients="clients" :order-types="orderTypes" />
+          <OpportunityDetailsForm v-model="form" :clients="clients" :order-types="orderTypes" :operators="operatorOptions" @change-operator="changeOperator" />
           <section class="space-y-4 rounded-2xl border border-stone-200 bg-stone-50/60 p-4 sm:p-5">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div><h3 class="text-lg font-semibold">Linhas e serviços</h3><p class="text-xs text-slate-500">Cole números do Excel em lotes, cada lote com seu plano.</p></div>
@@ -216,7 +228,7 @@ async function save() {
       </footer>
     </form>
   </AppDialog>
-  <OpportunityBulkEditDialog :open="open && showBulkEdit" :items="selectedItems" :products="products" :order-types="orderTypes" @close="showBulkEdit = false" @apply="applyBulk" />
+  <OpportunityBulkEditDialog :open="open && showBulkEdit" :items="selectedItems" :products="filteredProducts" :order-types="orderTypes" @close="showBulkEdit = false" @apply="applyBulk" />
   <OpportunityLineEditDialog :open="open && editingLineIndex !== null" :item="editingLine" :products="products" :order-types="orderTypes" :existing-numbers="otherNumbers" @close="editingLineIndex = null" @save="updateLine" />
   <AppDialog :open="open && showImport" title="Importar linhas" description="Escolha o tipo de operação, informe as linhas e associe um plano ao lote." size="wide" @close="showImport = false">
     <div class="space-y-4">
