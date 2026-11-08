@@ -50,7 +50,6 @@ onMounted(async () => {
               <dl class="mt-5 space-y-3 border-t border-slate-200 pt-4 text-sm">
                 <div class="flex justify-between gap-3"><dt>Por linha</dt><dd class="font-semibold">{{ money(Number(option.monthly_unit_amount)) }}</dd></div>
                 <div class="flex justify-between gap-3"><dt>12 meses</dt><dd class="font-semibold">{{ money(option.yearly) }}</dd></div>
-                <div class="flex justify-between gap-3"><dt>Taxas únicas</dt><dd class="font-semibold">{{ money(Number(option.one_time_unit_amount) * option.quantity) }}</dd></div>
               </dl>
               <p v-if="option.notes" class="mt-4 border-t border-slate-200 pt-3 text-sm text-slate-600">{{ option.notes }}</p>
             </section>
