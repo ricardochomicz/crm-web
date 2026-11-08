@@ -7,7 +7,7 @@ import { errorMessage } from '@/lib/feedback'
 import { teamsApi } from '../api'
 import type { Team } from '../types'
 
-type SupervisorOption = { id: string; name: string | null; email: string | null; status: string }
+type SupervisorOption = { id: string; name: string | null; email: string | null; status: string; role_name?: string | null }
 
 const props = defineProps<{
   team: Team | null
