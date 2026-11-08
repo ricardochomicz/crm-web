@@ -12,6 +12,7 @@ const props = defineProps<{
   open: boolean
   tenantId: string
   canWrite: boolean
+  supervisorAssignments?: Record<string, string>
   members: SupervisorOption[]
   membersLoading: boolean
 }>()
@@ -97,6 +98,7 @@ async function submit() {
         v-model:supervisor-membership-id="supervisorMembershipId"
         mode="create"
         :members="members"
+        :supervisor-assignments="supervisorAssignments"
         :members-loading="membersLoading"
         :busy="busy"
         :name-error="nameError"
