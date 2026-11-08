@@ -10,7 +10,7 @@ import AppDialog from '@/components/ui/AppDialog.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { orderStatusesApi, type OrderStatus } from '@/features/order-statuses/api'
 
-const props = defineProps<{ tenantId: string; orderId: string }>()
+const props = defineProps<{ tenantId: string; orderId: string; canManage?: boolean }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const order = ref<CommercialOrder | null>(null)
 const statuses = ref<OrderStatus[]>([])
@@ -46,7 +46,7 @@ const pendingCount = computed(
       ?.filter((item) => item.status === 'PENDING')
       .reduce((total, item) => total + item.quantity, 0) ?? 0,
 )
-const canEditWorkflow = computed(() => !orderLocked.value)
+const canEditWorkflow = computed(() => !!props.canManage && !orderLocked.value)
 function today() {
   const date = new Date()
   return [
@@ -106,7 +106,7 @@ async function load() {
   try {
     const [detail, options] = await Promise.all([
       ordersApi.show(props.tenantId, props.orderId),
-      orderStatusesApi.list(props.tenantId),
+      props.canManage ? orderStatusesApi.list(props.tenantId) : Promise.resolve({ data: [] as OrderStatus[] }),
     ])
     if (current !== sequence) return
     order.value = detail.data
@@ -126,7 +126,7 @@ async function load() {
 }
 
 async function openActivation() {
-  if (saving.value || moving.value || orderLocked.value) return
+  if (!props.canManage || saving.value || moving.value || orderLocked.value) return
   saving.value = true
   try {
     const detail = await ordersApi.show(props.tenantId, props.orderId)
@@ -176,7 +176,7 @@ async function submitCorrection() {
 }
 
 async function save(correctionReason?: string) {
-  if (!statusId.value || saving.value || moving.value || !canEditWorkflow.value) return
+  if (!props.canManage || !statusId.value || saving.value || moving.value || !canEditWorkflow.value) return
   saving.value = true
   try {
     await ordersApi.updateWorkflow(props.tenantId, props.orderId, {
@@ -196,7 +196,7 @@ async function save(correctionReason?: string) {
   }
 }
 async function activateSelected() {
-  if (moving.value || orderLocked.value || (!validActivation.value && !canComplete.value)) return
+  if (!props.canManage || moving.value || orderLocked.value || (!validActivation.value && !canComplete.value)) return
   moving.value = true
   try {
     if (selectedItems.value.length) {
@@ -296,6 +296,7 @@ watch(
           <p v-if="saving" class="mt-3 text-xs text-slate-500" role="status">Atualizando pedido…</p>
         </section>
 
+        <section v-if="!canManage" class="rounded-xl border border-stone-200 bg-stone-50 p-5"><h3 class="font-semibold text-slate-800">Andamento do pedido</h3><p class="mt-2 text-sm text-slate-700">Status atual: <strong>{{ order.order_status || order.status || "Não informado" }}</strong></p><p v-if="order.expected_activation_at" class="mt-1 text-sm text-slate-600">Previsão de ativação: {{ new Date(order.expected_activation_at).toLocaleDateString("pt-BR") }}</p><p class="mt-2 text-xs text-slate-500">Consulta somente leitura. A movimentação é realizada pela equipe responsável.</p></section>
         <section class="space-y-4 rounded-xl border border-stone-200 p-5">
           <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -311,7 +312,7 @@ watch(
               </p>
             </div>
             <button
-              v-if="!orderLocked && activeCount > 0 && (pendingItems.length || canComplete)"
+              v-if="canManage && !orderLocked && activeCount > 0 && (pendingItems.length || canComplete)"
               type="button"
               class="primary-button w-auto"
               :disabled="saving || moving"
@@ -356,11 +357,11 @@ watch(
           :tenant-id="tenantId"
           type="commercial_order"
           :subject-id="order.id"
-          :can-write="true"
+          :can-write="!!canManage"
         />
       </aside>
     </div>
-    <AppDialog :open="correctionOpen" title="Devolver pedido para correção" :busy="saving" @close="correctionOpen = false">
+    <AppDialog :open="!!canManage && correctionOpen" title="Devolver pedido para correção" :busy="saving" @close="correctionOpen = false">
       <form class="space-y-4" @submit.prevent="submitCorrection">
         <p class="text-sm text-slate-600">Informe o que o consultor precisa corrigir. A oportunidade retornará ao Kanban na coluna Para Correção.</p>
         <label class="block text-sm font-semibold text-slate-700">Motivo da devolução
@@ -370,7 +371,7 @@ watch(
       </form>
     </AppDialog>
     <AppDialog
-      :open="confirmationOpen"
+      :open="!!canManage && confirmationOpen"
       :title="canComplete ? 'Concluir pedido' : 'Registrar ativação'"
       size="wide"
       :busy="moving"
