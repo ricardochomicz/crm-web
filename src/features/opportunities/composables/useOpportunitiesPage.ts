@@ -1,4 +1,4 @@
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { tenantApi } from '@/features/tenants/api'
 import { can, type Tenant } from '@/features/tenants/types'
@@ -10,6 +10,7 @@ import { opportunitiesApi, type Opportunity, type FunnelStage, type OpportunityF
 import type OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
+import { subscribeOrders } from '@/services/realtime/orders'
 
 export function useOpportunitiesPage() {
     const tenantId = computed(() => String(useRoute().params.tenantId))
@@ -257,7 +258,72 @@ async function open(item: Opportunity | null = null, tab: 'details' | 'history' 
   dialogOpen.value = true
 }
 function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); reload(); void commercialOverview.value?.refresh() }
-watch(tenantId, () => { section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; stages.value = []; tenant.value = undefined; clients.value = []; operators.value = []; products.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
+let unsubscribeRealtime: (() => void) | undefined
+let realtimeTimer: ReturnType<typeof setInterval> | undefined
+let realtimeMounted = false
+let refreshInFlight = false
+async function refreshFromRealtime() {
+  if (refreshInFlight || document.hidden || movingId.value || dialogOpen.value) return
+  refreshInFlight = true
+  try {
+    const id = tenantId.value
+    const [stageResult] = await Promise.all([opportunitiesApi.stages(id), refreshRowsSilently(id)])
+    if (id === tenantId.value) {
+      stages.value = stageResult.data
+      void commercialOverview.value?.refresh()
+    }
+  } catch {
+    // Keep the existing board on temporary connection/API errors.
+  } finally {
+    refreshInFlight = false
+  }
+}
+async function refreshRowsSilently(id: string) {
+  const params = { ...applied.value, page: page.value }
+  if (viewMode.value === 'list') {
+    const result = await opportunitiesApi.list(id, params)
+    if (id !== tenantId.value) return
+    rows.value = result.data
+    total.value = result.total
+    lastPage.value = result.last_page
+    perPage.value = result.per_page
+    return
+  }
+  const items: Opportunity[] = []
+  let next = 1
+  let pages = 1
+  do {
+    const result = await opportunitiesApi.list(id, { ...applied.value, page: next })
+    if (id !== tenantId.value) return
+    items.push(...result.data)
+    pages = result.last_page
+    next++
+  } while (next <= pages && next <= 20)
+  if (id !== tenantId.value) return
+  kanbanRows.value = items
+  total.value = items.length
+  kanbanLimitReached.value = next <= pages
+}
+function reconnectRealtime() {
+  unsubscribeRealtime?.()
+  unsubscribeRealtime = subscribeOrders(tenantId.value, () => { void refreshFromRealtime() })
+}
+function refreshOnFocus() { void refreshFromRealtime() }
+onMounted(() => {
+  realtimeMounted = true
+  reconnectRealtime()
+  window.addEventListener('focus', refreshOnFocus)
+  document.addEventListener('visibilitychange', refreshOnFocus)
+  realtimeTimer = setInterval(refreshOnFocus, 60000)
+})
+onUnmounted(() => {
+  realtimeMounted = false
+  unsubscribeRealtime?.()
+  if (realtimeTimer) clearInterval(realtimeTimer)
+  window.removeEventListener('focus', refreshOnFocus)
+  document.removeEventListener('visibilitychange', refreshOnFocus)
+})
+watch(tenantId, () => { if (realtimeMounted) reconnectRealtime(); section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; stages.value = []; tenant.value = undefined; clients.value = []; operators.value = []; products.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
 function displayOrderType(item: Opportunity): string {
   const value: unknown = item.order_type
   if (value && typeof value === 'object') {
