@@ -113,6 +113,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Consolidar contratos' },
     },
     {
+      path: '/empresas/:tenantId/gestao-carteiras',
+      component: () => import('@/features/clients/views/ClientPortfolioRedistributionView.vue'),
+      meta: { requiresAuth: true, title: 'Gestão de Carteiras' },
+    },
+    {
       path: '/empresas/:tenantId/carteira',
       component: () => import('@/features/clients/views/ClientPortfolioView.vue'),
       meta: { requiresAuth: true, title: 'Carteira de contratos' },
