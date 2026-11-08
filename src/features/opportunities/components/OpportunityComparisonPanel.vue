@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { comparisonsApi, type OpportunityComparison, type ComparisonOption } from '../api'
 import type { Product } from '@/features/products/api'
 import type { TenantOperator } from '@/features/operators/api'
-import { errorMessage } from '@/lib/errors'
+import { errorMessage } from '@/lib/feedback'
 
 const props = defineProps<{ tenantId: string; opportunityId: string; products: Product[]; operators: TenantOperator[] }>()
 const comparisons = ref<OpportunityComparison[]>([])
