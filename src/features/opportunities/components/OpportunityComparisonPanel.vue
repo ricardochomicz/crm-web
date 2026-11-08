@@ -4,12 +4,14 @@ import { comparisonsApi, type OpportunityComparison, type ComparisonOption } fro
 import type { Product } from '@/features/products/api'
 import type { TenantOperator } from '@/features/operators/api'
 import { errorMessage } from '@/lib/feedback'
+import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
+import AppCurrencyField from '@/components/ui/AppCurrencyField.vue'
 
 const props = defineProps<{ tenantId: string; opportunityId: string; products: Product[]; operators: TenantOperator[] }>()
 const comparisons = ref<OpportunityComparison[]>([])
 const title = ref('Comparativo de planos corporativos')
 const selected = ref<Record<number, string>>({})
-const quantities = ref<Record<number, number>>({})
+const lineQuantity = ref(1)
 const prices = ref<Record<number, number>>({})
 const notes = ref<Record<number, string>>({})
 const busy = ref(false)
@@ -18,7 +20,7 @@ const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currenc
 const available = computed(() => props.operators.filter(operator => operator.selected && operator.is_active))
 const options = computed(() => available.value.flatMap(operator => {
   const product = props.products.find(item => item.id === selected.value[operator.id] && item.is_active)
-  return product ? [{ operator, product, quantity: quantities.value[operator.id] || 1, price: prices.value[operator.id] ?? Number(product.price) }] : []
+  return product ? [{ operator, product, quantity: lineQuantity.value, price: prices.value[operator.id] ?? Number(product.price) }] : []
 }))
 const totals = computed(() => options.value.map(item => ({ name: item.operator.name, total: item.price * item.quantity })))
 const cheapest = computed(() => totals.value.length ? Math.min(...totals.value.map(item => item.total)) : 0)
@@ -35,6 +37,7 @@ function setProduct(operatorId: number, productId: string) {
 }
 async function save() {
   error.value = ''
+  if (!Number.isInteger(lineQuantity.value) || lineQuantity.value < 1 || lineQuantity.value > 10000) { error.value = 'Informe uma quantidade válida de linhas.'; return }
   if (options.value.length < 2) { error.value = 'Selecione planos de pelo menos duas operadoras.'; return }
   busy.value = true
   try {
@@ -66,22 +69,26 @@ async function copyLink(comparison: OpportunityComparison) {
       <label class="mt-5 block text-sm font-semibold">Título da proposta
         <input v-model="title" class="field mt-2" maxlength="200" />
       </label>
+      <label class="mt-5 block max-w-xs space-y-2 text-sm font-semibold text-slate-700">Quantidade de linhas para todas as operadoras
+        <input v-model.number="lineQuantity" class="field w-full" type="number" min="1" max="10000" step="1" />
+      </label>
+      <p class="mt-1 text-xs text-slate-500">A quantidade é compartilhada entre os planos para manter a comparação equivalente.</p>
       <div class="mt-5 grid gap-4 md:grid-cols-3">
         <div v-for="operator in available" :key="operator.id" class="space-y-3 rounded-xl border border-stone-200 p-4">
           <h4 class="font-semibold">{{ operator.name }}</h4>
-          <label class="block text-xs font-semibold text-slate-600">Plano
-            <select class="field mt-1" :value="selected[operator.id] || ''" @change="setProduct(operator.id, ($event.target as HTMLSelectElement).value)">
-              <option value="">Não incluir</option>
-              <option v-for="product in products.filter(p => p.is_active && Number(p.operator_id) === operator.id)" :key="product.id" :value="product.id">{{ product.name }}</option>
-            </select>
-          </label>
+          <AppAutocomplete
+            :model-value="selected[operator.id] || ''"
+            label="Plano"
+            placeholder="Selecione ou busque um plano"
+            :options="[{ id: '', name: 'Não incluir' }, ...products.filter(p => p.is_active && Number(p.operator_id) === operator.id).map(p => ({ id: p.id, name: p.name }))]"
+            @update:model-value="value => setProduct(operator.id, value)"
+          />
           <template v-if="selected[operator.id]">
-            <label class="block text-xs font-semibold text-slate-600">Quantidade de linhas
-              <input v-model.number="quantities[operator.id]" class="field mt-1" type="number" min="1" max="10000" placeholder="5" />
-            </label>
-            <label class="block text-xs font-semibold text-slate-600">Mensalidade por linha (R$)
-              <input v-model.number="prices[operator.id]" class="field mt-1" type="number" min="0" step="0.01" />
-            </label>
+            <AppCurrencyField
+              :model-value="prices[operator.id] ?? 0"
+              label="Mensalidade por linha"
+              @update:model-value="value => prices[operator.id] = value"
+            />
             <label class="block text-xs font-semibold text-slate-600">Observações
               <textarea v-model="notes[operator.id]" class="field mt-1" rows="2" maxlength="2000" />
             </label>
