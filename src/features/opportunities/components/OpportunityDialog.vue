@@ -216,9 +216,6 @@ async function save() {
             </div>
             <p class="text-sm font-semibold">{{ lineCount }} linha(s) · {{ money(totalMonthly) }}/mês</p>
           </section>
-          <label class="block space-y-2 text-sm font-semibold text-slate-700">Observações
-            <textarea v-model="form.description" class="field" rows="3" placeholder="Detalhes da negociação" />
-          </label>
         </fieldset>
         <OpportunityReceipt :form="form" :order-types="orderTypes" />
       </div>
