@@ -5,7 +5,7 @@ import { teamsApi } from '../api'
 import type { Team } from '../types'
 import { errorMessage } from '@/lib/feedback'
 
-export type SupervisorOption = { id: string; name: string | null; email: string | null; status: string; role: string }
+export type SupervisorOption = { id: string; name: string | null; email: string | null; status: string; role: string; role_name?: string | null }
 
 /** Consulta paginada, filtros e opções de supervisor para a feature de equipes. */
 export function useTeamsList(tenantId: Ref<string>) {
