@@ -4,6 +4,7 @@ import { toast } from '@/services/toast'
 import { errorMessage } from '@/lib/feedback'
 import { ordersApi, type CommercialOrder } from '../api'
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
+import ClientDocumentsPanel from '@/features/opportunities/components/ClientDocumentsPanel.vue'
 import OrderItemsSection from './OrderItemsSection.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
@@ -13,6 +14,7 @@ import { orderStatusesApi, type OrderStatus } from '@/features/order-statuses/ap
 const props = defineProps<{ tenantId: string; orderId: string; canManage?: boolean }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const order = ref<CommercialOrder | null>(null)
+const activeTab = ref<'workflow' | 'documents'>('workflow')
 const statuses = ref<OrderStatus[]>([])
 const statusId = ref('')
 const loading = ref(false)
@@ -227,6 +229,7 @@ async function activateSelected() {
 watch(
   () => [props.tenantId, props.orderId],
   () => {
+    activeTab.value = 'workflow'
     void load()
   },
   { immediate: true },
@@ -244,8 +247,13 @@ watch(
     </header>
     <p v-if="loading" class="text-sm text-slate-500">Carregando pedido…</p>
     <p v-else-if="error" class="text-sm text-rose-700">{{ error }}</p>
+    <nav v-if="order && !loading" class="mb-5 flex flex-wrap gap-2 border-b border-stone-200 pb-3" aria-label="Seções do pedido">
+      <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'workflow' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'workflow'">Andamento do pedido</button>
+      <button v-if="order.client_id" type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'documents' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'documents'">Anexos do Cliente</button>
+    </nav>
+    <ClientDocumentsPanel v-if="order && !loading && activeTab === 'documents' && order.client_id" :tenant-id="tenantId" :client-id="order.client_id" :can-upload="false" />
     <div
-      v-else-if="order"
+      v-else-if="order && activeTab === 'workflow'"
       class="grid items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,1fr)]"
     >
       <div class="min-w-0 space-y-5">
