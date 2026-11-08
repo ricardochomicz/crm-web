@@ -131,6 +131,7 @@ async function confirm() {
   try {
     const result = await clientsApi.redistribute(tenantId.value, {
       source_membership_id: sourceId.value,
+      client_ids: clients.value.map((client) => client.id),
       mode: mode.value,
       reason: reason.value.trim(),
       destination_ids: mode.value === 'manual' ? [] : destinationIds.value,
