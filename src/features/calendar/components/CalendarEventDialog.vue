@@ -6,7 +6,7 @@ import { calendarApi } from '../api'
 import { errorMessage } from '@/lib/feedback'
 import type { CalendarEvent, CalendarEventInput, EventType } from '../types'
 
-const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean; canDelete: boolean }>()
+const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean; canDelete: boolean; opportunityId?: string; clientId?: string; opportunityTitle?: string }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const busy = ref(false)
 const error = ref('')
@@ -41,8 +41,11 @@ watch(() => [props.open, props.event, props.date] as const, () => {
   form.value = props.event
     ? { title: props.event.title, description: props.event.description, type: props.event.type,
         status: props.event.status, priority: props.event.priority, all_day: props.event.all_day,
-        starts_at: localInput(props.event.starts_at), ends_at: localInput(props.event.ends_at) }
-    : emptyForm(props.date)
+        starts_at: localInput(props.event.starts_at), ends_at: localInput(props.event.ends_at),
+        opportunity_id: props.event.opportunity_id, client_id: props.event.client_id }
+    : { ...emptyForm(props.date), opportunity_id: props.opportunityId ?? null,
+        client_id: props.clientId ?? null,
+        title: props.opportunityTitle ? `Contato: ${props.opportunityTitle}` : '' }
 }, { immediate: true })
 const title = computed(() => props.event ? 'Editar compromisso' : 'Novo compromisso')
 async function save() {
@@ -79,6 +82,7 @@ async function remove() {
   <AppDialog :open="open" :title="title" description="Organize suas atividades e compromissos." :busy="busy" @close="emit('close')">
     <form class="space-y-4" @submit.prevent="save">
       <fieldset :disabled="busy || !canWrite" class="space-y-4">
+        <p v-if="opportunityId || event?.opportunity_id" class="rounded-lg bg-orange-50 p-3 text-sm text-orange-900">Compromisso vinculado à oportunidade {{ opportunityTitle || event?.opportunity_id }}.</p>
         <FormField id="calendar-title" v-model="form.title" label="Título" maxlength="200" required placeholder="Ex.: Reunião com cliente" />
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Tipo
           <select v-model="form.type" class="field"><option v-for="type in types" :key="type.value" :value="type.value">{{ type.label }}</option></select>
