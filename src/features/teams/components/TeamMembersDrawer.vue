@@ -4,7 +4,6 @@ import { toast } from '@/services/toast'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
-import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { roleLabels } from '@/features/tenants/types'
 import { errorMessage } from '@/lib/feedback'
 import { teamsApi } from '../api'
@@ -20,12 +19,22 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: []; changed: [] }>()
 const selectedMemberId = ref('')
+const consultantQuery = ref('')
+const consultantMenuOpen = ref(false)
 const saving = ref(false)
 const actionError = ref('')
 const assignedIds = ref(new Set<string>())
 const availableMembers = computed(() => props.allMembers
   .filter(m => m.status === 'ACTIVE' && m.role_name?.trim().toLocaleLowerCase('pt-BR') === 'consultor' && !assignedIds.value.has(m.id))
   .map(m => ({ value: m.id, label: `${m.name || m.email} — ${m.email || ''}` })))
+const filteredConsultants = computed(() => availableMembers.value.filter(m => m.label.toLocaleLowerCase('pt-BR').includes(consultantQuery.value.toLocaleLowerCase('pt-BR'))))
+function selectConsultant(id: string) {
+  const member = availableMembers.value.find(m => m.value === id)
+  if (!member) return
+  selectedMemberId.value = id
+  consultantQuery.value = member.label
+  consultantMenuOpen.value = false
+}
 async function changeMember(membershipId: string, teamId: string | null) {
   if (!props.team || !props.canManage || saving.value) return
   saving.value = true
@@ -34,6 +43,8 @@ async function changeMember(membershipId: string, teamId: string | null) {
     await teamsApi.assignMember(props.tenantId, membershipId, teamId)
     toast.success(teamId ? 'Membro vinculado à equipe.' : 'Membro removido da equipe.')
     selectedMemberId.value = ''
+    consultantQuery.value = ''
+    consultantMenuOpen.value = false
     await load(1)
     emit('changed')
   } catch (e) { actionError.value = errorMessage(e) }
@@ -52,6 +63,8 @@ watch(
     if (!team) return
     page.value = 1
     selectedMemberId.value = ''
+    consultantQuery.value = ''
+    consultantMenuOpen.value = false
     result.value = undefined
     await load()
   },
@@ -90,7 +103,36 @@ async function load(nextPage = page.value) {
     <div v-if="canManage && team" class="mb-5 space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-4">
       <p class="text-sm font-semibold text-slate-800">Adicionar membro à equipe</p>
       <label class="block text-xs font-medium text-slate-600">Consultor</label>
-      <SearchSelect v-model="selectedMemberId" :options="availableMembers" placeholder="Busque um consultor por nome ou e-mail" :disabled="saving || loading" />
+      <div class="relative">
+        <input
+          v-model="consultantQuery"
+          type="search"
+          autocomplete="off"
+          class="field w-full"
+          placeholder="Busque um consultor por nome ou e-mail"
+          :disabled="saving || loading || !availableMembers.length"
+          role="combobox"
+          aria-label="Buscar consultor"
+          aria-haspopup="listbox"
+          :aria-expanded="consultantMenuOpen"
+          @focus="consultantMenuOpen = true"
+          @input="selectedMemberId = ''; consultantMenuOpen = true"
+          @keydown.esc="consultantMenuOpen = false"
+          @keydown.enter.prevent="consultantMenuOpen && filteredConsultants.length === 1 && selectConsultant(filteredConsultants[0]!.value)"
+        />
+        <div v-if="consultantMenuOpen" role="listbox" class="absolute inset-x-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-xl border border-stone-200 bg-white p-1 shadow-xl">
+          <button
+            v-for="member in filteredConsultants"
+            :key="member.value"
+            type="button"
+            role="option"
+            :aria-selected="selectedMemberId === member.value"
+            class="block w-full rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-800"
+            @click="selectConsultant(member.value)"
+          >{{ member.label }}</button>
+          <p v-if="!filteredConsultants.length" class="px-3 py-2 text-sm text-slate-500">Nenhum consultor encontrado.</p>
+        </div>
+      </div>
       <p v-if="!loading && !availableMembers.length" class="text-xs text-slate-500">Nenhum consultor disponível para adicionar à equipe.</p>
       <p class="text-xs text-slate-500">Se o membro já pertence a outra equipe, ele será transferido para esta.</p>
       <button type="button" class="primary-button w-auto" :disabled="saving || !selectedMemberId" @click="changeMember(selectedMemberId, team.id)">{{ saving ? 'Salvando…' : 'Adicionar membro' }}</button>
