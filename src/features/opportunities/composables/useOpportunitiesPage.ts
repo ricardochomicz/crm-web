@@ -4,6 +4,7 @@ import { tenantApi } from '@/features/tenants/api'
 import { can, type Tenant } from '@/features/tenants/types'
 import { orderTypesApi, type OrderType } from '@/features/order-types/api'
 import { productsApi, type Product } from '@/features/products/api'
+import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { clientsApi, type Client } from '@/features/clients/api'
 import { opportunitiesApi, type Opportunity, type FunnelStage, type OpportunityFilters } from '../api'
 import type OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
@@ -15,6 +16,7 @@ export function useOpportunitiesPage() {
 const tenant = ref<Tenant>()
 const clients = ref<Client[]>([])
 const products = ref<Product[]>([])
+const operators = ref<TenantOperator[]>([])
 const orderTypes = ref<OrderType[]>([])
 const rows = ref<Opportunity[]>([])
 const stages = ref<FunnelStage[]>([])
@@ -204,6 +206,8 @@ async function setup() {
     const t = await tenantApi.show(id)
     if (id !== tenantId.value) return
     tenant.value = t.data
+    const tenantOperators = await operatorsApi.tenantList(id)
+    if (id === tenantId.value) operators.value = tenantOperators.data.filter(operator => operator.selected && operator.is_active)
     const types = await orderTypesApi.active()
     if (id === tenantId.value) orderTypes.value = types.data
     const stageResult = await opportunitiesApi.stages(id)
@@ -253,7 +257,7 @@ async function open(item: Opportunity | null = null, tab: 'details' | 'history' 
   dialogOpen.value = true
 }
 function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); reload(); void commercialOverview.value?.refresh() }
-watch(tenantId, () => { section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; stages.value = []; tenant.value = undefined; clients.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
+watch(tenantId, () => { section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; stages.value = []; tenant.value = undefined; clients.value = []; operators.value = []; products.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
 function displayOrderType(item: Opportunity): string {
   const value: unknown = item.order_type
   if (value && typeof value === 'object') {
@@ -282,6 +286,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
         tenant,
         clients,
         products,
+        operators,
         orderTypes,
         rows,
         stages,
