@@ -3,6 +3,7 @@ import { tenantApi } from '@/features/tenants/api'
 import type { Tenant } from '@/features/tenants/types'
 import { errorMessage } from '@/lib/feedback'
 import { ordersApi, type CommercialOrder } from '../api'
+import { subscribeOrders } from '@/services/realtime/orders'
 
 export function useOrdersPage(tenantId: Ref<string>) {
     const tenant = ref<Tenant>()
@@ -58,14 +59,18 @@ export function useOrdersPage(tenantId: Ref<string>) {
         }
     }
     let refreshTimer: ReturnType<typeof setInterval> | undefined
+    let unsubscribe: (() => void) | undefined
     function onFocus() { void refreshOrders() }
     onMounted(() => {
-        refreshTimer = setInterval(() => { void refreshOrders() }, 15000)
+        unsubscribe = subscribeOrders(tenantId.value, () => { void refreshOrders() })
+        // Fallback for installations without Reverb and reconnections.
+        refreshTimer = setInterval(() => { void refreshOrders() }, 60000)
         window.addEventListener('focus', onFocus)
         document.addEventListener('visibilitychange', onFocus)
     })
     onUnmounted(() => {
         if (refreshTimer) clearInterval(refreshTimer)
+        unsubscribe?.()
         window.removeEventListener('focus', onFocus)
         document.removeEventListener('visibilitychange', onFocus)
         ++refreshSequence
