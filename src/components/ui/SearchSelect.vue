@@ -41,9 +41,19 @@ function onKeydown(event: KeyboardEvent) {
  if (event.key === 'Enter' && open.value && filtered.value[active.value]) { event.preventDefault(); choose(filtered.value[active.value]!) }
 }
 function close() { open.value = false; query.value = '' }
+function onFocusOut(event: FocusEvent) {
+ const next = event.relatedTarget as Node | null
+ if (next && (root.value?.contains(next) || (open.value && menuRef.value?.contains(next)))) return
+ // Defer so clicking a teleported option can finish selection first.
+ setTimeout(() => {
+  const focused = document.activeElement
+  if (!root.value?.contains(focused) && !menuRef.value?.contains(focused)) close()
+ }, 0)
+}
+const menuRef = ref<HTMLElement | null>(null)
 </script>
 <template>
- <div ref="root" class="relative" @keydown="onKeydown" @focusout="(e) => { if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) close() }">
+ <div ref="root" class="relative" @keydown="onKeydown" @focusout="onFocusOut">
   <input
    :disabled="disabled"
    :value="open ? query : (selected?.label ?? '')"
@@ -56,8 +66,8 @@ function close() { open.value = false; query.value = '' }
    @input="query = ($event.target as HTMLInputElement).value; open = true"
   />
   <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">⌄</span>
-  <Teleport v-if="portalTarget" :to="portalTarget"><div v-if="open" role="listbox" :style="menuStyle" class="overflow-y-auto rounded-xl border border-stone-100 bg-white p-1 shadow-xl">
-   <button v-for="(option, i) in filtered" :key="option.value" type="button" role="option" :aria-selected="String(option.value) === String(modelValue)" class="block w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-orange-50" :class="i === active ? 'bg-orange-50 text-orange-800' : 'text-slate-700'" @mousedown.prevent="choose(option)">
+  <Teleport v-if="portalTarget" :to="portalTarget"><div v-if="open" ref="menuRef" role="listbox" :style="menuStyle" class="overflow-y-auto rounded-xl border border-stone-100 bg-white p-1 shadow-xl">
+   <button v-for="(option, i) in filtered" :key="option.value" type="button" role="option" :aria-selected="String(option.value) === String(modelValue)" class="block w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-orange-50" :class="i === active ? 'bg-orange-50 text-orange-800' : 'text-slate-700'" @pointerdown.prevent="choose(option)">
     {{ option.label }}
    </button>
    <p v-if="!filtered.length" class="px-3 py-3 text-sm text-slate-500">Nenhum resultado encontrado.</p>
