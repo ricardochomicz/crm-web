@@ -68,8 +68,8 @@ function drop(stageId: string) {
               </p>
             </button>
             <div class="mt-3 grid grid-cols-2 gap-2">
-              <button type="button" class="flex items-center justify-center gap-1 rounded-lg border border-stone-200 bg-stone-50 px-2 py-2 text-xs font-semibold text-slate-700 hover:bg-stone-100" @click="emit('history', item)"><AppIcon name="message-square" /> Histórico</button>
-              <button v-if="item.status === 'open'" type="button" class="flex items-center justify-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-2 text-xs font-semibold text-orange-800 hover:bg-orange-100" @click="emit('schedule', item)"><AppIcon name="calendar" /> Agendar</button>
+              <button type="button" class="flex h-8 min-w-0 items-center justify-center gap-1 rounded-lg border border-stone-200 bg-stone-50 px-2 text-xs font-semibold text-slate-700 hover:bg-stone-100" @click="emit('history', item)"><span class="inline-flex h-4 w-4 shrink-0 items-center justify-center [&_svg]:!h-4 [&_svg]:!w-4"><AppIcon name="message-square" /></span> Histórico</button>
+              <button v-if="item.status === 'open'" type="button" class="flex h-8 min-w-0 items-center justify-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2 text-xs font-semibold text-orange-800 hover:bg-orange-100" @click="emit('schedule', item)"><span class="inline-flex h-4 w-4 shrink-0 items-center justify-center [&_svg]:!h-4 [&_svg]:!w-4"><AppIcon name="calendar" /></span> Agendar</button>
             </div>
             <button v-if="canEdit && item.status === 'open' && /para correção/i.test(stage.name)" type="button" class="mt-3 w-full rounded-lg bg-orange-600 px-3 py-2 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50" :disabled="!!busyId" @click="emit('resend', item)">Reenviar ao Backoffice</button>
             <div v-if="canEdit && item.status === 'open' && !/para correção/i.test(stage.name)" class="mt-3 grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
