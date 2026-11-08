@@ -45,8 +45,7 @@ const loading = ref(true),
   busy = ref(false),
   error = ref(''),
   canManage = ref(false),
-  canCreate = ref(false),
-  canDelete = ref(false)
+  canCreate = ref(false)
 const showSellerSelect = computed(
   () => canAssignSeller.value || tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER',
 )
@@ -54,9 +53,6 @@ const writable = computed(
   () => canManage.value && !!tenant.value?.access?.allows_operational_writes,
 )
 const canAdd = computed(() => canCreate.value && !!tenant.value?.access?.allows_operational_writes)
-const canRemove = computed(
-  () => canDelete.value && !!tenant.value?.access?.allows_operational_writes,
-)
 const {
   search,
   operatorFilter,
@@ -210,7 +206,6 @@ async function load() {
     rows.value = list.data
     canManage.value = list.meta.can_manage
     canCreate.value = list.meta.can_create
-    canDelete.value = list.meta.can_delete
     operators.value = op.data.map((o) => ({ ...o, selected: true }))
     classes.value = cl.data
     sellers.value = opts.data.sellers
@@ -265,27 +260,6 @@ async function save() {
     } else {
       toast.error(e instanceof Error ? e.message : 'Erro ao salvar cliente.')
     }
-  } finally {
-    busy.value = false
-  }
-}
-async function removeClient(c: Client) {
-  if (
-    busy.value ||
-    !canRemove.value ||
-    !window.confirm(
-      `Excluir o cliente "${c.company_name}"? Ele deixará de aparecer na listagem, mas seus dados permanecerão preservados para possível recuperação.`,
-    )
-  )
-    return
-  busy.value = true
-  try {
-    await clientsApi.remove(tenantId.value, c.id)
-    if (selected.value?.id === c.id) selected.value = null
-    toast.success('Cliente enviado para a lixeira.')
-    await load()
-  } catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Erro ao excluir cliente.')
   } finally {
     busy.value = false
   }
@@ -447,13 +421,6 @@ watch(
                     icon="edit"
                     :label="`Editar ${c.company_name}`"
                     @click="start(c)"
-                  /><TableActionButton
-                    v-if="canRemove"
-                    icon="trash"
-                    tone="danger"
-                    :label="`Excluir ${c.company_name}`"
-                    :disabled="busy"
-                    @click="removeClient(c)"
                   />
                 </div>
               </td>
