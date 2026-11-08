@@ -3,7 +3,7 @@ import { toRefs } from 'vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import FormError from '@/components/ui/FormError.vue'
 import { digits } from '@/lib/masks'
-import type { ClientInput, Classification, Seller } from '../api'
+import type { ClientInput, Classification, Seller, ClientTransferLookup } from '../api'
 import type { TenantOperator } from '@/features/operators/api'
 const props = defineProps<{
   form: ClientInput
@@ -20,8 +20,11 @@ const props = defineProps<{
   }
   cepBusy: boolean
   cepMessage: string
+  duplicate: ClientTransferLookup | null
+  checkingDocument: boolean
+  transferBusy: boolean
 }>()
-const emit = defineEmits<{ save: []; cancel: []; lookupCep: [] }>()
+const emit = defineEmits<{ save: []; cancel: []; lookupCep: []; checkDocument: []; requestTransfer: [] }>()
 const documentModel = defineModel<string>('documentModel', { required: true })
 const phoneModel = defineModel<string>('phoneModel', { required: true })
 const cepModel = defineModel<string>('cepModel', { required: true })
@@ -55,8 +58,23 @@ const { form, editing, busy, operators, classesForOperator, sellers, showSellerS
               :class="validationState.invalid('document') ? 'ring-2 ring-red-400 bg-red-50' : ''"
               @input="validationState.clear('document')"
               :maxlength="form.person_type === 'PF' ? 14 : 18"
-              inputmode="numeric" /><FormError :message="validationState.errors.document"
+              inputmode="numeric" @blur="emit('checkDocument')" /><FormError :message="validationState.errors.document"
           /></label>
+          <div v-if="!editing && (checkingDocument || duplicate?.exists)" class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm md:col-span-2 xl:col-span-3">
+            <p v-if="checkingDocument">Verificando cadastro...</p>
+            <template v-else-if="duplicate?.exists">
+              <p class="font-semibold text-amber-900">Este CPF/CNPJ já está cadastrado neste tenant.</p>
+              <p class="mt-1">Responsável: {{ duplicate.owner_name ?? 'Não identificado' }}.</p>
+              <p v-if="duplicate.assigned_to_me" class="mt-1">Este cliente já pertence à sua carteira.</p>
+              <template v-else>
+                <p class="mt-1" v-if="duplicate.transfer?.eligible">O cliente atende aos critérios para solicitar transferência, sujeita à aprovação do supervisor.</p>
+                <p v-else class="mt-1">Transferência indisponível: é necessário mais de 90 dias sem interação e nenhum pedido ou oportunidade em andamento.</p>
+                <button v-if="duplicate.transfer?.eligible" type="button" class="primary-button mt-3" :disabled="transferBusy" @click="emit('requestTransfer')">
+                  {{ transferBusy ? 'Solicitando...' : 'Solicitar transferência de carteira' }}
+                </button>
+              </template>
+            </template>
+          </div>
           <label class="text-sm md:col-span-2 xl:col-span-3"
             >Razão social / nome completo<input
               v-model="form.company_name"
