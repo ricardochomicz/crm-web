@@ -371,6 +371,12 @@ watch(
         + Novo cliente
       </button>
     </header>
+    <ClientTransferApprovals
+      v-if="tenant && (tenant.role === 'OWNER' || tenant.role === 'MANAGER' || canAssignSeller)"
+      class="mb-6"
+      :tenant-id="tenantId"
+      @reviewed="load"
+    />
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
     <template v-if="!loading && !error">
       <ListFilters
