@@ -14,7 +14,7 @@ export const teamsApi = {
   create: (tenantId: string, name: string, supervisorMembershipId: string) =>
     mutate<{ data: Pick<Team, 'id' | 'name' | 'supervisor'> }>(`${base(tenantId)}/teams`, {
       name,
-      supervisor_membership_id: supervisorMembershipId,
+      ...(supervisorMembershipId ? { supervisor_membership_id: supervisorMembershipId } : {}),
     }),
 
   update: (tenantId: string, teamId: string, name: string) =>
