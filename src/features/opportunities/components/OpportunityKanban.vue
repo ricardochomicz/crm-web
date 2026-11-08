@@ -10,6 +10,7 @@ const columns = computed(() => [
   ...props.stages.filter(s => s.is_active || props.items.some(item => item.funnel_stage_id === s.id)),
 ])
 const stagePalette = [
+  { match: /para correção/i, background: 'bg-rose-50/80', border: 'border-rose-300', accent: 'bg-rose-600', text: 'text-rose-800', badge: 'bg-rose-100 text-rose-800', hover: 'ring-rose-300' },
   { match: /prospec/i, background: 'bg-amber-50/60', border: 'border-amber-200', accent: 'bg-amber-500', text: 'text-amber-800', badge: 'bg-amber-100 text-amber-800', hover: 'ring-amber-300' },
   { match: /negocia/i, background: 'bg-violet-50/60', border: 'border-violet-200', accent: 'bg-violet-500', text: 'text-violet-800', badge: 'bg-violet-100 text-violet-800', hover: 'ring-violet-300' },
   { match: /proposta/i, background: 'bg-blue-50/60', border: 'border-blue-200', accent: 'bg-blue-500', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-800', hover: 'ring-blue-300' },
@@ -46,11 +47,12 @@ function drop(stageId: string) {
         </div>
         <div class="min-h-24 space-y-3">
           <article v-for="item in items.filter(i => (i.funnel_stage_id || '') === stage.id)" :key="item.id"
-            :draggable="canEdit && item.status === 'open' && !busyId"
+            :draggable="canEdit && item.status === 'open' && !busyId && !/para correção/i.test(stage.name)"
             class="rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             :class="[dragging === item.id ? 'opacity-50' : '', isOverdue(item) ? 'border-rose-200 bg-rose-50/40' : '']"
             @dragstart="dragging = item.id" @dragend="dragging = null; hover = null">
             <button type="button" class="w-full text-left" @click="emit('edit', item)">
+              <span v-if="/para correção/i.test(stage.name)" class="mb-2 inline-block rounded-md bg-rose-100 px-2 py-1 text-xs font-bold text-rose-800">Devolvida pelo Backoffice</span>
               <p class="text-sm font-semibold text-slate-800">{{ item.title }}</p>
               <p class="mt-1 text-xs text-slate-500">{{ item.code }}</p>
               <p class="mt-3 text-sm text-slate-600">{{ item.client?.company_name || 'Cliente não informado' }}</p>
@@ -61,7 +63,7 @@ function drop(stageId: string) {
               </p>
             </button>
             <button type="button" class="mt-3 w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-stone-100" @click="emit('history', item)">💬 Histórico</button>
-            <div v-if="canEdit && item.status === 'open'" class="mt-3 grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
+            <div v-if="canEdit && item.status === 'open' && !/para correção/i.test(stage.name)" class="mt-3 grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
               <button type="button" class="flex items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-500" :disabled="!!busyId" @click="emit('won', item)">
                 <span aria-hidden="true">✓</span> Ganha
               </button>
