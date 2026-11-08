@@ -116,7 +116,13 @@ async function requestTransfer() {
   if (!duplicate.value?.client_id || transferBusy.value) return
   transferBusy.value = true
   try {
-    await clientsApi.requestTransfer(tenantId.value, duplicate.value.client_id, 'Solicitação pelo cadastro de cliente')
+    const reason = window.prompt('Informe o motivo da solicitação de transferência (mínimo de 10 caracteres):')
+    if (!reason) return
+    if (reason.trim().length < 10) {
+      toast.error('Informe uma justificativa com pelo menos 10 caracteres.')
+      return
+    }
+    await clientsApi.requestTransfer(tenantId.value, duplicate.value.client_id, reason.trim())
     toast.success('Solicitação enviada para aprovação do supervisor.')
     modal.value = false
   } catch (e) {
