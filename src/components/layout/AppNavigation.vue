@@ -18,7 +18,7 @@ const canViewGoals = () => hasPermission('commercial-goals.view') || hasPermissi
 const canViewTeamCommissions = () => hasPermission('team-commissions.view') || hasPermission('commissions.view')
 watch(() => route.path, (path) => {
   if (/\/(equipe|equipes|participantes-comerciais)$/.test(path)) teamOpen.value = true
-  if (/\/(produtos|clientes|oportunidades|pedidos)$/.test(path)) commercialOpen.value = true
+  if (/\/(produtos|clientes|carteira|oportunidades|pedidos)$/.test(path)) commercialOpen.value = true
   if (/\/(comissoes|comissoes-equipe|metas-comerciais|classificacoes)$/.test(path)) managementOpen.value = true
   if (/\/(dados|unidades|permissoes|assinatura|operadoras|status-pedidos)$/.test(path)) settingsOpen.value = true
 }, { immediate: true })
@@ -61,6 +61,7 @@ watch(() => route.path, (path) => {
           <div v-show="commercialOpen" class="space-y-1 border-l border-stone-200 pl-2">
             <RouterLink v-if="can(tenant, 'opportunities.view')" :to="`/empresas/${tenant.id}/oportunidades`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/oportunidades') }">Oportunidades</RouterLink>
             <RouterLink v-if="can(tenant, 'commissions.view')" :to="`/empresas/${tenant.id}/pedidos`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/pedidos') }">Pedidos comerciais</RouterLink>
+            <RouterLink v-if="can(tenant, 'clients.view')" :to="`/empresas/${tenant.id}/carteira`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/carteira') }">Carteira de contratos</RouterLink>
             <RouterLink v-if="can(tenant, 'clients.view')" :to="`/empresas/${tenant.id}/clientes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/clientes') }">Clientes</RouterLink>
             <RouterLink v-if="can(tenant, 'products.view')" :to="`/empresas/${tenant.id}/produtos`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/produtos') }" :aria-current="route.path.endsWith('/produtos') ? 'page' : undefined">Produtos e planos</RouterLink>
           </div>
