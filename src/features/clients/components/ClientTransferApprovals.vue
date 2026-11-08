@@ -64,9 +64,10 @@ watch(() => props.tenantId, () => void load(), { immediate: true })
       </p>
       <p v-if="item.reason" class="text-sm text-slate-500">Motivo da solicitação: {{ item.reason }}</p>
       <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
-        <p>Mais de 90 dias sem interação: <strong>{{ item.eligibility.inactive_for_90_days ? 'Sim' : 'Não' }}</strong></p>
+        <p>Sem interação há mais de 90 dias: <strong>{{ item.eligibility.inactive_for_90_days ? 'Sim' : 'Não' }}</strong></p>
         <p>Pedidos em andamento: <strong>{{ item.eligibility.has_open_orders ? 'Sim' : 'Não' }}</strong></p>
         <p>Oportunidades em andamento: <strong>{{ item.eligibility.has_open_opportunities ? 'Sim' : 'Não' }}</strong></p>
+        <p v-if="!item.eligibility.inactive_for_90_days" class="mt-2 font-semibold">Atenção: interação recente. A aprovação exige avaliação expressa do gestor.</p>
         <p v-if="item.eligibility.requires_special_review" class="mt-2 font-semibold">Atenção: há negócios em andamento. Avalie os vínculos comerciais antes de autorizar.</p>
       </div>
       <label class="block text-sm font-medium text-slate-700">
@@ -74,7 +75,7 @@ watch(() => props.tenantId, () => void load(), { immediate: true })
         <textarea v-model="notes[item.id]" class="field mt-1" rows="2" minlength="10" maxlength="1000" />
       </label>
       <div class="flex flex-wrap gap-2">
-        <button type="button" class="primary-button" :disabled="busy || !item.eligibility.eligible" @click="review(item.id, 'APPROVED')">Aprovar</button>
+        <button type="button" class="primary-button" :disabled="busy" @click="review(item.id, 'APPROVED')">Aprovar</button>
         <button type="button" class="secondary-button" :disabled="busy" @click="review(item.id, 'REJECTED')">Rejeitar</button>
       </div>
     </article>
