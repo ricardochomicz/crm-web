@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppShell from '@/components/layout/AppShell.vue'
+import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import OpportunityFiltersPanel from '../components/OpportunityFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
@@ -10,7 +11,7 @@ import OpportunityKanban from '../components/OpportunityKanban.vue'
 import OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
 import { useOpportunitiesPage } from '../composables/useOpportunitiesPage'
 
-const { tenantId, tenant, clients, products, orderTypes, rows, stages, viewMode, section, recoveringId, recover, switchSection, kanbanRows, movingId, resendToBackoffice, commercialOverview, kanbanLimitReached, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
+const { tenantId, tenant, clients, products, orderTypes, rows, stages, viewMode, section, recoveringId, recover, switchSection, kanbanRows, movingId, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, kanbanLimitReached, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
 </script>
 <template>
   <AppShell :tenant="tenant" title="Oportunidades" subtitle="Negociações comerciais e acompanhamento">
@@ -34,7 +35,7 @@ const { tenantId, tenant, clients, products, orderTypes, rows, stages, viewMode,
     <AsyncNotice :loading="loading" :error="error" @retry="reload" />
     <div v-if="section === 'open' && viewMode === 'kanban' && !loading && !error">
       <p v-if="kanbanLimitReached" class="mb-3 text-sm text-amber-700">Há mais oportunidades do que o limite de carregamento do quadro. Refine os filtros para visualizar todas.</p>
-      <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @won="askConfirmSale" @lost="askMarkLost" @resend="resendToBackoffice" />
+      <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @won="askConfirmSale" @lost="askMarkLost" @resend="askResendToBackoffice" />
     </div>
     <section v-if="(section === 'closed' || viewMode === 'list') && !loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <ListTable min-width="750px">
@@ -69,6 +70,33 @@ const { tenantId, tenant, clients, products, orderTypes, rows, stages, viewMode,
       <p v-if="!rows.length" class="p-6 text-center text-sm text-slate-500">Nenhuma oportunidade encontrada.</p>
     </section>
     <PagePagination v-if="section === 'closed' || viewMode === 'list'" :page="page" :last-page="lastPage" :total="total" :per-page="perPage" :busy="loading" @change="changePage" />
+    <AppDialog
+      :open="!!resendCandidate"
+      title="Reenviar pedido ao Backoffice"
+      description="Confira as informações antes de confirmar o reenvio."
+      :busy="!!movingId"
+      @close="resendCandidate = null"
+    >
+      <div v-if="resendCandidate" class="space-y-5">
+        <div class="rounded-xl border border-stone-200 bg-stone-50 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Oportunidade</p>
+          <p class="mt-2 font-semibold text-slate-900">{{ resendCandidate.title }}</p>
+          <p class="mt-1 text-xs text-slate-500">{{ resendCandidate.code }}</p>
+          <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
+            <div><p class="text-slate-500">Cliente</p><p class="mt-1 font-medium text-slate-800">{{ resendCandidate.client?.company_name || '—' }}</p></div>
+            <div><p class="text-slate-500">Valor mensal</p><p class="mt-1 font-semibold text-slate-900">{{ money(resendCandidate.estimated_monthly_amount) }}</p></div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
+          O pedido existente será atualizado com os planos e valores corrigidos e retornará ao status <strong>TRIAGEM</strong>. O reenvio será registrado no histórico do pedido e da oportunidade.
+        </div>
+        <p class="text-xs text-slate-500">Pedidos com linhas já ativadas exigem revisão do Backoffice e não podem ser reenviados por este fluxo.</p>
+        <div class="flex flex-wrap justify-end gap-2 border-t border-stone-100 pt-4">
+          <button type="button" class="secondary-button w-auto" :disabled="!!movingId" @click="resendCandidate = null">Cancelar</button>
+          <button type="button" class="primary-button w-auto" :disabled="!!movingId" @click="resendToBackoffice">{{ movingId ? 'Reenviando…' : 'Confirmar reenvio' }}</button>
+        </div>
+      </div>
+    </AppDialog>
     <div v-if="lostCandidate" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4" role="presentation" @click.self="!markingLost && (lostCandidate = null)">
       <form role="dialog" aria-modal="true" aria-labelledby="mark-lost-title" class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @submit.prevent="markLost">
         <h2 id="mark-lost-title" class="text-lg font-semibold text-slate-900">Registrar venda perdida</h2>
