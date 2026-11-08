@@ -63,3 +63,22 @@ export const opportunitiesApi = {
   create: (tenantId: string, data: OpportunityInput) => mutate<{ data: Opportunity }>(base(tenantId), data),
   update: (tenantId: string, id: string, data: OpportunityInput) => mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id), data, 'PATCH'),
 }
+
+export type ComparisonOption = {
+  id?: string; product_id: string; operator_id?: number; operator_name?: string; product_name?: string
+  quantity: number; monthly_unit_amount: number | string; one_time_unit_amount: number | string; notes?: string | null
+}
+export type OpportunityComparison = {
+  id: string; title: string; public_token: string; created_at: string; expires_at: string
+  revoked_at: string | null; options: ComparisonOption[]
+}
+export const comparisonsApi = {
+  list: (tenantId: string, opportunityId: string) =>
+    request<{ data: OpportunityComparison[] }>(base(tenantId) + '/' + encodeURIComponent(opportunityId) + '/comparisons'),
+  create: (tenantId: string, opportunityId: string, data: { title: string; options: ComparisonOption[] }) =>
+    mutate<{ data: OpportunityComparison }>(base(tenantId) + '/' + encodeURIComponent(opportunityId) + '/comparisons', data, 'POST'),
+  revoke: (tenantId: string, opportunityId: string, comparisonId: string) =>
+    mutate<{ data: OpportunityComparison }>(base(tenantId) + '/' + encodeURIComponent(opportunityId) + '/comparisons/' + encodeURIComponent(comparisonId) + '/revoke', {}, 'POST'),
+  publicShow: (token: string) =>
+    request<{ data: Pick<OpportunityComparison, 'title' | 'created_at' | 'expires_at' | 'options'> }>('/api/v1/public/comparisons/' + encodeURIComponent(token)),
+}
