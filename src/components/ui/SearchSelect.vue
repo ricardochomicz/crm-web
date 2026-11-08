@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-type Option = { value: string | number; label: string }
+type Option = { value: string | number; label: string; disabled?: boolean }
 const props = defineProps<{ modelValue: string | number | null; options: Option[]; placeholder?: string; required?: boolean; disabled?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string | number] }>()
 const open = ref(false)
@@ -25,6 +25,7 @@ const selected = computed(() => props.options.find(o => String(o.value) === Stri
 const filtered = computed(() => props.options.filter(o => o.label.toLocaleLowerCase('pt-BR').includes(query.value.toLocaleLowerCase('pt-BR'))))
 watch(query, () => { active.value = 0 })
 function choose(option: Option) {
+ if (option.disabled) return
  open.value = false
  query.value = ''
  // Closing a nested native dialog restores focus to the previous input.
@@ -67,7 +68,7 @@ const menuRef = ref<HTMLElement | null>(null)
   />
   <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">⌄</span>
   <Teleport v-if="portalTarget" :to="portalTarget"><div v-if="open" ref="menuRef" role="listbox" :style="menuStyle" class="overflow-y-auto rounded-xl border border-stone-100 bg-white p-1 shadow-xl">
-   <button v-for="(option, i) in filtered" :key="option.value" type="button" role="option" :aria-selected="String(option.value) === String(modelValue)" class="block w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-orange-50" :class="i === active ? 'bg-orange-50 text-orange-800' : 'text-slate-700'" @pointerdown.prevent="choose(option)">
+   <button v-for="(option, i) in filtered" :key="option.value" type="button" role="option" :disabled="option.disabled" :aria-disabled="!!option.disabled" :aria-selected="String(option.value) === String(modelValue)" class="block w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-orange-50" :class="i === active ? 'bg-orange-50 text-orange-800' : 'text-slate-700'" :class="option.disabled ? 'cursor-not-allowed opacity-50' : ''" @pointerdown.prevent="choose(option)">
     {{ option.label }}
    </button>
    <p v-if="!filtered.length" class="px-3 py-3 text-sm text-slate-500">Nenhum resultado encontrado.</p>
