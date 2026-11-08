@@ -50,7 +50,7 @@ defineEmits<{
           </td>
           <td class="px-6 py-5">
             <div class="flex items-center justify-end gap-2">
-              <TableActionButton icon="users" :label="`Ver membros de ${team.name}`" :disabled="busy" @click="$emit('viewMembers', team)" />
+              <TableActionButton icon="users" :label="`Gerenciar membros de ${team.name}`" :disabled="busy" @click="$emit('viewMembers', team)" />
               <TableActionButton v-if="canUpdateSupervisor" icon="shield" :label="`Alterar supervisor de ${team.name}`" :disabled="busy" @click="$emit('editSupervisor', team)" />
               <TableActionButton v-if="canUpdate" icon="edit" :label="`Renomear ${team.name}`" :disabled="busy" @click="$emit('edit', team)" />
             </div>
