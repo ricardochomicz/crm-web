@@ -16,6 +16,7 @@ export function useTeamsList(tenantId: Ref<string>) {
   const teamNameFilter = ref('')
   const appliedTeamName = ref('')
   const allMembers = ref<SupervisorOption[]>([])
+  const supervisorAssignments = ref<Record<string, string>>({})
   const membersLoading = ref(false)
   let sequence = 0
 
@@ -29,6 +30,17 @@ export function useTeamsList(tenantId: Ref<string>) {
       if (requestId !== sequence || id !== tenantId.value) return
       teams.value = result
       teamsPage.value = page
+      // Collect supervisors across all pages, not just the current filtered table.
+      const assignments: Record<string, string> = {}
+      const first = await teamsApi.list(id, 1)
+      const allTeams = [...first.data]
+      for (let p = 2; p <= first.last_page; p++) {
+        const part = await teamsApi.list(id, p)
+        allTeams.push(...part.data)
+      }
+      if (requestId !== sequence || id !== tenantId.value) return
+      for (const team of allTeams) if (team.supervisor) assignments[team.supervisor.membership_id] = team.name
+      supervisorAssignments.value = assignments
     } catch (failure) {
       if (requestId === sequence) teamsError.value = errorMessage(failure)
     } finally {
@@ -72,10 +84,11 @@ export function useTeamsList(tenantId: Ref<string>) {
     teamNameFilter.value = ''
     appliedTeamName.value = ''
     allMembers.value = []
+    supervisorAssignments.value = {}
   })
 
   return {
     teams, teamsLoading, teamsError, teamsPage, teamNameFilter,
-    allMembers, membersLoading, loadTeams, loadMembers, searchTeams, clearTeamSearch,
+    allMembers, supervisorAssignments, membersLoading, loadTeams, loadMembers, searchTeams, clearTeamSearch,
   }
 }
