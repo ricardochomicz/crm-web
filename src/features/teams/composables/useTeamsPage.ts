@@ -14,7 +14,7 @@ export function useTeamsPage(tenantId: Ref<string>) {
   const error = ref('')
   const {
     teams, teamsLoading, teamsError, teamsPage, teamNameFilter,
-    allMembers, membersLoading, loadTeams, loadMembers, searchTeams, clearTeamSearch,
+    allMembers, supervisorAssignments, membersLoading, loadTeams, loadMembers, searchTeams, clearTeamSearch,
   } = useTeamsList(tenantId)
 
   const createOpen = ref(false)
@@ -86,7 +86,7 @@ export function useTeamsPage(tenantId: Ref<string>) {
 
   return {
     tenant, loading, error, teams, teamsLoading, teamsError, teamNameFilter,
-    allMembers, membersLoading, loadTeams, searchTeams, clearTeamSearch,
+    allMembers, supervisorAssignments, membersLoading, loadTeams, searchTeams, clearTeamSearch,
     createOpen, editingTeam, supervisorTeam, viewingTeam, canWrite, canCreate,
     canUpdate, canUpdateSupervisor, anyDialogOpen, load, refresh, openCreate,
     openEdit, openSupervisor, openMembers, onCompleted,
