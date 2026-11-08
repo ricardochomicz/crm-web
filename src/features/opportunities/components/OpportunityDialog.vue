@@ -7,6 +7,7 @@ import { computed, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import OpportunityDetailsForm from './OpportunityDetailsForm.vue'
 import OpportunityReceipt from './OpportunityReceipt.vue'
+import OpportunityComparisonPanel from './OpportunityComparisonPanel.vue'
 import OpportunityLineEditDialog from './OpportunityLineEditDialog.vue'
 import OpportunityBulkEditDialog from './OpportunityBulkEditDialog.vue'
 import { opportunitiesApi, type Opportunity, type OpportunityInput } from '../api'
@@ -18,7 +19,7 @@ import type { Client } from '@/features/clients/api'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
-const activeTab = ref<'details' | 'history'>('details')
+const activeTab = ref<'details' | 'history' | 'comparison'>('details')
 const busy = ref(false)
 const error = ref('')
 const showImport = ref(false)
@@ -182,7 +183,9 @@ async function save() {
     <div v-if="opportunity" class="mb-5 flex gap-2 border-b border-stone-200 pb-3">
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'details' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'details'">Dados da oportunidade</button>
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'history' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'history'">Histórico</button>
+        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'comparison' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'comparison'">Comparativo de operadoras</button>
     </div>
+    <OpportunityComparisonPanel v-if="open && opportunity && activeTab === 'comparison'" :tenant-id="tenantId" :opportunity-id="opportunity.id" :products="products" :operators="operators" />
     <TimelinePanel v-if="open && opportunity && activeTab === 'history'" :tenant-id="tenantId" type="opportunity" :subject-id="opportunity.id" :can-write="true" />
     <form v-show="activeTab === 'details'" class="flex min-h-full flex-col gap-5" @submit.prevent="save">
       <div class="grid flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
