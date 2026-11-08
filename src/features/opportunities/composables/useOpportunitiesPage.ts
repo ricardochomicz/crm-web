@@ -51,6 +51,18 @@ function switchSection(next: 'open' | 'closed') {
 }
 const kanbanRows = ref<Opportunity[]>([])
 const movingId = ref<string | null>(null)
+async function resendToBackoffice(item: Opportunity) {
+  if (!canEdit.value || movingId.value || !/para correção/i.test(item.stage?.name || stages.value.find(s => s.id === item.funnel_stage_id)?.name || '')) return
+  if (!window.confirm(`Reenviar "${item.title}" ao Backoffice? As linhas pendentes do pedido serão atualizadas com os dados corrigidos e o status retornará para TRIAGEM.`)) return
+  movingId.value = item.id
+  try {
+    await opportunitiesApi.resendToBackoffice(tenantId.value, item.id)
+    toast.success('Pedido corrigido e reenviado ao Backoffice.')
+    reload()
+    void commercialOverview.value?.refresh()
+  } catch (e) { toast.error(errorMessage(e)) }
+  finally { movingId.value = null }
+}
 const commercialOverview = ref<InstanceType<typeof OpportunityCommercialOverview> | null>(null)
 const kanbanLimitReached = ref(false)
 const defaultFilters = (area: 'open' | 'closed' = 'open'): OpportunityFilters => ({
@@ -267,6 +279,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
         switchSection,
         kanbanRows,
         movingId,
+        resendToBackoffice,
         commercialOverview,
         kanbanLimitReached,
         filters,
