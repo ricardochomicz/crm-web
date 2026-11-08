@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
 import { computed, ref, watch } from 'vue'
-import FormField from '@/components/ui/FormField.vue'
 import type { Client } from '@/features/clients/api'
 import type { OrderType } from '@/features/order-types/api'
 import type { OpportunityInput } from '../api'
@@ -34,8 +33,8 @@ watch(() => [model.value.client_id, props.clients] as const, () => {
           <section class="space-y-4">
             <h3 class="text-sm font-bold uppercase tracking-wide text-slate-500">Dados da oportunidade</h3>
             <div class="grid gap-4 sm:grid-cols-2">
-              <FormField id="opportunity-code" v-model="model.code" label="Código" required readonly class="bg-stone-100 text-slate-600" />
-              <FormField id="opportunity-title" v-model="model.title" label="Título" required maxlength="200" placeholder="Ex.: Portabilidade de 5 linhas" />
+              <AppAutocomplete v-model="operatorValue" label="Operadora *" placeholder="Selecione a operadora" :options="operators.map(o => ({ id: String(o.id), name: o.name }))" />
+              <div class="space-y-2"><label for="opportunity-title" class="block text-sm font-semibold text-slate-700">Título</label><input id="opportunity-title" v-model="model.title" class="field" required maxlength="200" placeholder="Ex.: Portabilidade de 5 linhas" /></div>
             </div>
             <div class="space-y-2">
               <label for="opportunity-client" class="block text-sm font-semibold text-slate-700">Cliente</label>
@@ -62,9 +61,8 @@ watch(() => [model.value.client_id, props.clients] as const, () => {
               </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
-              <AppAutocomplete v-model="operatorValue" label="Operadora *" placeholder="Selecione a operadora" :options="operators.map(o => ({ id: String(o.id), name: o.name }))" />
               <AppAutocomplete v-model="model.order_type_id" label="Tipo de negociação" placeholder="Buscar tipo de negociação" :options="orderTypes" />
-              <FormField id="opportunity-forecast" v-model="model.expected_close_at" label="Previsão de fechamento" type="date" class="min-h-[44px]" />
+              <div class="space-y-2"><label for="opportunity-forecast" class="block text-sm font-semibold text-slate-700">Previsão de fechamento</label><input id="opportunity-forecast" v-model="model.expected_close_at" type="date" class="field min-h-[44px]" /></div>
             </div>
           </section>
 
