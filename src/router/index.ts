@@ -6,6 +6,7 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
   routes: [
     { path: '/', redirect: '/app' },
+    { path: '/propostas/:token', component: () => import('@/features/opportunities/views/PublicComparisonView.vue'), meta: { title: 'Proposta comparativa' } },
     ...[
       { path: '/login', mode: 'login', title: 'Entrar' },
       { path: '/register', mode: 'register', title: 'Criar conta' },
