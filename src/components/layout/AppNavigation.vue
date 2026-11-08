@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { calendarApi } from '@/features/calendar/api'
 import { useRoute } from 'vue-router'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { can, canViewTeam, canViewTeams, type Tenant } from '@/features/tenants/types'
@@ -11,6 +12,31 @@ const teamOpen = ref(false)
 const commercialOpen = ref(false)
 const managementOpen = ref(false)
 const settingsOpen = ref(false)
+const futureAppointments = ref<number | null>(null)
+let requestVersion = 0
+let refreshTimer: ReturnType<typeof setInterval> | undefined
+function dateTime(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join('-') + 'T' + [pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds())].join(':')
+}
+async function refreshAppointmentCount() {
+  const tenantId = props.tenant?.id
+  const version = ++requestVersion
+  if (!tenantId || !can(props.tenant, 'calendar.view')) { futureAppointments.value = null; return }
+  const now = new Date()
+  const until = new Date(now)
+  until.setFullYear(until.getFullYear() + 1)
+  try {
+    const result = await calendarApi.list(tenantId, dateTime(now), dateTime(until), 'mine')
+    if (version === requestVersion) futureAppointments.value = result.data.filter(event => event.status === 'pending' && new Date(event.starts_at) >= now).length
+  } catch { if (version === requestVersion) futureAppointments.value = null }
+}
+watch(() => [props.tenant?.id, can(props.tenant, 'calendar.view'), route.path], () => {
+  futureAppointments.value = null
+  void refreshAppointmentCount()
+}, { immediate: true })
+onMounted(() => { refreshTimer = setInterval(() => { void refreshAppointmentCount() }, 60000) })
+onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer); requestVersion++ })
 const hasPermission = (permission: string) => can(props.tenant, permission)
 const isManager = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
 const isConsultant = () => !isManager()
@@ -37,7 +63,7 @@ watch(() => route.path, (path) => {
           :aria-current="route.path === `/empresas/${tenant.id}` ? 'page' : undefined"
           ><AppIcon name="grid" class="size-5" />Início</RouterLink
         >
-        <RouterLink v-if="can(tenant, 'calendar.view')" :to="`/empresas/${tenant.id}/agenda`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/agenda') }" :aria-current="route.path.endsWith('/agenda') ? 'page' : undefined"><AppIcon name="calendar" class="size-5" />Agenda</RouterLink>
+        <RouterLink v-if="can(tenant, 'calendar.view')" :to="`/empresas/${tenant.id}/agenda`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/agenda') }" :aria-current="route.path.endsWith('/agenda') ? 'page' : undefined"><AppIcon name="calendar" class="size-5" /><span class="flex-1">Agenda</span><span v-if="futureAppointments !== null && futureAppointments > 0" class="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold leading-none text-orange-800">{{ futureAppointments > 99 ? "99+" : futureAppointments }}</span></RouterLink>
         <div v-if="canViewTeam(tenant)" class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="teamOpen" @click="teamOpen = !teamOpen"><span class="inline-flex items-center gap-2"><AppIcon name="users" class="size-4" />Equipe</span> <span aria-hidden="true">{{ teamOpen ? '⌄' : '›' }}</span></button>
           <div v-show="teamOpen" class="space-y-1 border-l border-stone-200 pl-2">
