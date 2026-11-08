@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { toast } from '@/services/toast'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
@@ -12,9 +13,31 @@ import type { Page } from '@/features/tenants/types'
 const props = defineProps<{
   tenantId: string
   team: Team | null
+  allMembers: { id: string; name: string | null; email: string | null; status: string }[]
+  canManage: boolean
 }>()
 
-defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; changed: [] }>()
+const search = ref('')
+const selectedMemberId = ref('')
+const saving = ref(false)
+const actionError = ref('')
+const assignedIds = ref(new Set<string>())
+const availableMembers = computed(() => props.allMembers.filter(m => m.status === 'ACTIVE' && !assignedIds.value.has(m.id) && [m.name, m.email].some(v => (v || '').toLocaleLowerCase('pt-BR').includes(search.value.toLocaleLowerCase('pt-BR')))))
+async function changeMember(membershipId: string, teamId: string | null) {
+  if (!props.team || !props.canManage || saving.value) return
+  saving.value = true
+  actionError.value = ''
+  try {
+    await teamsApi.assignMember(props.tenantId, membershipId, teamId)
+    toast.success(teamId ? 'Membro vinculado à equipe.' : 'Membro removido da equipe.')
+    selectedMemberId.value = ''
+    await load(1)
+    emit('changed')
+  } catch (e) { actionError.value = errorMessage(e) }
+  finally { saving.value = false }
+}
+
 
 const page = ref(1)
 const result = ref<Page<TeamMember>>()
@@ -26,6 +49,8 @@ watch(
   async (team) => {
     if (!team) return
     page.value = 1
+    search.value = ''
+    selectedMemberId.value = ''
     result.value = undefined
     await load()
   },
@@ -38,6 +63,12 @@ async function load(nextPage = page.value) {
   page.value = nextPage
   try {
     result.value = await teamsApi.members(props.tenantId, props.team.id, page.value)
+    const ids = new Set<string>()
+    for (let p = 1; p <= result.value.last_page; p++) {
+      const data = p === page.value ? result.value : await teamsApi.members(props.tenantId, props.team.id, p)
+      data.data.forEach(member => ids.add(member.id))
+    }
+    assignedIds.value = ids
   } catch (failure) {
     loadError.value = errorMessage(failure)
   } finally {
@@ -55,6 +86,17 @@ async function load(nextPage = page.value) {
   >
     <AsyncNotice :loading="loading && !result" :error="loadError" @retry="load()" />
 
+    <div v-if="canManage && team" class="mb-5 space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-4">
+      <p class="text-sm font-semibold text-slate-800">Adicionar membro à equipe</p>
+      <input v-model="search" type="search" class="field" placeholder="Buscar por nome ou e-mail" aria-label="Buscar membro" />
+      <select v-model="selectedMemberId" class="field" aria-label="Selecionar membro">
+        <option value="">Selecione um membro ativo</option>
+        <option v-for="member in availableMembers" :key="member.id" :value="member.id">{{ member.name || member.email }} — {{ member.email }}</option>
+      </select>
+      <p class="text-xs text-slate-500">Se o membro já pertence a outra equipe, ele será transferido para esta.</p>
+      <button type="button" class="primary-button w-auto" :disabled="saving || !selectedMemberId" @click="changeMember(selectedMemberId, team.id)">{{ saving ? 'Salvando…' : 'Adicionar membro' }}</button>
+    </div>
+    <p v-if="actionError" role="alert" class="mb-3 text-sm text-red-700">{{ actionError }}</p>
     <template v-if="result">
       <p class="mb-4 text-xs text-slate-400">
         {{ result.total }} {{ result.total === 1 ? 'membro' : 'membros' }} nesta equipe
@@ -80,6 +122,7 @@ async function load(nextPage = page.value) {
               {{ member.email }} · {{ roleLabels[member.role] }}
             </p>
           </div>
+          <button v-if="canManage" type="button" class="rounded-lg border border-rose-200 px-2 py-1 text-xs text-rose-700 hover:bg-rose-50" :disabled="saving" @click="changeMember(member.id, null)">Remover</button>
           <span
             class="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold"
             :class="
