@@ -2,12 +2,16 @@
 import { computed, ref } from 'vue'
 import type { FunnelStage, Opportunity } from '../api'
 const props = defineProps<{ stages: FunnelStage[]; items: Opportunity[]; canEdit: boolean; busyId: string | null }>()
-const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity] }>()
+const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity]; resend: [item: Opportunity] }>()
 const dragging = ref<string | null>(null)
 const hover = ref<string | null>(null)
 const columns = computed(() => [
-  { id: '', name: 'Sem etapa', position: -1, is_active: true },
-  ...props.stages.filter(s => s.is_active || props.items.some(item => item.funnel_stage_id === s.id)),
+  ...props.stages.filter(s => s.is_active || props.items.some(item => item.funnel_stage_id === s.id)).sort((a, b) => {
+    const aCorrection = /para correção/i.test(a.name)
+    const bCorrection = /para correção/i.test(b.name)
+    return aCorrection === bCorrection ? a.position - b.position : aCorrection ? -1 : 1
+  }),
+  ...(props.items.some(item => !item.funnel_stage_id) ? [{ id: '', name: 'Sem etapa', position: 999999, is_active: true }] : []),
 ])
 const stagePalette = [
   { match: /para correção/i, background: 'bg-rose-50/80', border: 'border-rose-300', accent: 'bg-rose-600', text: 'text-rose-800', badge: 'bg-rose-100 text-rose-800', hover: 'ring-rose-300' },
@@ -63,6 +67,7 @@ function drop(stageId: string) {
               </p>
             </button>
             <button type="button" class="mt-3 w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-stone-100" @click="emit('history', item)">💬 Histórico</button>
+            <button v-if="canEdit && item.status === 'open' && /para correção/i.test(stage.name)" type="button" class="mt-3 w-full rounded-lg bg-orange-600 px-3 py-2 text-xs font-bold text-white hover:bg-orange-700 disabled:opacity-50" :disabled="!!busyId" @click="emit('resend', item)">Reenviar ao Backoffice</button>
             <div v-if="canEdit && item.status === 'open' && !/para correção/i.test(stage.name)" class="mt-3 grid grid-cols-2 gap-2 border-t border-stone-100 pt-3">
               <button type="button" class="flex items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-500" :disabled="!!busyId" @click="emit('won', item)">
                 <span aria-hidden="true">✓</span> Ganha
