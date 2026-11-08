@@ -36,6 +36,7 @@ const statuses: Record<PortfolioContract['status'], string> = {
   overdue: 'Prazo vencido',
   upcoming: 'Renovação próxima',
   waiting: 'Em vigência',
+  policy_pending: 'Regra pendente',
 }
 
 function formatDate(value: string | null): string {
@@ -53,7 +54,7 @@ async function load() {
   error.value = ''
 
   try {
-    const response = await clientsApi.portfolio(id, {
+    const response = await clientsApi.consolidatedPortfolio(id, {
       search: appliedSearch.value || undefined,
       operator_id: appliedOperator.value ? Number(appliedOperator.value) : undefined,
       page: page.value,
@@ -172,10 +173,10 @@ watch(tenantId, () => void initialize(), { immediate: true })
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
-            <tr v-for="contract in rows" :key="contract.order_id" class="hover:bg-stone-50/70">
+            <tr v-for="contract in rows" :key="contract.contract_id ?? contract.order_id" class="hover:bg-stone-50/70">
               <td class="p-4">
                 <span class="font-semibold text-slate-800">{{ contract.client_name }}</span>
-                <p class="mt-1 text-xs text-slate-400">{{ contract.order_code ?? 'Pedido sem código' }}</p>
+                <p class="mt-1 text-xs text-slate-400">{{ contract.order_count ?? 0 }} pedido(s) vinculados</p>
               </td>
               <td class="p-4">{{ contract.operator_name ?? '—' }}</td>
               <td class="p-4 text-right">{{ contract.line_count }}</td>
