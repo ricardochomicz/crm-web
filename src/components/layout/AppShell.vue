@@ -15,13 +15,13 @@ const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const menuOpen = ref(false)
-const wideLayout = ref(false)
+const wideLayout = ref(true)
 const layoutPreferenceKey = 'crm:layout-width'
 onMounted(() => {
   try {
-    wideLayout.value = window.localStorage.getItem(layoutPreferenceKey) === 'wide'
+    wideLayout.value = window.localStorage.getItem(layoutPreferenceKey) !== 'normal'
   } catch {
-    wideLayout.value = false
+    wideLayout.value = true
   }
 })
 function toggleLayoutWidth() {
