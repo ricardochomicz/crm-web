@@ -24,7 +24,7 @@ const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; t
 const emit = defineEmits<{ close: []; saved: [] }>()
 const activeTab = ref<'details' | 'history' | 'comparison' | 'appointments'>('details')
 const viewerTenant = ref<Tenant | null>(null)
-const showResponsible = computed(() => !!viewerTenant.value && (['OWNER', 'MANAGER'].includes(viewerTenant.value.role) || viewerTenant.value.role === 'CONSULTANT' && viewerTenant.value.tenant_role?.code === 'SUPERVISOR'))
+const showResponsible = computed(() => !!viewerTenant.value && (['OWNER', 'MANAGER'].includes(viewerTenant.value.role) || viewerTenant.value.role === 'CONSULTANT' && viewerTenant.value.access?.permissions.includes('teams.view')))
 watch(() => [props.open, props.tenantId], async () => {
   if (!props.open) return
   try { viewerTenant.value = (await tenantApi.show(props.tenantId)).data } catch { viewerTenant.value = null }
