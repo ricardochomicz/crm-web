@@ -11,8 +11,8 @@ const columns = computed(() => [
     const bCorrection = /para correção/i.test(b.name)
     return aCorrection === bCorrection ? a.position - b.position : aCorrection ? -1 : 1
   }),
-  ...(props.items.some(item => !item.funnel_stage_id) ? [{ id: '', name: 'Sem etapa', position: 999999, is_active: true }] : []),
 ])
+const matchesStage = (item: Opportunity, stage: FunnelStage) => item.funnel_stage_id === stage.id || (!item.funnel_stage_id && /prospec/i.test(stage.name))
 const stagePalette = [
   { match: /para correção/i, background: 'bg-rose-50/80', border: 'border-rose-300', accent: 'bg-rose-600', text: 'text-rose-800', badge: 'bg-rose-100 text-rose-800', hover: 'ring-rose-300' },
   { match: /prospec/i, background: 'bg-amber-50/60', border: 'border-amber-200', accent: 'bg-amber-500', text: 'text-amber-800', badge: 'bg-amber-100 text-amber-800', hover: 'ring-amber-300' },
@@ -47,10 +47,10 @@ function drop(stageId: string) {
         @dragover.prevent="hover = stage.id" @dragleave.self="hover = null" @drop.prevent="drop(stage.id)">
         <div class="mb-3 flex items-center justify-between gap-2 px-1">
           <h3 class="flex items-center gap-2 text-sm font-bold" :class="palette(stage.name).text"><span class="h-5 w-1 rounded-full" :class="palette(stage.name).accent"></span>{{ stage.name }}</h3>
-          <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="palette(stage.name).badge">{{ items.filter(i => (i.funnel_stage_id || '') === stage.id).length }}</span>
+          <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="palette(stage.name).badge">{{ items.filter(i => matchesStage(i, stage)).length }}</span>
         </div>
         <div class="min-h-24 space-y-3">
-          <article v-for="item in items.filter(i => (i.funnel_stage_id || '') === stage.id)" :key="item.id"
+          <article v-for="item in items.filter(i => matchesStage(i, stage))" :key="item.id"
             :draggable="canEdit && item.status === 'open' && !busyId && !/para correção/i.test(stage.name)"
             class="rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             :class="[dragging === item.id ? 'opacity-50' : '', isOverdue(item) ? 'border-rose-200 bg-rose-50/40' : '']"
@@ -77,7 +77,7 @@ function drop(stageId: string) {
               </button>
             </div>
           </article>
-          <p v-if="!items.some(i => (i.funnel_stage_id || '') === stage.id)" class="rounded-xl border border-dashed border-stone-300 p-5 text-center text-xs text-slate-400">Arraste oportunidades para esta etapa</p>
+          <p v-if="!items.some(i => matchesStage(i, stage))" class="rounded-xl border border-dashed border-stone-300 p-5 text-center text-xs text-slate-400">Arraste oportunidades para esta etapa</p>
         </div>
       </section>
     </div>
