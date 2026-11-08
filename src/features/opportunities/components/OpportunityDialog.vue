@@ -13,9 +13,10 @@ import { opportunitiesApi, type Opportunity, type OpportunityInput } from '../ap
 import { errorMessage } from '@/lib/feedback'
 import type { OrderType } from '@/features/order-types/api'
 import type { Product } from '@/features/products/api'
+import type { TenantOperator } from '@/features/operators/api'
 import type { Client } from '@/features/clients/api'
 
-const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; orderTypes: OrderType[] }>()
+const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const activeTab = ref<'details' | 'history'>('details')
 const busy = ref(false)
@@ -53,7 +54,7 @@ const pastedNumbers = ref('')
 const batchProductId = ref('')
 const batchTypeId = ref('')
 const filteredProducts = computed(() => props.products.filter(p => p.is_active && Number(p.operator_id) === Number(form.value.operator_id)))
-const operatorOptions = computed(() => [...new Map(props.products.filter(p => p.is_active).map(p => [p.operator_id, { id: p.operator_id, name: p.operator?.name ?? `Operadora ${p.operator_id}` }])).values()])
+const operatorOptions = computed(() => props.operators.map(operator => ({ id: operator.id, name: operator.name })))
 const activePlanOptions = computed(() => filteredProducts.value.map(p => ({
   id: p.id, name: p.name + ' — ' + money(Number(p.price)),
 })))
