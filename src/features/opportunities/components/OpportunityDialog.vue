@@ -11,6 +11,7 @@ import OpportunityDetailsForm from './OpportunityDetailsForm.vue'
 import OpportunityReceipt from './OpportunityReceipt.vue'
 import OpportunityComparisonPanel from './OpportunityComparisonPanel.vue'
 import OpportunityAppointmentsPanel from './OpportunityAppointmentsPanel.vue'
+import ClientDocumentsPanel from './ClientDocumentsPanel.vue'
 import OpportunityLineEditDialog from './OpportunityLineEditDialog.vue'
 import OpportunityBulkEditDialog from './OpportunityBulkEditDialog.vue'
 import { opportunitiesApi, type Opportunity, type OpportunityInput } from '../api'
@@ -22,7 +23,7 @@ import type { Client } from '@/features/clients/api'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
-const activeTab = ref<'details' | 'history' | 'comparison' | 'appointments'>('details')
+const activeTab = ref<'details' | 'documents' | 'history' | 'comparison' | 'appointments'>('details')
 const viewerTenant = ref<Tenant | null>(null)
 const showResponsible = computed(() => !!viewerTenant.value && (['OWNER', 'MANAGER'].includes(viewerTenant.value.role) || viewerTenant.value.role === 'CONSULTANT' && viewerTenant.value.access?.permissions.includes('teams.view')))
 watch(() => [props.open, props.tenantId], async () => {
@@ -197,10 +198,12 @@ async function save() {
     <div v-if="opportunity && showResponsible" class="mb-3 flex items-center gap-2 text-sm text-slate-600"><span class="font-medium">Consultor responsável:</span><span class="font-semibold text-slate-900">{{ opportunity.assignee?.user?.name || "Não atribuído" }}</span></div>
     <div v-if="opportunity" class="mb-5 flex gap-2 border-b border-stone-200 pb-3">
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'details' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'details'">Dados da oportunidade</button>
+        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'documents' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'documents'">Anexos do Cliente</button>
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'history' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'history'">Histórico</button>
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'appointments' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'appointments'">Agendamentos</button>
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'comparison' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'comparison'">Comparativo de operadoras</button>
     </div>
+    <ClientDocumentsPanel v-if="open && opportunity && activeTab === 'documents'" :tenant-id="tenantId" :client-id="opportunity.client_id" :can-upload="!!viewerTenant?.access?.permissions.includes('clients.update')" />
     <OpportunityAppointmentsPanel v-if="open && opportunity && activeTab === 'appointments'" :tenant-id="tenantId" :opportunity-id="opportunity.id" :client-id="opportunity.client_id" :title="opportunity.title" />
     <OpportunityComparisonPanel v-if="open && opportunity && activeTab === 'comparison'" :tenant-id="tenantId" :opportunity-id="opportunity.id" :products="products" :operators="operators" />
     <TimelinePanel v-if="open && opportunity && activeTab === 'history'" :tenant-id="tenantId" type="opportunity" :subject-id="opportunity.id" :can-write="true" />
