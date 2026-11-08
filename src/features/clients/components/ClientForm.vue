@@ -67,8 +67,9 @@ const { form, editing, busy, operators, classesForOperator, sellers, showSellerS
               <p class="mt-1">Responsável: {{ duplicate.owner_name ?? 'Não identificado' }}.</p>
               <p v-if="duplicate.assigned_to_me" class="mt-1">Este cliente já pertence à sua carteira.</p>
               <template v-else>
-                <p class="mt-1" v-if="duplicate.transfer?.eligible">O cliente atende aos critérios para solicitar transferência, sujeita à aprovação do supervisor.</p>
-                <p v-else class="mt-1">Transferência indisponível: é necessário mais de 90 dias sem interação e nenhum pedido ou oportunidade em andamento.</p>
+                <p class="mt-1" v-if="duplicate.transfer?.eligible">O cliente está sem interação há mais de 90 dias. A transferência depende de aprovação do supervisor.</p>
+                <p v-else class="mt-1">Carteira protegida: ainda não completou 90 dias sem interação registrada.</p>
+                <p v-if="duplicate.transfer?.requires_special_review" class="mt-1 font-medium text-amber-900">Atenção: há pedidos ou oportunidades em andamento. O supervisor deverá avaliar esses vínculos antes de decidir.</p>
                 <button v-if="duplicate.transfer?.eligible" type="button" class="primary-button mt-3" :disabled="transferBusy" @click="emit('requestTransfer')">
                   {{ transferBusy ? 'Solicitando...' : 'Solicitar transferência de carteira' }}
                 </button>
