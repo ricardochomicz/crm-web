@@ -1,4 +1,4 @@
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, type Ref } from 'vue'
 import { tenantApi } from '@/features/tenants/api'
 import type { Tenant } from '@/features/tenants/types'
 import { errorMessage } from '@/lib/feedback'
@@ -43,7 +43,36 @@ export function useOrdersPage(tenantId: Ref<string>) {
         }
     }
 
+    // Atualiza o andamento alterado por outros usuários sem recarregar a página.
+    // A atualização silenciosa preserva filtros, paginação e a tabela visível.
+    let refreshSequence = 0
+    async function refreshOrders() {
+        const id = tenantId.value
+        const current = ++refreshSequence
+        if (typeof document !== 'undefined' && document.hidden) return
+        try {
+            const result = await ordersApi.list(id)
+            if (current === refreshSequence && id === tenantId.value) orders.value = result.data
+        } catch {
+            // Falhas transitórias não devem apagar a listagem já carregada.
+        }
+    }
+    let refreshTimer: ReturnType<typeof setInterval> | undefined
+    function onFocus() { void refreshOrders() }
+    onMounted(() => {
+        refreshTimer = setInterval(() => { void refreshOrders() }, 15000)
+        window.addEventListener('focus', onFocus)
+        document.addEventListener('visibilitychange', onFocus)
+    })
+    onUnmounted(() => {
+        if (refreshTimer) clearInterval(refreshTimer)
+        window.removeEventListener('focus', onFocus)
+        document.removeEventListener('visibilitychange', onFocus)
+        ++refreshSequence
+    })
+
     watch(tenantId, () => {
+        ++refreshSequence
         ++sequence
         tenant.value = undefined
         orders.value = []
