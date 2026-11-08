@@ -49,10 +49,10 @@ onMounted(() => void load())
 </script>
 
 <template>
-  <AppShell title="Administração da plataforma" subtitle="Acesso administrativo">
+  <AppShell title="Administração da plataforma" subtitle="Administração da plataforma">
     <header class="mb-7">
-      <p class="eyebrow">VISÃO DA PLATAFORMA</p>
-      <h1 class="mt-3 text-3xl font-semibold tracking-tight">Empresas conectadas.</h1>
+      <p class="eyebrow">ADMINISTRAÇÃO DA PLATAFORMA</p>
+      <h1 class="mt-3 text-3xl font-semibold">Empresas conectadas</h1>
       <p class="mt-2 text-sm text-slate-500">
         Consulte os espaços cadastrados, seus planos e a disponibilidade de acesso.
       </p>

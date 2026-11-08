@@ -139,7 +139,7 @@ watch(() => route.path, (path) => {
         <RouterLink
           to="/admin"
           class="nav-item"
-          :class="{ 'nav-active': route.path.startsWith('/admin') }"
+          :class="{ 'nav-active': route.path === '/admin' }"
           ><AppIcon name="lock" class="size-5" />Administração</RouterLink
         >
       </div>

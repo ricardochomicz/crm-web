@@ -8,21 +8,28 @@ export function usePlatformOperators() {
   const operators = ref<Operator[]>([])
   const loading = ref(true)
   const busy = ref(false)
+  const creating = ref(false)
   const error = ref('')
   const searchFilter = ref('')
   const statusFilter = ref('')
-  const { applied, apply: applyFilters, clear: clearFilters } =
-    useListFilters({ searchFilter, statusFilter })
+  const {
+    applied,
+    apply: applyFilters,
+    clear: clearFilters,
+  } = useListFilters({ searchFilter, statusFilter })
   const form = reactive({ name: '', slug: '' })
   const editing = ref<Operator | null>(null)
   const editForm = reactive({ name: '', slug: '' })
-  const filteredOperators = computed(() => operators.value.filter(op => {
-    const query = applied.value.searchFilter.trim().toLowerCase()
-    if (query && !op.name.toLowerCase().includes(query) && !op.slug.toLowerCase().includes(query)) return false
-    if (applied.value.statusFilter === 'active' && !op.is_active) return false
-    if (applied.value.statusFilter === 'inactive' && op.is_active) return false
-    return true
-  }))
+  const filteredOperators = computed(() =>
+    operators.value.filter((op) => {
+      const query = applied.value.searchFilter.trim().toLowerCase()
+      if (query && !op.name.toLowerCase().includes(query) && !op.slug.toLowerCase().includes(query))
+        return false
+      if (applied.value.statusFilter === 'active' && !op.is_active) return false
+      if (applied.value.statusFilter === 'inactive' && op.is_active) return false
+      return true
+    }),
+  )
 
   function edit(operator: Operator) {
     if (busy.value) return
@@ -69,6 +76,7 @@ export function usePlatformOperators() {
         name: form.name.trim(),
         slug: form.slug.trim().toLowerCase(),
       })
+      creating.value = false
       form.name = ''
       form.slug = ''
       toast.success('Operadora cadastrada.')
@@ -92,10 +100,28 @@ export function usePlatformOperators() {
       busy.value = false
     }
   }
-  onMounted(() => { void load() })
+  onMounted(() => {
+    void load()
+  })
   return {
-    operators, loading, busy, error, searchFilter, statusFilter, form, editing,
-    editForm, filteredOperators, applyFilters, clearFilters, edit, closeEdit,
-    saveEdit, load, create, toggle,
+    operators,
+    loading,
+    busy,
+    creating,
+    error,
+    searchFilter,
+    statusFilter,
+    form,
+    editing,
+    editForm,
+    filteredOperators,
+    applyFilters,
+    clearFilters,
+    edit,
+    closeEdit,
+    saveEdit,
+    load,
+    create,
+    toggle,
   }
 }

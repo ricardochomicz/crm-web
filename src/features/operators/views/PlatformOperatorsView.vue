@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PagePagination from '@/components/ui/PagePagination.vue'
+import { useListPagination } from '@/composables/useListPagination'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
@@ -11,6 +13,7 @@ const {
   operators,
   loading,
   busy,
+  creating,
   error,
   searchFilter,
   statusFilter,
@@ -27,45 +30,34 @@ const {
   create,
   toggle,
 } = usePlatformOperators()
+const { page, total, lastPage, pageRows, changePage } = useListPagination(filteredOperators)
+
+function newOperator() {
+  form.name = ''
+  form.slug = ''
+  creating.value = true
+}
 </script>
 <template>
-  <section class="space-y-6">
-    <div>
-      <h2 class="text-xl font-semibold text-slate-800">Catálogo de operadoras</h2>
-      <p class="mt-2 text-sm text-slate-500">
-        Catálogo global administrado pela plataforma. Desativar não exclui os vínculos existentes.
-      </p>
-    </div>
-
-    <form
-      class="grid gap-3 rounded-2xl border border-stone-200 bg-white p-5 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
-      @submit.prevent="create"
-    >
-      <label class="grid gap-2 text-sm font-medium">
-        Nome
-        <input
-          v-model="form.name"
-          class="field"
-          maxlength="160"
-          required
-          placeholder="Nome da operadora"
-        />
-      </label>
-      <label class="grid gap-2 text-sm font-medium">
-        Identificador
-        <input
-          v-model="form.slug"
-          class="field"
-          maxlength="160"
-          required
-          pattern="[a-z0-9-]+"
-          placeholder="nome-da-operadora"
-        />
-      </label>
-      <button class="primary-button w-auto" :disabled="busy">
-        {{ busy ? 'Cadastrando…' : 'Cadastrar' }}
+  <section>
+    <header class="mb-7 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <p class="eyebrow">ADMINISTRAÇÃO DA PLATAFORMA</p>
+        <h1 class="mt-3 text-3xl font-semibold">Catálogo de operadoras</h1>
+        <p class="mt-2 text-sm text-slate-500">
+          Catálogo global administrado pela plataforma. Desativar não exclui os vínculos existentes.
+        </p>
+      </div>
+      <button
+        v-if="!loading && !error"
+        type="button"
+        class="primary-button w-auto"
+        :disabled="busy"
+        @click="newOperator"
+      >
+        + Nova operadora
       </button>
-    </form>
+    </header>
 
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
 
@@ -110,11 +102,7 @@ const {
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
-            <tr
-              v-for="operator in filteredOperators"
-              :key="operator.id"
-              class="hover:bg-stone-50/70"
-            >
+            <tr v-for="operator in pageRows" :key="operator.id" class="hover:bg-stone-50/70">
               <td class="px-6 py-4 font-semibold text-slate-800">{{ operator.name }}</td>
               <td class="px-6 py-4 font-mono text-xs text-slate-500">{{ operator.slug }}</td>
               <td class="px-6 py-4">
@@ -161,10 +149,52 @@ const {
           </tbody>
         </ListTable>
       </section>
+      <PagePagination
+        :page="page"
+        :last-page="lastPage"
+        :total="total"
+        :busy="busy"
+        @change="changePage"
+      />
     </template>
+
+    <AppDialog :open="creating" title="Nova operadora" :busy="busy" @close="creating = false">
+      <form class="space-y-4" @submit.prevent="create">
+        <label class="grid gap-2 text-sm font-medium">
+          Nome
+          <input
+            v-model="form.name"
+            class="field"
+            maxlength="160"
+            required
+            placeholder="Nome da operadora"
+          />
+        </label>
+        <label class="grid gap-2 text-sm font-medium">
+          Identificador
+          <input
+            v-model="form.slug"
+            class="field"
+            maxlength="160"
+            required
+            pattern="[a-z0-9-]+"
+            placeholder="nome-da-operadora"
+          />
+        </label>
+        <div class="flex justify-end gap-3 pt-3">
+          <button type="button" class="secondary-button" :disabled="busy" @click="creating = false">
+            Cancelar
+          </button>
+          <button type="submit" class="primary-button w-auto" :disabled="busy">
+            {{ busy ? 'Cadastrando…' : 'Cadastrar' }}
+          </button>
+        </div>
+      </form>
+    </AppDialog>
 
     <AppDialog
       :open="editing !== null"
+      :busy="busy"
       :title="`Editar ${editing?.name ?? 'operadora'}`"
       @close="closeEdit"
     >
