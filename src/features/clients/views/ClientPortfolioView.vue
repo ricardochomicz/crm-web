@@ -17,6 +17,9 @@ const tenantId = computed(() => String(route.params.tenantId))
 const tenant = ref<Tenant>()
 const operators = ref<{ id: number; name: string }[]>([])
 const rows = ref<PortfolioContract[]>([])
+const viewMode = ref<'contracts' | 'orders'>('contracts')
+const ungroupedCount = ref(0)
+const hasCheckedLegacy = ref(false)
 const search = ref('')
 const operatorFilter = ref('')
 const appliedSearch = ref('')
@@ -54,14 +57,27 @@ async function load() {
   error.value = ''
 
   try {
-    const response = await clientsApi.consolidatedPortfolio(id, {
+    const params = {
       search: appliedSearch.value || undefined,
       operator_id: appliedOperator.value ? Number(appliedOperator.value) : undefined,
       page: page.value,
       per_page: perPage,
-    })
+    }
+    let response = viewMode.value === 'contracts'
+      ? await clientsApi.consolidatedPortfolio(id, params)
+      : await clientsApi.portfolio(id, params)
 
     if (version !== requestVersion) return
+    if (viewMode.value === 'contracts' && response.meta.total === 0 && !hasCheckedLegacy.value) {
+      const legacy = await clientsApi.portfolio(id, params)
+      if (version !== requestVersion) return
+      hasCheckedLegacy.value = true
+      ungroupedCount.value = legacy.meta.total
+      if (legacy.meta.total > 0) {
+        viewMode.value = 'orders'
+        response = legacy
+      }
+    }
     rows.value = response.data
     total.value = response.meta.total
     lastPage.value = response.meta.last_page
@@ -83,6 +99,9 @@ async function initialize() {
   operatorFilter.value = ''
   appliedSearch.value = ''
   appliedOperator.value = ''
+  viewMode.value = 'contracts'
+  hasCheckedLegacy.value = false
+  ungroupedCount.value = 0
 
   try {
     const id = tenantId.value
@@ -115,6 +134,13 @@ function clearFilters() {
   applyFilters()
 }
 
+function changeMode(mode: 'contracts' | 'orders') {
+  if (viewMode.value === mode) return
+  viewMode.value = mode
+  page.value = 1
+  void load()
+}
+
 function changePage(value: number) {
   page.value = value
   void load()
@@ -129,7 +155,7 @@ watch(tenantId, () => void initialize(), { immediate: true })
       <p class="eyebrow">COMERCIAL</p>
       <h1 class="mt-3 text-3xl font-semibold">Carteira de contratos</h1>
       <p class="mt-2 text-sm text-slate-500">
-        Pedidos concluídos, receita recorrente e previsão de renovação integral.
+        Contratos consolidados e pedidos históricos aguardando vinculação.
       </p>
     </header>
 
@@ -155,6 +181,11 @@ watch(tenantId, () => void initialize(), { immediate: true })
       </label>
     </ListFilters>
 
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      <button type="button" class="rounded-lg border px-4 py-2 text-sm font-medium" :class="viewMode === 'contracts' ? 'border-slate-900 bg-slate-900 text-white' : 'border-stone-200 bg-white text-slate-700'" @click="changeMode('contracts')">Contratos consolidados</button>
+      <button type="button" class="rounded-lg border px-4 py-2 text-sm font-medium" :class="viewMode === 'orders' ? 'border-slate-900 bg-slate-900 text-white' : 'border-stone-200 bg-white text-slate-700'" @click="changeMode('orders')">Pedidos históricos</button>
+    </div>
+    <p v-if="viewMode === 'orders'" class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Estes pedidos ainda são exibidos individualmente. Vincule-os aos contratos pelo cadastro do cliente para que apareçam na carteira consolidada. A renovação integral deve ser calculada somente após a consolidação.</p>
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
 
     <template v-if="!loading && !error">
@@ -176,7 +207,7 @@ watch(tenantId, () => void initialize(), { immediate: true })
             <tr v-for="contract in rows" :key="contract.contract_id ?? contract.order_id" class="hover:bg-stone-50/70">
               <td class="p-4">
                 <span class="font-semibold text-slate-800">{{ contract.client_name }}</span>
-                <p class="mt-1 text-xs text-slate-400">{{ contract.order_count ?? 0 }} pedido(s) vinculados</p>
+                <p class="mt-1 text-xs text-slate-400">{{ viewMode === 'orders' ? (contract.order_code ?? 'Pedido sem código') : `${contract.order_count ?? 0} pedido(s) vinculados` }}</p>
               </td>
               <td class="p-4">{{ contract.operator_name ?? '—' }}</td>
               <td class="p-4 text-right">{{ contract.line_count }}</td>
@@ -189,7 +220,7 @@ watch(tenantId, () => void initialize(), { immediate: true })
           </tbody>
         </ListTable>
         <p v-if="!rows.length" class="p-8 text-center text-sm text-slate-500">
-          Nenhum contrato concluído encontrado para os filtros informados.
+          {{ viewMode === 'contracts' ? 'Nenhum contrato consolidado encontrado. Consulte Pedidos históricos para vincular os registros antigos.' : 'Nenhum pedido concluído encontrado para os filtros informados.' }}
         </p>
       </section>
       <PagePagination
