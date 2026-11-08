@@ -7,6 +7,7 @@ import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
 import OrderItemsSection from './OrderItemsSection.vue'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { orderStatusesApi, type OrderStatus } from '@/features/order-statuses/api'
 
 const props = defineProps<{ tenantId: string; orderId: string }>()
@@ -22,6 +23,7 @@ const confirmationOpen = ref(false)
 const activationDate = ref('')
 const moving = ref(false)
 const timelineVersion = ref(0)
+const statusOptions = computed(() => statuses.value.map(status => ({ value: status.id, label: status.name })))
 const selectedStatusName = computed(() => statuses.value.find(status => status.id === statusId.value)?.name.trim().toLocaleLowerCase('pt-BR') ?? '')
 const showLineActivation = computed(() => ['ativo', 'parcialmente ativado'].includes(selectedStatusName.value))
 
@@ -185,12 +187,12 @@ watch(() => [props.tenantId, props.orderId], () => { void load() }, { immediate:
                 <form class="rounded-xl border border-stone-200 p-5" @submit.prevent="save">
                     <h3 class="mb-4 font-semibold text-slate-800">Acompanhamento do pedido</h3>
                     <div class="grid gap-4 sm:grid-cols-2">
-                        <label class="text-sm font-semibold text-slate-700">Status do pedido
-                            <select v-model="statusId" class="field mt-2 w-full" required :disabled="orderLocked">
-                                <option value="" disabled>Selecione</option>
-                                <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
-                            </select>
-                        </label>
+                        <div class="min-w-0">
+                            <label class="text-sm font-semibold text-slate-700" for="order-status-select">Status do pedido</label>
+                            <div id="order-status-select" class="mt-2">
+                                <SearchSelect v-model="statusId" :options="statusOptions" placeholder="Selecione o status" required :disabled="orderLocked" />
+                            </div>
+                        </div>
                         <label class="text-sm font-semibold text-slate-700">Data de ativação
                             <input v-model="expected" type="date" class="field mt-2 w-full" :max="new Date().toLocaleDateString('en-CA')" :disabled="orderLocked" />
                         </label>
