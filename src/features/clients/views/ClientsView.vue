@@ -20,6 +20,7 @@ import { useClientAddress } from '../composables/useClientAddress'
 import { digits } from '@/lib/masks'
 import { useFormValidation } from '@/composables/useFormValidation'
 import ClientForm from '../components/ClientForm.vue'
+import ClientContractRenewals from '../components/ClientContractRenewals.vue'
 import {
   clientsApi,
   type Client,
@@ -93,7 +94,7 @@ const form = ref<ClientInput>(blank()),
   editing = ref(''),
   modal = ref(false),
   selected = ref<Client | null>(null),
-  tab = ref<'data' | 'contacts' | 'sellers' | 'history'>('data')
+  tab = ref<'data' | 'contracts' | 'contacts' | 'sellers' | 'history'>('data')
 const historyOrigin = ref<'client' | 'opportunity' | 'commercial_order'>('client')
 const contactBlank = (): ContactInput => ({
   name: '',
@@ -404,6 +405,7 @@ watch(
           <button
             v-for="item in [
               { id: 'data', label: 'Dados' },
+              { id: 'contracts', label: 'Contratos e renovações' },
               { id: 'contacts', label: 'Pessoas de contato' },
               { id: 'sellers', label: 'Histórico de vendedores' },
               { id: 'history', label: 'Histórico' },
@@ -441,6 +443,10 @@ watch(
             {{ selected.contract_ends_on ?? '—' }}
           </p>
         </div>
+        <ClientContractRenewals
+          v-if="tab === 'contracts'"
+          :contracts="selected.contract_renewals ?? []"
+        />
         <div v-if="tab === 'contacts'">
           <button v-if="writable" class="mb-4 rounded-lg border px-3 py-2" @click="editContact()">
             + Pessoa de contato
