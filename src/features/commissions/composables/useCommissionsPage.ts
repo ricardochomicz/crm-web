@@ -80,7 +80,12 @@ export function useCommissionsPage(tenantId: Ref<string>) {
       rows.value = list.data
       canManage.value = list.meta.can_manage
       operators.value = operatorList.data.filter(operator => operator.selected && operator.is_active)
-      orderTypes.value = types.data
+      orderTypes.value = [
+        ...types.data,
+        ...list.data.filter(row => row.order_type && !types.data.some(type => type.value === row.order_type))
+          .filter((row, index, all) => all.findIndex(item => item.order_type === row.order_type) === index)
+          .map(row => ({ value: row.order_type!, label: row.name || row.order_type! })),
+      ]
       defaultDeduction.value = settings.data.default_deduction_percentage
     } catch (failure) {
       if (id === tenantId.value) error.value = errorMessage(failure)
