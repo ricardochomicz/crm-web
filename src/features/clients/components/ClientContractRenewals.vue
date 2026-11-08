@@ -1,8 +1,21 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { ContractRenewal } from '../api'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import ListTable from '@/components/ui/ListTable.vue'
 
-defineProps<{ contracts: ContractRenewal[] }>()
+defineProps<{
+  contracts: ContractRenewal[]
+  classifications: { id: number; operator_id: number; name: string; is_active: boolean }[]
+  writable: boolean
+  busy: boolean
+}>()
+
+const emit = defineEmits<{
+  assign: [orderId: string, classificationId: number]
+}>()
+
+const selections = ref<Record<string, number | null>>({})
 
 const labels: Record<ContractRenewal['status'], string> = {
   classification_required: 'Classificação pendente',
@@ -40,6 +53,7 @@ function date(value: string | null): string {
             <th class="p-4">Prazo</th>
             <th class="p-4">Previsão</th>
             <th class="p-4">Situação</th>
+            <th v-if="writable" class="p-4">Classificação</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-stone-100">
@@ -51,6 +65,26 @@ function date(value: string | null): string {
             <td class="p-4">{{ contract.renewal_months === null ? '—' : `${contract.renewal_months} meses` }}</td>
             <td class="p-4 font-semibold">{{ date(contract.renewal_date) }}</td>
             <td class="p-4 text-sm">{{ labels[contract.status] }}</td>
+            <td v-if="writable" class="p-4">
+              <div class="flex min-w-52 items-center gap-2">
+                <SearchSelect
+                  :model-value="selections[contract.order_id] ?? contract.classification_id ?? ''"
+                  :options="[
+                    { value: '', label: 'Selecione' },
+                    ...classifications
+                      .filter((item) => item.is_active && item.operator_id === contract.operator_id)
+                      .map((item) => ({ value: item.id, label: item.name })),
+                  ]"
+                  @update:model-value="selections[contract.order_id] = Number($event) || null"
+                />
+                <button
+                  type="button"
+                  class="secondary-button"
+                  :disabled="busy || !(selections[contract.order_id] ?? contract.classification_id)"
+                  @click="emit('assign', contract.order_id, Number(selections[contract.order_id] ?? contract.classification_id))"
+                >Salvar</button>
+              </div>
+            </td>
           </tr>
         </tbody>
       </ListTable>
