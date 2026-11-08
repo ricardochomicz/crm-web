@@ -24,7 +24,14 @@ const active = ref(0)
 const selected = computed(() => props.options.find(o => String(o.value) === String(props.modelValue)))
 const filtered = computed(() => props.options.filter(o => o.label.toLocaleLowerCase('pt-BR').includes(query.value.toLocaleLowerCase('pt-BR'))))
 watch(query, () => { active.value = 0 })
-function choose(option: Option) { emit('update:modelValue', option.value); query.value = ''; open.value = false }
+function choose(option: Option) {
+ open.value = false
+ query.value = ''
+ // Closing a nested native dialog restores focus to the previous input.
+ // Blur before notifying the parent so focus restoration cannot reopen the menu.
+ (root.value?.querySelector('input') as HTMLInputElement | null)?.blur()
+ emit('update:modelValue', option.value)
+}
 function onKeydown(event: KeyboardEvent) {
  if (event.key === 'Escape') { open.value = false; query.value = ''; return }
  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -45,7 +52,7 @@ function close() { open.value = false; query.value = '' }
    role="combobox" aria-autocomplete="list" :aria-expanded="open" aria-haspopup="listbox"
    autocomplete="off"
    class="w-full rounded-xl bg-stone-100 px-4 py-3 pr-10 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 hover:bg-stone-200/70 focus:bg-white focus:ring-2 focus:ring-orange-400"
-   @focus="open = true; query = ''"
+   @pointerdown="if (!disabled) { open = true; query = '' }"
    @input="query = ($event.target as HTMLInputElement).value; open = true"
   />
   <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">⌄</span>
