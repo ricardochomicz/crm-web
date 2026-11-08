@@ -8,6 +8,7 @@ const title = ref('')
 const options = ref<ComparisonOption[]>([])
 const loading = ref(true)
 const error = ref('')
+const printProposal = () => window.print()
 const money = (amount: number) => amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const totals = computed(() => options.value.map(option => ({
   ...option, monthly: Number(option.monthly_unit_amount) * option.quantity,
@@ -37,7 +38,7 @@ onMounted(async () => {
         <template v-else>
           <div class="mb-7 flex flex-wrap items-center justify-between gap-4 print:hidden">
             <p class="text-sm text-slate-500">Documento preparado para apresentação comercial.</p>
-            <button type="button" class="rounded-lg bg-orange-600 px-5 py-3 font-semibold text-white" @click="window.print()">Salvar como PDF / Imprimir</button>
+            <button type="button" class="rounded-lg bg-orange-600 px-5 py-3 font-semibold text-white" @click="printProposal">Salvar como PDF / Imprimir</button>
           </div>
           <div class="grid gap-5 md:grid-cols-3">
             <section v-for="option in totals" :key="option.product_id" class="break-inside-avoid rounded-xl border border-slate-200 p-5">
