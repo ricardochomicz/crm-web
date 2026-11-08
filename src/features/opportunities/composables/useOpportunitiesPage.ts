@@ -211,8 +211,15 @@ async function setup() {
     if (canCreate.value || canEdit.value) {
       const c = await clientsApi.list(id)
       if (id === tenantId.value) clients.value = c.data
-      const p = await productsApi.list(id, 1, { search: '', operator_id: '', category: '', is_active: 'active' })
-      if (id === tenantId.value) products.value = p.data
+      const productFilters = { search: '', operator_id: '', category: '', is_active: 'active' }
+      const first = await productsApi.list(id, 1, productFilters)
+      const available = [...first.data]
+      for (let page = 2; page <= first.meta.last_page; page++) {
+        if (id !== tenantId.value) return
+        const next = await productsApi.list(id, page, productFilters)
+        available.push(...next.data)
+      }
+      if (id === tenantId.value) products.value = available
     }
   } catch (e) { error.value = errorMessage(e) }
 }
