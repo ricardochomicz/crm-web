@@ -29,6 +29,7 @@ import {
   type ContactInput,
   type Classification,
   type Seller,
+  type ClientTransferLookup,
 } from '../api'
 import type { Tenant } from '@/features/tenants/types'
 const route = useRoute(),
@@ -90,6 +91,41 @@ const blank = (): ClientInput => ({
   seller_reason: null,
 })
 const validationState = useFormValidation<keyof ClientInput>()
+const duplicate = ref<ClientTransferLookup | null>(null)
+const checkingDocument = ref(false)
+const transferBusy = ref(false)
+let lookupVersion = 0
+
+async function checkDocument() {
+  const version = ++lookupVersion
+  duplicate.value = null
+  const document = digits(form.value.document, 14)
+  if (editing.value || ![11, 14].includes(document.length)) return
+  checkingDocument.value = true
+  try {
+    const result = await clientsApi.transferLookup(tenantId.value, document)
+    if (version === lookupVersion) duplicate.value = result.data
+  } catch (e) {
+    if (version === lookupVersion) toast.error(e instanceof Error ? e.message : 'Erro ao verificar cliente.')
+  } finally {
+    if (version === lookupVersion) checkingDocument.value = false
+  }
+}
+
+async function requestTransfer() {
+  if (!duplicate.value?.client_id || transferBusy.value) return
+  transferBusy.value = true
+  try {
+    await clientsApi.requestTransfer(tenantId.value, duplicate.value.client_id, 'Solicitação pelo cadastro de cliente')
+    toast.success('Solicitação enviada para aprovação do supervisor.')
+    modal.value = false
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Não foi possível solicitar a transferência.')
+  } finally {
+    transferBusy.value = false
+  }
+}
+
 const form = ref<ClientInput>(blank()),
   editing = ref(''),
   modal = ref(false),
@@ -119,6 +155,9 @@ const classesForOperator = computed(() =>
 )
 const activeSeller = (c: Client) => c.sellers?.find((s) => !s.ended_at)
 function start(c?: Client) {
+  ++lookupVersion
+  duplicate.value = null
+  checkingDocument.value = false
   validationState.clear()
   editing.value = c?.id ?? ''
   form.value = c
@@ -179,6 +218,13 @@ async function load() {
 }
 async function save() {
   if (busy.value) return
+  if (!editing.value) {
+    await checkDocument()
+    if (duplicate.value?.exists) {
+      toast.error('Cliente já cadastrado. Utilize a transferência de carteira, quando disponível.')
+      return
+    }
+  }
   validationState.clear()
   const validation = validateClient(form.value)
   if (Object.keys(validation).length) {
@@ -544,10 +590,15 @@ watch(
       :validation-state="validationState"
       :cep-busy="cepBusy"
       :cep-message="cepMessage"
+      :duplicate="duplicate"
+      :checking-document="checkingDocument"
+      :transfer-busy="transferBusy"
       v-model:document-model="documentModel"
       v-model:phone-model="phoneModel"
       v-model:cep-model="cepModel"
       @lookup-cep="lookupCep"
+      @check-document="checkDocument"
+      @request-transfer="requestTransfer"
       @cancel="modal = false"
       @save="save"
     />
