@@ -12,14 +12,15 @@ const commercialOpen = ref(false)
 const managementOpen = ref(false)
 const settingsOpen = ref(false)
 const hasPermission = (permission: string) => can(props.tenant, permission)
-const canViewManagement = () => ['commissions.view', 'commercial-goals.view', 'team-commissions.view', 'operator-classifications.view', 'clients.view'].some(hasPermission)
+const canRedistribute = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
+const canViewManagement = () => canRedistribute() || ['commissions.view', 'commercial-goals.view', 'team-commissions.view', 'operator-classifications.view', 'clients.view'].some(hasPermission)
 const canViewClassifications = () => ['operator-classifications.view', 'commissions.view', 'clients.view'].some(hasPermission)
 const canViewGoals = () => hasPermission('commercial-goals.view') || hasPermission('commissions.view')
 const canViewTeamCommissions = () => hasPermission('team-commissions.view') || hasPermission('commissions.view')
 watch(() => route.path, (path) => {
   if (/\/(equipe|equipes|participantes-comerciais)$/.test(path)) teamOpen.value = true
   if (/\/(produtos|clientes|carteira|oportunidades|pedidos)$/.test(path)) commercialOpen.value = true
-  if (/\/(comissoes|comissoes-equipe|metas-comerciais|classificacoes)$/.test(path)) managementOpen.value = true
+  if (/\/(comissoes|comissoes-equipe|metas-comerciais|classificacoes|gestao-carteiras)$/.test(path)) managementOpen.value = true
   if (/\/(dados|unidades|permissoes|assinatura|operadoras|status-pedidos)$/.test(path)) settingsOpen.value = true
 }, { immediate: true })
 </script>
@@ -69,6 +70,7 @@ watch(() => route.path, (path) => {
         <div v-if="canViewManagement()" class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="managementOpen" @click="managementOpen = !managementOpen"><span class="inline-flex items-center gap-2"><AppIcon name="chart" class="size-4" />Gerencial</span> <span aria-hidden="true">{{ managementOpen ? '⌄' : '›' }}</span></button>
           <div v-show="managementOpen" class="space-y-1 border-l border-stone-200 pl-2">
+            <RouterLink v-if="canRedistribute()" :to="`/empresas/${tenant.id}/gestao-carteiras`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/gestao-carteiras') }"><AppIcon name="users" class="size-5 shrink-0" />Gestão de Carteiras</RouterLink>
             <RouterLink v-if="can(tenant, 'commissions.view')" :to="`/empresas/${tenant.id}/comissoes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/comissoes') }" :aria-current="route.path.endsWith('/comissoes') ? 'page' : undefined"><AppIcon name="creditCard" class="size-5 shrink-0" />Tabelas de comissões</RouterLink>
             <RouterLink v-if="canViewClassifications()" :to="`/empresas/${tenant.id}/classificacoes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/classificacoes') }"><AppIcon name="tag" class="size-5 shrink-0" />Classificações das operadoras</RouterLink>
             <RouterLink v-if="canViewGoals()" :to="`/empresas/${tenant.id}/metas-comerciais`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/metas-comerciais') }"><AppIcon name="target" class="size-5 shrink-0" />Metas comerciais</RouterLink>
