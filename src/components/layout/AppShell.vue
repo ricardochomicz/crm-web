@@ -19,7 +19,7 @@ const wideLayout = ref(true)
 const layoutPreferenceKey = 'crm:layout-width'
 onMounted(() => {
   try {
-    wideLayout.value = window.localStorage.getItem(layoutPreferenceKey) !== 'wide'
+    wideLayout.value = window.localStorage.getItem(layoutPreferenceKey) !== 'normal'
   } catch {
     wideLayout.value = true
   }
