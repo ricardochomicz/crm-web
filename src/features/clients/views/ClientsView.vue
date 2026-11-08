@@ -238,6 +238,22 @@ async function removeClient(c: Client) {
     busy.value = false
   }
 }
+async function assignContractClassification(orderId: string, classificationId: number) {
+  if (!selected.value || busy.value) return
+
+  busy.value = true
+  try {
+    const clientId = selected.value.id
+    await clientsApi.updateContractClassification(tenantId.value, clientId, orderId, classificationId)
+    selected.value = (await clientsApi.show(tenantId.value, clientId)).data
+    toast.success('Classificação do contrato atualizada.')
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Erro ao atualizar classificação.')
+  } finally {
+    busy.value = false
+  }
+}
+
 async function openHistory(id: string) {
   await details(id)
   if (selected.value?.id === id) tab.value = 'history'
@@ -446,6 +462,10 @@ watch(
         <ClientContractRenewals
           v-if="tab === 'contracts'"
           :contracts="selected.contract_renewals ?? []"
+          :classifications="classes"
+          :writable="writable"
+          :busy="busy"
+          @assign="assignContractClassification"
         />
         <div v-if="tab === 'contacts'">
           <button v-if="writable" class="mb-4 rounded-lg border px-3 py-2" @click="editContact()">
