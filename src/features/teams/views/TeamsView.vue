@@ -24,6 +24,7 @@ const {
   teamsError,
   teamNameFilter,
   allMembers,
+  supervisorAssignments,
   membersLoading,
   loadTeams,
   searchTeams,
@@ -132,6 +133,7 @@ const {
       :tenant-id="tenantId"
       :can-write="canWrite"
       :members="allMembers"
+      :supervisor-assignments="supervisorAssignments"
       :members-loading="membersLoading"
       @close="createOpen = false"
       @completed="onCompleted"
