@@ -12,7 +12,8 @@ const commercialOpen = ref(false)
 const managementOpen = ref(false)
 const settingsOpen = ref(false)
 const hasPermission = (permission: string) => can(props.tenant, permission)
-const isConsultant = () => props.tenant?.role === 'CONSULTANT'
+const isManager = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
+const isConsultant = () => !isManager()
 const canRedistribute = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
 const canViewManagement = () => !isConsultant() && (canRedistribute() || ['commissions.view', 'commercial-goals.view', 'team-commissions.view', 'operator-classifications.view'].some(hasPermission))
 const canViewClassifications = () => !isConsultant() && ['operator-classifications.view', 'commissions.view'].some(hasPermission)
@@ -78,7 +79,7 @@ watch(() => route.path, (path) => {
             <RouterLink v-if="canViewTeamCommissions()" :to="`/empresas/${tenant.id}/comissoes-equipe`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/comissoes-equipe') }" :aria-current="route.path.endsWith('/comissoes-equipe') ? 'page' : undefined"><AppIcon name="chart" class="size-5 shrink-0" />Comissões da equipe</RouterLink>
           </div>
         </div>
-        <div v-if="!isConsultant()" class="space-y-2">
+        <div v-if="isManager()" class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen"><span class="inline-flex items-center gap-2"><AppIcon name="settings" class="size-4" />Configurações</span> <span aria-hidden="true">{{ settingsOpen ? '⌄' : '›' }}</span></button>
           <div v-show="settingsOpen" class="space-y-1 border-l border-stone-200 pl-2">
           <RouterLink
