@@ -60,8 +60,10 @@ export function useOrdersPage(tenantId: Ref<string>) {
     }
     let refreshTimer: ReturnType<typeof setInterval> | undefined
     let unsubscribe: (() => void) | undefined
+    let realtimeMounted = false
     function onFocus() { void refreshOrders() }
     onMounted(() => {
+        realtimeMounted = true
         unsubscribe = subscribeOrders(tenantId.value, () => { void refreshOrders() })
         // Fallback for installations without Reverb and reconnections.
         refreshTimer = setInterval(() => { void refreshOrders() }, 60000)
