@@ -10,6 +10,7 @@ const props = defineProps<{
   mode: TeamFormMode
   name: string
   supervisorMembershipId: string
+  supervisorAssignments?: Record<string, string>
   members: SupervisorOption[]
   membersLoading: boolean
   busy: boolean
@@ -39,7 +40,7 @@ const showSupervisor = computed(() => props.mode !== 'name')
     <label for="team-supervisor" class="text-sm font-semibold text-slate-700">Supervisor</label>
     <SearchSelect
       :model-value="supervisorMembershipId"
-      :options="[{value:'',label:'Sem supervisor por enquanto'}, ...activeMembers.map(member => ({value:member.id,label:member.name ?? member.email ?? member.id}))]"
+      :options="[{value:'',label:'Sem supervisor por enquanto'}, ...activeMembers.map(member => ({value:member.id,label:(member.name ?? member.email ?? member.id) + (supervisorAssignments?.[member.id] && member.id !== supervisorMembershipId ? ' — Já supervisiona: ' + supervisorAssignments[member.id] : ''),disabled:!!supervisorAssignments?.[member.id] && member.id !== supervisorMembershipId}))]"
       :disabled="busy || membersLoading"
       @update:model-value="emit('update:supervisorMembershipId', String($event))"
     />
