@@ -12,6 +12,7 @@ export type Opportunity = {
   operator_id: number | null; order_type: string; order_type_id: string | null; description: string | null
   expected_close_at: string | null; estimated_monthly_amount: string
   estimated_one_time_amount: string; client?: { id: string; company_name: string }
+  assignee?: { id: string; user?: { id: string; name: string } | null } | null
   stage?: { id: string; name: string }; operator?: { id: number; name: string }
 }
 export type OpportunityInput = {
