@@ -108,6 +108,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Metas comerciais' },
     },
     {
+      path: '/empresas/:tenantId/carteira',
+      component: () => import('@/features/clients/views/ClientPortfolioView.vue'),
+      meta: { requiresAuth: true, title: 'Carteira de contratos' },
+    },
+    {
       path: '/empresas/:tenantId/clientes',
       component: () => import('@/features/clients/views/ClientsView.vue'),
       meta: { requiresAuth: true, title: 'Clientes' },
