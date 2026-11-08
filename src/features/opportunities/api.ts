@@ -54,6 +54,8 @@ export const opportunitiesApi = {
     mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/recover', {}, 'POST'),
   markLost: (tenantId: string, id: string, lostReason: string) =>
     mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/mark-lost', { lost_reason: lostReason }, 'POST'),
+  resendToBackoffice: (tenantId: string, id: string) =>
+    mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/resend-to-backoffice', {}, 'POST'),
   confirmSale: (tenantId: string, id: string) =>
     mutate<{ data: { id: string; status: string } }>(base(tenantId) + '/' + encodeURIComponent(id) + '/confirm-sale', {}, 'POST'),
   moveStage: (tenantId: string, id: string, funnel_stage_id: string) => mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/stage', { funnel_stage_id }, 'PATCH'),
