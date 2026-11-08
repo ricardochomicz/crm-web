@@ -6,7 +6,7 @@ import { ApiError } from '@/lib/http'
 import { errorMessage } from '@/lib/feedback'
 import { teamsApi } from '../api'
 
-type SupervisorOption = { id: string; name: string | null; email: string | null; status: string }
+type SupervisorOption = { id: string; name: string | null; email: string | null; status: string; role_name?: string | null }
 
 const props = defineProps<{
   open: boolean
