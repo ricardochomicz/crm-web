@@ -18,6 +18,7 @@ const props = defineProps<{
    * Reusa o mesmo dialog para dois fluxos distintos.
    */
   supervisorMode?: boolean
+  supervisorAssignments?: Record<string, string>
   members: SupervisorOption[]
   membersLoading: boolean
 }>()
@@ -118,6 +119,7 @@ async function submit() {
         v-model:supervisor-membership-id="supervisorMembershipId"
         :mode="supervisorMode ? 'supervisor' : 'name'"
         :members="members"
+        :supervisor-assignments="supervisorAssignments"
         :members-loading="membersLoading"
         :busy="busy"
         :name-error="nameError"
