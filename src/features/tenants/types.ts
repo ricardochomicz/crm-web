@@ -56,6 +56,7 @@ export interface TeamCapacity {
   remaining: { users: number }
 }
 export interface TenantAccess {
+  role_name?: string | null
   permissions: string[]
   can_manage_permissions: boolean
   allows_operational_writes: boolean
