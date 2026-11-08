@@ -27,6 +27,9 @@ export const teamsApi = {
       'PATCH',
     ),
 
+  assignMember: (tenantId: string, membershipId: string, teamId: string | null) =>
+    mutate(`${base(tenantId)}/members/${encodeURIComponent(membershipId)}/team`, { team_id: teamId }, 'PATCH'),
+
   members: (tenantId: string, teamId: string, page = 1) =>
     request<Page<TeamMember>>(
       `${base(tenantId)}/teams/${encodeURIComponent(teamId)}/members?page=${page}`,
