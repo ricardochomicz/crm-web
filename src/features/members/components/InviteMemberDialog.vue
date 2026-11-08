@@ -19,8 +19,13 @@ const emit = defineEmits<{ close: []; completed: [notice: TeamNotice] }>()
 const email = ref('')
 const role = ref<AssignableRole>('CONSULTANT')
 const selectedRoleId = ref('')
-const selectableRoles = computed(() => props.companyRoles.filter(item => item.is_active && item.code !== 'OWNER' && props.allowedRoles.includes(item.legacy_role as AssignableRole)))
-watch(selectedRoleId, id => { const found = selectableRoles.value.find(item => item.id === id); if (found) role.value = found.legacy_role as AssignableRole })
+const selectableRoles = computed(() =>
+  props.companyRoles.filter((item) => item.is_active && item.can_assign),
+)
+watch(selectedRoleId, (id) => {
+  const found = selectableRoles.value.find((item) => item.id === id)
+  if (found) role.value = found.legacy_role as AssignableRole
+})
 const busy = ref(false)
 const error = ref('')
 const emailError = ref('')
@@ -30,8 +35,14 @@ watch(
   (open) => {
     if (open) {
       email.value = ''
-      selectedRoleId.value = selectableRoles.value.find(item => item.code === 'TELEMARKETING')?.id ?? selectableRoles.value[0]?.id ?? ''
-      role.value = (selectableRoles.value.find(item => item.id === selectedRoleId.value)?.legacy_role ?? props.allowedRoles[0] ?? 'CONSULTANT') as AssignableRole
+      selectedRoleId.value =
+        selectableRoles.value.find((item) => item.code === 'TELEMARKETING')?.id ??
+        selectableRoles.value[0]?.id ??
+        ''
+      role.value = (selectableRoles.value.find((item) => item.id === selectedRoleId.value)
+        ?.legacy_role ??
+        props.allowedRoles[0] ??
+        'CONSULTANT') as AssignableRole
       error.value = ''
       emailError.value = ''
     }
@@ -112,7 +123,19 @@ async function submit() {
           maxlength="254"
           data-initial-focus
           :error="emailError"
-        /><div><label class="mb-2 block text-sm font-semibold text-slate-700">Cargo na empresa</label><SearchSelect :model-value="selectedRoleId" @update:model-value="selectedRoleId = String($event)" :options="selectableRoles.map(item => ({ value: item.id, label: item.name }))" placeholder="Selecione o cargo" /><p class="mt-2 text-xs text-slate-500">As permissões são configuradas pelo proprietário.</p></div>
+        />
+        <div>
+          <label class="mb-2 block text-sm font-semibold text-slate-700">Cargo na empresa</label
+          ><SearchSelect
+            :model-value="selectedRoleId"
+            @update:model-value="selectedRoleId = String($event)"
+            :options="selectableRoles.map((item) => ({ value: item.id, label: item.name }))"
+            placeholder="Selecione o cargo"
+          />
+          <p class="mt-2 text-xs text-slate-500">
+            As permissões são configuradas pelo proprietário.
+          </p>
+        </div>
         <div class="rounded-xl bg-orange-50 p-4 text-xs leading-6 text-orange-900">
           O convite vale por 7 dias e reserva uma vaga do plano. A pessoa precisa aceitar com o
           mesmo e-mail informado.

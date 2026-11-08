@@ -39,12 +39,11 @@ onMounted(() => { refreshTimer = setInterval(() => { void refreshAppointmentCoun
 onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer); requestVersion++ })
 const hasPermission = (permission: string) => can(props.tenant, permission)
 const isManager = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
-const isConsultant = () => !isManager()
 const canRedistribute = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
 const canViewManagement = () => canRedistribute() || ['commissions.view', 'commercial-goals.view', 'team-commissions.view', 'operator-classifications.view'].some(hasPermission)
-const canViewClassifications = () => !isConsultant() && ['operator-classifications.view', 'commissions.view'].some(hasPermission)
-const canViewGoals = () => hasPermission('commercial-goals.view') || hasPermission('commissions.view')
-const canViewTeamCommissions = () => hasPermission('team-commissions.view') || hasPermission('commissions.view')
+const canViewClassifications = () => hasPermission('operator-classifications.view')
+const canViewGoals = () => hasPermission('commercial-goals.view')
+const canViewTeamCommissions = () => hasPermission('team-commissions.view')
 watch(() => route.path, (path) => {
   if (/\/(equipe|equipes|participantes-comerciais)$/.test(path)) teamOpen.value = true
   if (/\/(produtos|clientes|carteira|oportunidades|pedidos)$/.test(path)) commercialOpen.value = true

@@ -30,7 +30,7 @@ function choose(option: Option) {
  query.value = ''
  // Closing a nested native dialog restores focus to the previous input.
  // Blur before notifying the parent so focus restoration cannot reopen the menu.
- (root.value?.querySelector('input') as HTMLInputElement | null)?.blur()
+ root.value?.querySelector<HTMLInputElement>('input')?.blur()
  emit('update:modelValue', option.value)
 }
 function onKeydown(event: KeyboardEvent) {

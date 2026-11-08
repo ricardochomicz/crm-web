@@ -24,13 +24,14 @@ export function useTeamManagement(tenantId: string) {
   const canAccess = computed(() => canViewTeam(tenant.value))
   const canViewMembers = computed(() => has('members.view'))
   const canViewInvitations = computed(() => has('invitations.view'))
-  const allowedRoles = computed<AssignableRole[]>(() => {
-    // The membership role is authoritative for these management choices. Avoid
-    // hiding valid roles when an older tenant response returns a partial list.
-    if (tenant.value?.role === 'OWNER') return ['MANAGER', 'CONSULTANT', 'ASSISTANT']
-    if (tenant.value?.role === 'MANAGER') return ['CONSULTANT', 'ASSISTANT']
-    return tenant.value?.access?.assignable_roles ?? []
-  })
+  const allowedRoles = computed<AssignableRole[]>(() => [
+    ...new Set(
+      companyRoles.value
+        .filter((role) => role.can_assign && role.is_active)
+        .map((role) => role.legacy_role)
+        .filter((role): role is AssignableRole => role !== 'OWNER'),
+    ),
+  ])
   const subscription = computed(() =>
     tenant.value?.access?.capacity
       ? {
@@ -61,7 +62,14 @@ export function useTeamManagement(tenantId: string) {
   )
   function resendBlockedReason(invitation: Invitation): string {
     if (!has('invitations.resend')) return 'Seu cargo não permite reenviar convites.'
-    if (!allowedRoles.value.includes(invitation.role)) return 'Você não pode atribuir este cargo.'
+    if (
+      invitation.tenant_role_id
+        ? !companyRoles.value.some(
+            (role) => role.id === invitation.tenant_role_id && role.can_assign && role.is_active,
+          )
+        : !allowedRoles.value.includes(invitation.role)
+    )
+      return 'Você não pode atribuir este cargo.'
     if (!canWrite.value || !subscription.value)
       return 'A assinatura precisa permitir alterações para reenviar.'
     const otherSeats =
