@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { clientsApi, type ConsolidationOptions } from '../api'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,6 +14,19 @@ const busy = ref(false)
 const loading = ref(true)
 const error = ref('')
 const success = ref('')
+
+function contractOptions(order: ConsolidationOptions['data']['orders'][number]) {
+  return [
+    { value: '', label: 'Criar um novo contrato' },
+    ...data.value.contracts
+      .filter((item) => item.operator_id === order.operator_id &&
+        (!order.classification_id || !item.classification_id || item.classification_id === order.classification_id))
+      .map((contract) => ({
+        value: contract.id,
+        label: `Contrato ${contract.id.slice(0, 8)} · ${contract.operator_name ?? 'Operadora'} · ${contract.renewal_policy === 'WEIGHTED_AVERAGE' ? 'Média ponderada' : 'Regra pendente'}`,
+      })),
+  ]
+}
 
 async function load() {
   loading.value = true
@@ -72,22 +86,15 @@ watch([tenantId, clientId], () => void load(), { immediate: true })
           </div>
           <p class="text-sm font-medium">R$ {{ Number(order.monthly_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) }}</p>
         </div>
-        <label class="block text-sm font-medium text-slate-700">
-          Destino do pedido
-          <select v-model="selections[order.id]" class="field mt-1">
-            <option value="">Criar um novo contrato</option>
-            <option
-              v-for="contract in data.contracts.filter((item) =>
-                item.operator_id === order.operator_id &&
-                (!order.classification_id || !item.classification_id || item.classification_id === order.classification_id)
-              )"
-              :key="contract.id"
-              :value="contract.id"
-            >
-              Contrato {{ contract.id.slice(0, 8) }} · {{ contract.renewal_policy }}
-            </option>
-          </select>
-        </label>
+        <div class="block text-sm font-medium text-slate-700">
+          <p class="mb-1">Destino do pedido</p>
+          <SearchSelect
+            :model-value="selections[order.id] ?? ''"
+            :options="contractOptions(order)"
+            placeholder="Selecione ou pesquise um contrato..."
+            @update:model-value="selections[order.id] = String($event)"
+          />
+        </div>
         <button type="button" class="primary-button mt-3" :disabled="busy" @click="consolidate(order.id)">
           {{ busy ? 'Salvando...' : 'Confirmar vínculo' }}
         </button>
