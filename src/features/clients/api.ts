@@ -1,6 +1,6 @@
 import { request, mutate } from '@/lib/http'
-export type ClientTransferLookup = {exists:boolean;client_id?:string;assigned_to_me?:boolean;owner_name?:string|null;transfer?:{eligible:boolean;last_interaction_at:string|null;inactive_for_90_days:boolean;has_open_opportunities:boolean;has_open_orders:boolean}}
-export type ClientTransferPending = {id:string;client_name:string;from_name:string|null;to_name:string|null;reason:string|null;created_at:string}
+export type ClientTransferLookup = {exists:boolean;client_id?:string;assigned_to_me?:boolean;owner_name?:string|null;transfer?:{eligible:boolean;last_interaction_at:string|null;inactive_for_90_days:boolean;has_open_opportunities:boolean;has_open_orders:boolean;requires_special_review:boolean}}
+export type ClientTransferPending = {id:string;client_name:string;from_name:string|null;to_name:string|null;reason:string|null;created_at:string;eligibility:{eligible:boolean;inactive_for_90_days:boolean;has_open_opportunities:boolean;has_open_orders:boolean;requires_special_review:boolean;last_interaction_at:string|null}}
 export type Seller = {id:string;name:string}
 export type Classification = {id:number;operator_id:number;tenant_id:string|null;code:string;name:string;description:string|null;is_active:boolean;sort_order:number;operator?:{id:number;name:string};rules:RenewalRule[]}
 export type RenewalRule = {id:string;classification_id:number;tenant_id:string|null;minimum_months:number;valid_from:string;valid_until:string|null;is_active:boolean;notes:string|null}
