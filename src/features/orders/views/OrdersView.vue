@@ -13,6 +13,7 @@ const route = useRoute()
 const selectedOrderId = ref<string | null>(null)
 const tenantId = computed(() => String(route.params.tenantId))
 const { tenant, paginated, total, page, lastPage, perPage, loading, error, search, applyFilters, clearFilters, changePage, load } = useOrdersPage(tenantId)
+const canMoveOrders = computed(() => tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER')
 const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/') || '—'
 </script>
@@ -29,8 +30,8 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
             <input id="order-search" v-model="search" class="field w-full" placeholder="Código, cliente ou status" />
             <div class="mt-3 flex justify-end gap-2"><button type="button" class="secondary-button w-auto" @click="clearFilters">Limpar filtros</button><button type="submit" class="primary-button w-auto">Buscar</button></div>
         </form>
-        <AppDialog :open="!!selectedOrderId" title="Detalhes do pedido" size="full" @close="selectedOrderId = null">
-            <OrderDetailsPanel v-if="selectedOrderId" :tenant-id="tenantId" :order-id="selectedOrderId" @close="selectedOrderId = null" @saved="load" />
+        <AppDialog :open="!!selectedOrderId"  :title="canMoveOrders ? 'Movimentar pedido' : 'Detalhes do pedido'" size="full" @close="selectedOrderId = null">
+            <OrderDetailsPanel v-if="selectedOrderId" :tenant-id="tenantId" :order-id="selectedOrderId" :can-manage="canMoveOrders" @close="selectedOrderId = null" @saved="load" />
         </AppDialog>
         <AsyncNotice :loading="loading" :error="error" @retry="load" />
         <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
@@ -46,7 +47,7 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
                         <td class="p-4">{{ order.line_quantity }}</td>
                         <td class="p-4 font-semibold">{{ money(order.monthly_amount) }}</td>
                         <td class="p-4"><span class="rounded-lg bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">{{ order.order_status || order.status }}</span></td>
-                        <td class="p-4 text-right"><button type="button" class="primary-button w-auto whitespace-nowrap" @click="selectedOrderId = order.id">Movimentar Pedido</button></td>
+                        <td class="p-4 text-right"><button type="button"  :class="canMoveOrders ? 'primary-button' : 'secondary-button'" class="w-auto whitespace-nowrap" @click="selectedOrderId = order.id">{{ canMoveOrders ? 'Movimentar Pedido' : 'Detalhes do pedido' }}</button></td>
                     </tr>
                 </tbody>
             </ListTable>
