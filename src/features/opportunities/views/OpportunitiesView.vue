@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
-import type { Opportunity } from '../types'
 import { toast } from '@/services/toast'
-const scheduling = ref<Opportunity | null>(null)
+const scheduling = ref<{ id: string; client_id?: string | null; title: string } | null>(null)
 import AppShell from '@/components/layout/AppShell.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
