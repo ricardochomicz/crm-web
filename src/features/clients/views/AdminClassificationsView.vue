@@ -96,15 +96,16 @@ async function save() {
       return
     }
 
+    const current = rows.value.find((item) => item.id === editing.value)
+    const activeRule = current?.rules.find((item) => item.is_active && !item.valid_until)
+    if (activeRule && activeRule.minimum_months !== months.value) {
+      toast.error('Para alterar um prazo vigente, utilize a ação de regras, preservando o histórico.')
+      return
+    }
+
     const response = await clientsApi.saveGlobalClassification(payload, editing.value ?? undefined)
     const classificationId = editing.value ?? response.data.id
-    const current = rows.value.find((item) => item.id === classificationId)
-    const activeRule = current?.rules.find((item) => item.is_active && !item.valid_until)
-    if (!activeRule || activeRule.minimum_months !== months.value) {
-      if (activeRule) {
-        toast.error('Esta classificação já possui regra vigente. Edite o prazo pela ação de regras para preservar o histórico.')
-        return
-      }
+    if (!activeRule) {
       await clientsApi.addGlobalRule(classificationId, {
         minimum_months: months.value,
         valid_from: new Date().toISOString().slice(0, 10),
