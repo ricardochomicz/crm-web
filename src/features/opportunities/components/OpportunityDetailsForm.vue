@@ -6,7 +6,9 @@ import type { Client } from '@/features/clients/api'
 import type { OrderType } from '@/features/order-types/api'
 import type { OpportunityInput } from '../api'
 const model = defineModel<OpportunityInput>({ required: true })
-const props = defineProps<{ clients: Client[]; orderTypes: OrderType[] }>()
+const props = defineProps<{ clients: Client[]; orderTypes: OrderType[]; operators: { id: number; name: string }[] }>()
+const emit = defineEmits<{ changeOperator: [id: number | null] }>()
+const operatorValue = computed({ get: () => model.value.operator_id === null ? '' : String(model.value.operator_id), set: (value: string) => emit('changeOperator', value ? Number(value) : null) })
 const clientSearch = ref('')
 const clientMenuOpen = ref(false)
 const filteredClients = computed(() => {
@@ -60,6 +62,7 @@ watch(() => [model.value.client_id, props.clients] as const, () => {
               </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
+              <AppAutocomplete v-model="operatorValue" label="Operadora *" placeholder="Selecione a operadora" :options="operators.map(o => ({ id: String(o.id), name: o.name }))" />
               <AppAutocomplete v-model="model.order_type_id" label="Tipo de negociação" placeholder="Buscar tipo de negociação" :options="orderTypes" />
               <FormField id="opportunity-forecast" v-model="model.expected_close_at" label="Previsão de fechamento" type="date" class="min-h-[44px]" />
             </div>
