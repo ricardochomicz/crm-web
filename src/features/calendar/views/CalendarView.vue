@@ -21,7 +21,7 @@ const error = ref('')
 const dialogOpen = ref(false)
 const selectedEvent = ref<CalendarEvent | null>(null)
 const selectedDate = ref('')
-const focusedDay = ref(dateKey(new Date()))
+const focusedDay = ref('')
 const eventStyles: Record<CalendarEvent['type'], { label: string; color: string; dot: string }> = {
   meeting: { label: 'Reunião', color: 'bg-blue-50 text-blue-800 hover:bg-blue-100', dot: 'bg-blue-500' },
   call: { label: 'Ligação', color: 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100', dot: 'bg-emerald-500' },
@@ -38,6 +38,7 @@ const canDelete = computed(() => can(tenant.value, 'calendar.delete') && !!tenan
 const teamAllowed = computed(() => can(tenant.value, 'calendar.team.view') || tenant.value?.access?.role_name?.trim().toLocaleLowerCase('pt-BR') === 'supervisor de equipe')
 const title = computed(() => new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(month.value))
 const dateKey = (date: Date) => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
+focusedDay.value = dateKey(new Date())
 const range = computed(() => {
   const first = new Date(month.value.getFullYear(), month.value.getMonth(), 1)
   const last = new Date(month.value.getFullYear(), month.value.getMonth() + 1, 1)
@@ -107,7 +108,7 @@ function saved() {
     <section v-if="!loading && !error" aria-label="Calendário mensal" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <div class="grid grid-cols-7 border-b border-stone-200 bg-stone-50 text-center text-xs font-semibold text-slate-500"><div v-for="name in ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']" :key="name" class="py-3">{{ name }}</div></div>
       <div class="grid grid-cols-7">
-        <div v-for="(day, index) in days" :key="index" class="min-h-28 cursor-pointer border-b border-r border-stone-100 p-1.5 sm:min-h-36 sm:p-2" :class="{ 'ring-2 ring-inset ring-orange-400': day && focusedDay === dateKey(new Date(month.getFullYear(), month.getMonth(), day)) }" @click="day && (focusedDay = dateKey(new Date(month.getFullYear(), month.getMonth(), day)))" :class="{ 'bg-stone-50/70': day && dateKey(new Date(month.getFullYear(), month.getMonth(), day)) < dateKey(new Date()) }">
+        <div v-for="(day, index) in days" :key="index" class="min-h-28 cursor-pointer border-b border-r border-stone-100 p-1.5 sm:min-h-36 sm:p-2"  :class="{ 'ring-2 ring-inset ring-orange-400': day && focusedDay === dateKey(new Date(month.getFullYear(), month.getMonth(), day)), 'bg-stone-50/70': day && dateKey(new Date(month.getFullYear(), month.getMonth(), day)) < dateKey(new Date()) }" @click="day && (focusedDay = dateKey(new Date(month.getFullYear(), month.getMonth(), day)))">
           <template v-if="day">
             <button type="button" class="mb-1 flex size-7 items-center justify-center rounded-full text-xs font-semibold hover:bg-orange-100" :class="dateKey(new Date(month.getFullYear(), month.getMonth(), day)) === dateKey(new Date()) ? 'bg-orange-600 text-white hover:bg-orange-700' : 'text-slate-700'" :aria-label="`Ver compromissos do dia ${day}`" @click.stop="focusedDay = dateKey(new Date(month.getFullYear(), month.getMonth(), day))">{{ day }}</button>
             <button v-for="event in (byDay.get(dateKey(new Date(month.getFullYear(), month.getMonth(), day))) ?? []).slice(0, 3)" :key="event.id" type="button" class="mb-1 block w-full truncate rounded-md px-1.5 py-1 text-left text-[11px] font-medium" :class="eventStyles[event.type].color" :title="event.title" @click.stop="focusedDay = dateKey(new Date(event.starts_at)); edit(event)">{{ event.title }}</button>
