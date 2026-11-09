@@ -16,6 +16,8 @@ const paths: Record<string, string> = {
   tag: 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01',
   arrow: 'M5 12h14m-6-6 6 6-6 6',
   check: 'm5 12 4 4L19 6',
+  checkCircle: 'M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0zM8 12l3 3 5-6',
+  alertTriangle: 'M12 3 2 21h20L12 3zM12 9v5m0 3h.01',
   lock: 'M7 10V7a5 5 0 0 1 10 0v3M5 10h14v11H5zM12 14v3',
   eye: 'M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12zm13 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
   mail: 'M3 5h18v14H3zM3 5l9 7 9-7',

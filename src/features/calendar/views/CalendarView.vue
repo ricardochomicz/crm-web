@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import CalendarEventDialog from '../components/CalendarEventDialog.vue'
 import { tenantApi } from '@/features/tenants/api'
@@ -22,6 +23,26 @@ const dialogOpen = ref(false)
 const selectedEvent = ref<CalendarEvent | null>(null)
 const selectedDate = ref('')
 const focusedDay = ref('')
+const now = ref(Date.now())
+let clock: ReturnType<typeof setInterval> | undefined
+onMounted(() => { clock = setInterval(() => { now.value = Date.now() }, 30_000) })
+onUnmounted(() => { if (clock) clearInterval(clock) })
+function isOverdue(event: CalendarEvent): boolean {
+  return event.status === 'pending' && new Date(event.ends_at).getTime() < now.value
+}
+function statusLabel(event: CalendarEvent): string {
+  if (event.status === 'completed') return 'Concluído'
+  if (event.status === 'cancelled') return 'Cancelado'
+  return isOverdue(event) ? 'Atrasado' : 'Pendente'
+}
+const completedColors: Record<CalendarEvent['type'], string> = {
+  meeting: 'bg-blue-50/50 text-blue-800 hover:bg-blue-100',
+  call: 'bg-emerald-50/50 text-emerald-800 hover:bg-emerald-100',
+  visit: 'bg-orange-50/50 text-orange-800 hover:bg-orange-100',
+  task: 'bg-violet-50/50 text-violet-800 hover:bg-violet-100',
+  reminder: 'bg-slate-100/50 text-slate-700 hover:bg-slate-200',
+}
+
 const eventStyles: Record<CalendarEvent['type'], { label: string; color: string; dot: string }> = {
   meeting: { label: 'Reunião', color: 'bg-blue-50 text-blue-800 hover:bg-blue-100', dot: 'bg-blue-500' },
   call: { label: 'Ligação', color: 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100', dot: 'bg-emerald-500' },
@@ -111,7 +132,11 @@ function saved() {
         <div v-for="(day, index) in days" :key="index" class="min-h-28 cursor-pointer border-b border-r border-stone-100 p-1.5 sm:min-h-36 sm:p-2"  :class="{ 'ring-2 ring-inset ring-orange-400': day && focusedDay === dateKey(new Date(month.getFullYear(), month.getMonth(), day)), 'bg-stone-50/70': day && dateKey(new Date(month.getFullYear(), month.getMonth(), day)) < dateKey(new Date()) }" @click="day && (focusedDay = dateKey(new Date(month.getFullYear(), month.getMonth(), day)))">
           <template v-if="day">
             <button type="button" class="mb-1 flex size-7 items-center justify-center rounded-full text-xs font-semibold hover:bg-orange-100" :class="dateKey(new Date(month.getFullYear(), month.getMonth(), day)) === dateKey(new Date()) ? 'bg-orange-600 text-white hover:bg-orange-700' : 'text-slate-700'" :aria-label="`Ver compromissos do dia ${day}`" @click.stop="focusedDay = dateKey(new Date(month.getFullYear(), month.getMonth(), day))">{{ day }}</button>
-            <button v-for="event in (byDay.get(dateKey(new Date(month.getFullYear(), month.getMonth(), day))) ?? []).slice(0, 3)" :key="event.id" type="button" class="mb-1 block w-full truncate rounded-md px-1.5 py-1 text-left text-[11px] font-medium" :class="eventStyles[event.type].color" :title="event.title" @click.stop="focusedDay = dateKey(new Date(event.starts_at)); edit(event)">{{ event.title }}</button>
+            <button v-for="event in (byDay.get(dateKey(new Date(month.getFullYear(), month.getMonth(), day))) ?? []).slice(0, 3)" :key="event.id" type="button" class="mb-1 flex w-full items-center gap-1 rounded-md px-1.5 py-1 text-left text-[11px] font-medium" :class="[event.status === 'completed' ? completedColors[event.type] : eventStyles[event.type].color, { 'border-l-2 border-orange-500': isOverdue(event) }]" :title="`${event.title} · ${statusLabel(event)}`" :aria-label="`${event.title} · ${statusLabel(event)}`" @click.stop="focusedDay = dateKey(new Date(event.starts_at)); edit(event)">
+              <AppIcon v-if="event.status === 'completed'" name="checkCircle" class="size-3.5 shrink-0" />
+              <AppIcon v-else-if="isOverdue(event)" name="alertTriangle" class="size-3.5 shrink-0 text-orange-700" />
+              <span class="truncate">{{ event.title }}</span>
+            </button>
             <p v-if="(byDay.get(dateKey(new Date(month.getFullYear(), month.getMonth(), day))) ?? []).length > 3" class="text-[10px] text-slate-500">Mais compromissos…</p>
           </template>
         </div>
@@ -127,11 +152,13 @@ function saved() {
       </div>
       <p v-if="!dayEvents.length" class="mt-5 rounded-xl bg-stone-50 px-4 py-6 text-center text-sm text-slate-500">Nenhum compromisso para este dia.</p>
       <div v-else class="mt-4 space-y-2">
-        <button v-for="event in dayEvents" :key="event.id" type="button" class="flex w-full items-start gap-3 rounded-xl border border-stone-100 p-3 text-left transition hover:border-stone-300" :disabled="scope === 'team' || !canEdit" @click="edit(event)">
-          <span class="mt-1 size-2.5 shrink-0 rounded-full" :class="eventStyles[event.type].dot" />
+        <button v-for="event in dayEvents" :key="event.id" type="button" class="flex w-full items-start gap-3 rounded-xl border border-stone-100 p-3 text-left transition hover:border-stone-300" :class="{ 'border-l-2 border-l-orange-500': isOverdue(event) }" :disabled="scope === 'team' || !canEdit" @click="edit(event)">
+          <AppIcon v-if="event.status === 'completed'" name="checkCircle" class="mt-0.5 size-4 shrink-0 text-emerald-700" />
+          <AppIcon v-else-if="isOverdue(event)" name="alertTriangle" class="mt-0.5 size-4 shrink-0 text-orange-700" />
+          <span v-else class="mt-1 size-2.5 shrink-0 rounded-full" :class="eventStyles[event.type].dot" />
           <span class="min-w-0 flex-1">
             <span class="flex flex-wrap items-center gap-2"><span class="font-semibold text-slate-800">{{ event.title }}</span><span class="rounded-md px-2 py-0.5 text-xs" :class="eventStyles[event.type].color">{{ eventStyles[event.type].label }}</span></span>
-            <span class="mt-1 block text-xs text-slate-500">{{ event.all_day ? 'Dia inteiro' : eventTime(event.starts_at) + ' – ' + eventTime(event.ends_at) }} · {{ event.status === 'completed' ? 'Concluído' : event.status === 'cancelled' ? 'Cancelado' : 'Pendente' }}<template v-if="event.client_name"> · {{ event.client_name }}</template></span>
+            <span class="mt-1 block text-xs text-slate-500">{{ event.all_day ? 'Dia inteiro' : eventTime(event.starts_at) + ' – ' + eventTime(event.ends_at) }} · <span :class="{ 'font-semibold text-orange-700': isOverdue(event), 'font-medium text-emerald-700': event.status === 'completed' }">{{ statusLabel(event) }}</span><template v-if="event.client_name"> · {{ event.client_name }}</template></span>
           </span>
         </button>
       </div>
