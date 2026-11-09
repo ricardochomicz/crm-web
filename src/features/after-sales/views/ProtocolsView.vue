@@ -41,6 +41,9 @@ const overdue = (p: Protocol) => !!p.due_at && new Date(p.due_at).getTime() < Da
 const editing = computed(() => !!detail.value)
 const statusOptions = computed(() => [{ value: '', label: 'Todas as situações' }, ...Object.entries(statuses).map(([value, label]) => ({ value, label }))])
 const memberOptions = computed(() => [{ value: '', label: 'Não atribuído' }, ...members.value.map(m => ({ value: m.id, label: m.name }))])
+const categoryOptions = computed(() => Object.entries(categories).map(([value, label]) => ({ value, label })))
+const priorityOptions = computed(() => Object.entries(priorities).map(([value, label]) => ({ value, label })))
+const workflowStatusOptions = computed(() => Object.entries(statuses).map(([value, label]) => ({ value, label })))
 const clientOptions = computed(() => [{ value: '', label: 'Selecione o cliente' }, ...clients.value.map(c => ({ value: c.id, label: c.company_name }))])
 async function load() {
   loading.value = true; error.value = ''
@@ -73,7 +76,7 @@ async function save() {
     if (detail.value) {
       detail.value = await protocolApi.update(tenantId, detail.value.data.id, { status: updateStatus.value, assigned_to_tenant_user_id: updateAssignee.value || null, note: note.value })
     } else {
-      await protocolApi.create(tenantId, form.value)
+      await protocolApi.create(tenantId, { ...form.value, due_at: form.value.due_at ? new Date(form.value.due_at).toISOString() : null })
     }
     dialogOpen.value = false; toast.success('Protocolo salvo.'); void load()
   } catch (e) { error.value = errorMessage(e) } finally { saving.value = false }
@@ -131,7 +134,7 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
       <div class="space-y-4 p-1">
         <template v-if="detail">
           <div class="rounded-xl bg-stone-50 p-3"><div class="text-xs text-slate-500">{{ detail.data.code }}</div><div class="font-semibold">{{ detail.data.title }}</div><p class="mt-1 text-sm text-slate-600">{{ detail.data.description }}</p></div>
-          <label class="block text-sm font-medium">Situação<select v-model="updateStatus" class="field mt-1 w-full"><option v-for="(label, key) in statuses" :key="key" :value="key">{{ label }}</option></select></label>
+          <label class="block text-sm font-medium">Situação<SearchSelect v-model="updateStatus" :options="workflowStatusOptions" /></label>
           <label class="block text-sm font-medium">Responsável pelo atendimento<SearchSelect v-model="updateAssignee" :options="memberOptions" /></label>
           <label class="block text-sm font-medium">Observação / resolução<textarea v-model="note" class="field mt-1 w-full" rows="3" placeholder="Registre a movimentação…" /></label>
           <div class="max-h-56 space-y-2 overflow-auto border-t pt-3"><h3 class="font-semibold">Histórico</h3><div v-for="h in detail.history" :key="h.id" class="rounded-lg bg-stone-50 p-3 text-sm"><div class="text-xs text-slate-500">{{ h.actor_name }} · {{ new Date(h.created_at).toLocaleString('pt-BR') }}</div><p>{{ h.from_status ? statuses[h.from_status as ProtocolStatus] : 'Abertura' }} → {{ statuses[h.to_status as ProtocolStatus] }}</p><p v-if="h.note">{{ h.note }}</p></div></div>
@@ -140,12 +143,13 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
           <label class="block text-sm font-medium">Número do protocolo da operadora<input v-model.trim="form.code" class="field mt-1 w-full" maxlength="40" placeholder="Informe o número fornecido pela operadora" /></label>
           <label class="block text-sm font-medium">Cliente<SearchSelect v-model="form.client_id" :options="clientOptions" placeholder="Selecione o cliente" /></label>
           <label class="block text-sm font-medium">Assunto<input v-model="form.title" class="field mt-1 w-full" maxlength="180" /></label>
-          <div class="grid grid-cols-2 gap-3"><label class="text-sm font-medium">Categoria<select v-model="form.category" class="field mt-1 w-full"><option v-for="(label, key) in categories" :key="key" :value="key">{{ label }}</option></select></label><label class="text-sm font-medium">Prioridade<select v-model="form.priority" class="field mt-1 w-full"><option v-for="(label, key) in priorities" :key="key" :value="key">{{ label }}</option></select></label></div>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-sm font-medium">Categoria<SearchSelect v-model="form.category" :options="categoryOptions" /></label><label class="text-sm font-medium">Prioridade<SearchSelect v-model="form.priority" :options="priorityOptions" /></label></div>
           <label class="block text-sm font-medium">Responsável pelo atendimento (você por padrão)<SearchSelect v-model="form.assigned_to_tenant_user_id" :options="memberOptions" placeholder="Selecione o responsável" /></label>
+          <label class="block text-sm font-medium">Prazo de tratamento <span class="font-normal text-slate-400">(opcional)</span><input v-model="form.due_at" type="datetime-local" class="field mt-1 w-full" /></label>
           <label class="block text-sm font-medium">Descrição<textarea v-model="form.description" class="field mt-1 w-full" rows="4" /></label>
         </template>
         <p v-if="error" class="text-sm text-red-700">{{ error }}</p>
-        <div class="flex justify-end gap-2"><button class="secondary-button" @click="dialogOpen = false">Cancelar</button><button class="primary-button" :disabled="saving" @click="save">{{ saving ? 'Salvando…' : 'Salvar' }}</button></div>
+        <div class="flex flex-wrap justify-end gap-2 border-t border-stone-100 pt-4"><button type="button" class="secondary-button w-auto" :disabled="saving" @click="dialogOpen = false">Cancelar</button><button type="button" class="primary-button w-auto" :disabled="saving" @click="save">{{ saving ? 'Salvando…' : editing ? 'Salvar movimentação' : 'Salvar protocolo' }}</button></div>
       </div>
     </AppDialog>
   </AppShell>
