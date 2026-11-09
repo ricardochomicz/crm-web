@@ -13,6 +13,7 @@ const tenantId = String(useRoute().params.tenantId)
 const tenant = ref<Tenant>()
 const protocols = ref<Protocol[]>([])
 const clients = ref<{ id: string; company_name: string }[]>([])
+const currentMemberId = ref('')
 const members = ref<{ id: string; name: string }[]>([])
 const search = ref('')
 const statusFilter = ref('')
@@ -24,7 +25,7 @@ const error = ref('')
 const saving = ref(false)
 const dialogOpen = ref(false)
 const detail = ref<ProtocolDetail | null>(null)
-const form = ref<ProtocolInput>({ client_id: '', title: '', category: 'support', priority: 'normal', description: '', assigned_to_tenant_user_id: null, due_at: null })
+const form = ref<ProtocolInput>({ code: '', client_id: '', title: '', category: 'support', priority: 'normal', description: '', assigned_to_tenant_user_id: currentMemberId.value || null, due_at: null })
 const updateStatus = ref<ProtocolStatus>('open')
 const updateAssignee = ref('')
 const note = ref('')
@@ -41,11 +42,11 @@ async function load() {
   } catch (e) { error.value = errorMessage(e) } finally { loading.value = false }
 }
 watch(page, () => { void load() })
-void Promise.all([tenantApi.show(tenantId), protocolApi.options(tenantId)]).then(([t, o]) => { tenant.value = t.data; clients.value = o.data.clients; members.value = o.data.members }).catch(e => { error.value = errorMessage(e) })
+void Promise.all([tenantApi.show(tenantId), protocolApi.options(tenantId)]).then(([t, o]) => { tenant.value = t.data; clients.value = o.data.clients; members.value = o.data.members; currentMemberId.value = o.data.current_member_id }).catch(e => { error.value = errorMessage(e) })
 void load()
 function newProtocol() {
   detail.value = null
-  form.value = { client_id: '', title: '', category: 'support', priority: 'normal', description: '', assigned_to_tenant_user_id: null, due_at: null }
+  form.value = { code: '', client_id: '', title: '', category: 'support', priority: 'normal', description: '', assigned_to_tenant_user_id: null, due_at: null }
   dialogOpen.value = true
 }
 async function openProtocol(p: Protocol) {
@@ -109,10 +110,11 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
           <div class="max-h-56 space-y-2 overflow-auto border-t pt-3"><h3 class="font-semibold">Histórico</h3><div v-for="h in detail.history" :key="h.id" class="rounded-lg bg-stone-50 p-3 text-sm"><div class="text-xs text-slate-500">{{ h.actor_name }} · {{ new Date(h.created_at).toLocaleString('pt-BR') }}</div><p>{{ h.from_status ? statuses[h.from_status as ProtocolStatus] : 'Abertura' }} → {{ statuses[h.to_status as ProtocolStatus] }}</p><p v-if="h.note">{{ h.note }}</p></div></div>
         </template>
         <template v-else>
+          <label class="block text-sm font-medium">Número do protocolo da operadora<input v-model.trim="form.code" class="field mt-1 w-full" maxlength="40" placeholder="Informe o número fornecido pela operadora" /></label>
           <label class="block text-sm font-medium">Cliente<select v-model="form.client_id" class="field mt-1 w-full"><option value="">Selecione o cliente</option><option v-for="c in clients" :key="c.id" :value="c.id">{{ c.company_name }}</option></select></label>
           <label class="block text-sm font-medium">Assunto<input v-model="form.title" class="field mt-1 w-full" maxlength="180" /></label>
           <div class="grid grid-cols-2 gap-3"><label class="text-sm font-medium">Categoria<select v-model="form.category" class="field mt-1 w-full"><option v-for="(label, key) in categories" :key="key" :value="key">{{ label }}</option></select></label><label class="text-sm font-medium">Prioridade<select v-model="form.priority" class="field mt-1 w-full"><option v-for="(label, key) in priorities" :key="key" :value="key">{{ label }}</option></select></label></div>
-          <label class="block text-sm font-medium">Responsável pelo atendimento<select v-model="form.assigned_to_tenant_user_id" class="field mt-1 w-full"><option :value="null">Não atribuído</option><option v-for="m in members" :key="m.id" :value="m.id">{{ m.name }}</option></select></label>
+          <label class="block text-sm font-medium">Responsável pelo atendimento (você por padrão)<select v-model="form.assigned_to_tenant_user_id" class="field mt-1 w-full"><option :value="null">Não atribuído</option><option v-for="m in members" :key="m.id" :value="m.id">{{ m.name }}</option></select></label>
           <label class="block text-sm font-medium">Descrição<textarea v-model="form.description" class="field mt-1 w-full" rows="4" /></label>
         </template>
         <p v-if="error" class="text-sm text-red-700">{{ error }}</p>
