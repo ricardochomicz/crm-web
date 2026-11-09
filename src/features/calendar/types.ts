@@ -6,6 +6,8 @@ export interface CalendarEvent {
   tenant_user_id: string
   client_id: string | null
   opportunity_id: string | null
+  opportunity_title?: string | null
+  client_name?: string | null
   title: string
   description: string | null
   type: EventType
