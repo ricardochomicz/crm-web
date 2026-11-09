@@ -63,8 +63,15 @@ async function save() {
   busy.value = true
   error.value = ''
   try {
-    if (props.event) await calendarApi.update(props.tenantId, props.event.id, form.value)
-    else await calendarApi.create(props.tenantId, form.value)
+    if (props.event) {
+      const changes: Partial<CalendarEventInput> = {
+        title: form.value.title, description: form.value.description, type: form.value.type,
+        status: form.value.status, priority: form.value.priority, all_day: form.value.all_day,
+      }
+      if (form.value.starts_at !== localInput(props.event.starts_at)) changes.starts_at = form.value.starts_at
+      if (form.value.ends_at !== localInput(props.event.ends_at)) changes.ends_at = form.value.ends_at
+      await calendarApi.update(props.tenantId, props.event.id, changes)
+    } else await calendarApi.create(props.tenantId, form.value)
     emit('saved')
   } catch (e) { error.value = errorMessage(e) }
   finally { busy.value = false }
