@@ -38,6 +38,7 @@ watch(() => [props.tenant?.id, can(props.tenant, 'calendar.view'), route.path], 
 onMounted(() => { refreshTimer = setInterval(() => { void refreshAppointmentCount() }, 60000) })
 onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer); requestVersion++ })
 const hasPermission = (permission: string) => can(props.tenant, permission)
+const afterSalesOpen = ref(false)
 const isManager = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
 const canRedistribute = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
 const canViewManagement = () => canRedistribute() || ['commissions.view', 'commercial-goals.view', 'team-commissions.view', 'operator-classifications.view'].some(hasPermission)
