@@ -3,6 +3,11 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
+import ListFilters from '@/components/ui/ListFilters.vue'
+import ListTable from '@/components/ui/ListTable.vue'
+import PagePagination from '@/components/ui/PagePagination.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { tenantApi } from '@/features/tenants/api'
 import type { Tenant } from '@/features/tenants/types'
 import { protocolApi, type Protocol, type ProtocolDetail, type ProtocolInput, type ProtocolStatus } from '../api'
@@ -34,6 +39,9 @@ const categories: Record<string, string> = { activation: 'Ativação', portabili
 const priorities: Record<string, string> = { low: 'Baixa', normal: 'Normal', high: 'Alta', urgent: 'Urgente' }
 const overdue = (p: Protocol) => !!p.due_at && new Date(p.due_at).getTime() < Date.now() && !['resolved', 'cancelled'].includes(p.status)
 const editing = computed(() => !!detail.value)
+const statusOptions = computed(() => [{ value: '', label: 'Todas as situações' }, ...Object.entries(statuses).map(([value, label]) => ({ value, label }))])
+const memberOptions = computed(() => [{ value: '', label: 'Não atribuído' }, ...members.value.map(m => ({ value: m.id, label: m.name }))])
+const clientOptions = computed(() => [{ value: '', label: 'Selecione o cliente' }, ...clients.value.map(c => ({ value: c.id, label: c.company_name }))])
 async function load() {
   loading.value = true; error.value = ''
   try {
@@ -46,7 +54,7 @@ void Promise.all([tenantApi.show(tenantId), protocolApi.options(tenantId)]).then
 void load()
 function newProtocol() {
   detail.value = null
-  form.value = { code: '', client_id: '', title: '', category: 'support', priority: 'normal', description: '', assigned_to_tenant_user_id: null, due_at: null }
+  form.value = { code: '', client_id: '', title: '', category: 'support', priority: 'normal', description: '', assigned_to_tenant_user_id: currentMemberId.value || null, due_at: null }
   dialogOpen.value = true
 }
 async function openProtocol(p: Protocol) {
@@ -75,46 +83,65 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
 
 <template>
   <AppShell :tenant="tenant" title="Pós-venda" subtitle="Central de protocolos">
-    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-      <div><h1 class="text-2xl font-bold text-slate-800">Protocolos</h1><p class="text-sm text-slate-500">Acompanhe solicitações e atendimentos dos clientes.</p></div>
-      <button class="primary-button" @click="newProtocol">+ Novo protocolo</button>
-    </div>
-    <div class="mb-4 flex flex-wrap gap-2 rounded-xl border border-stone-200 bg-white p-3">
-      <input v-model="search" class="field min-w-48 flex-1" placeholder="Protocolo, cliente ou assunto" @keyup.enter="searchNow" />
-      <select v-model="statusFilter" class="field"><option value="">Todas as situações</option><option v-for="(label, key) in statuses" :key="key" :value="key">{{ label }}</option></select>
-      <button class="secondary-button" @click="searchNow">Buscar</button>
-      <button class="secondary-button" @click="search = ''; statusFilter = ''; searchNow()">Limpar</button>
-    </div>
-    <p v-if="error && !dialogOpen" class="mb-3 text-sm text-red-700">{{ error }}</p>
-    <div class="overflow-hidden rounded-xl border border-stone-200 bg-white">
-      <p v-if="loading" class="p-5 text-sm text-slate-500">Carregando protocolos…</p>
-      <p v-else-if="!protocols.length" class="p-6 text-center text-sm text-slate-500">Nenhum protocolo encontrado.</p>
-      <div v-else class="overflow-x-auto"><table class="w-full text-left text-sm">
-        <thead class="bg-stone-50 text-slate-500"><tr><th class="p-3">Protocolo</th><th class="p-3">Cliente / assunto</th><th class="p-3">Categoria</th><th class="p-3">Responsável</th><th class="p-3">Situação</th><th class="p-3">Prazo</th></tr></thead>
-        <tbody><tr v-for="p in protocols" :key="p.id" class="cursor-pointer border-t border-stone-100 hover:bg-stone-50" @click="openProtocol(p)">
-          <td class="p-3 font-semibold text-orange-700">{{ p.code }}</td><td class="p-3"><div class="font-semibold">{{ p.client_name }}</div><div class="text-xs text-slate-500">{{ p.title }}</div></td>
-          <td class="p-3">{{ categories[p.category] ?? p.category }}</td><td class="p-3">{{ p.assignee_name || 'Não atribuído' }}</td>
-          <td class="p-3"><span class="rounded-lg bg-stone-100 px-2 py-1 text-xs">{{ statuses[p.status] }}</span></td>
-          <td class="p-3" :class="{ 'font-semibold text-red-700': overdue(p) }">{{ p.due_at ? new Date(p.due_at).toLocaleDateString('pt-BR') : '—' }}<span v-if="overdue(p)"> · Atrasado</span></td>
-        </tr></tbody>
-      </table></div>
-    </div>
-    <div class="mt-4 flex items-center justify-between text-sm text-slate-500"><span>{{ total }} protocolo(s)</span><div class="flex items-center gap-3"><button class="secondary-button" :disabled="page <= 1" @click="page--">Anterior</button><span>{{ page }} / {{ lastPage }}</span><button class="secondary-button" :disabled="page >= lastPage" @click="page++">Próximo</button></div></div>
+    <header class="mb-7 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <p class="eyebrow">PÓS-VENDA</p>
+        <h1 class="mt-3 text-3xl font-semibold text-slate-900">Protocolos</h1>
+        <p class="mt-2 text-sm text-slate-500">Acompanhe os atendimentos e protocolos registrados junto às operadoras.</p>
+      </div>
+      <button type="button" class="primary-button inline-flex w-auto items-center gap-2" @click="newProtocol">
+        <span class="text-lg leading-none">+</span> Novo protocolo
+      </button>
+    </header>
+    <ListFilters title="Filtros" :busy="loading" :columns="2" :count-label="`${total} protocolo(s) encontrado(s)`" :active-count="Number(!!search) + Number(!!statusFilter)" collapsible initially-collapsed @search="searchNow" @clear="search = ''; statusFilter = ''; searchNow()">
+      <div>
+        <label for="protocol-search" class="mb-2 block text-sm font-semibold text-slate-700">Pesquisar protocolos</label>
+        <input id="protocol-search" v-model="search" class="field w-full" placeholder="Número do protocolo, cliente ou assunto" />
+      </div>
+      <div>
+        <label class="mb-2 block text-sm font-semibold text-slate-700">Situação</label>
+        <SearchSelect v-model="statusFilter" :options="statusOptions" placeholder="Todas as situações" />
+      </div>
+    </ListFilters>
+    <div v-if="error && !dialogOpen" class="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{{ error }} <button type="button" class="ml-2 font-semibold underline" @click="load">Tentar novamente</button></div>
+    <section v-if="!error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+      <div v-if="loading" class="p-6 text-sm text-slate-500">Carregando protocolos…</div>
+      <template v-else>
+        <ListTable min-width="800px">
+          <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <tr><th class="p-4">Protocolo</th><th class="p-4">Cliente / assunto</th><th class="p-4">Categoria</th><th class="p-4">Responsável</th><th class="p-4">Situação</th><th class="p-4">Prazo</th><th class="p-4 text-right">Ações</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in protocols" :key="p.id" class="border-t border-stone-100 hover:bg-stone-50/70">
+              <td class="p-4 font-semibold text-slate-800">{{ p.code }}</td>
+              <td class="p-4"><div class="font-semibold text-slate-800">{{ p.client_name }}</div><div class="mt-1 text-xs text-slate-500">{{ p.title }}</div></td>
+              <td class="p-4 text-slate-600">{{ categories[p.category] ?? p.category }}</td>
+              <td class="p-4 text-slate-600">{{ p.assignee_name || 'Não atribuído' }}</td>
+              <td class="p-4"><span class="inline-flex rounded-lg px-3 py-1 text-xs font-semibold" :class="p.status === 'resolved' ? 'bg-emerald-50 text-emerald-700' : p.status === 'cancelled' ? 'bg-stone-100 text-slate-600' : p.status === 'waiting' ? 'bg-amber-50 text-amber-700' : 'bg-orange-50 text-orange-700'">{{ statuses[p.status] }}</span></td>
+              <td class="p-4" :class="overdue(p) ? 'font-semibold text-rose-700' : 'text-slate-600'">{{ p.due_at ? new Date(p.due_at).toLocaleDateString('pt-BR') : '—' }}<span v-if="overdue(p)" class="ml-1 inline-flex items-center gap-1"><AppIcon name="alertTriangle" class="size-4" /> Atrasado</span></td>
+              <td class="p-4 text-right"><button type="button" class="secondary-button w-auto whitespace-nowrap" @click="openProtocol(p)">Movimentar protocolo</button></td>
+            </tr>
+          </tbody>
+        </ListTable>
+        <p v-if="!protocols.length" class="p-8 text-center text-sm text-slate-500">Nenhum protocolo encontrado. Ajuste os filtros ou cadastre um novo protocolo.</p>
+      </template>
+    </section>
+    <PagePagination v-if="!error" :page="page" :last-page="lastPage" :total="total" :busy="loading" @change="page = $event" />
     <AppDialog :open="dialogOpen" :title="editing ? 'Movimentar protocolo' : 'Novo protocolo'" @close="dialogOpen = false">
       <div class="space-y-4 p-1">
         <template v-if="detail">
           <div class="rounded-xl bg-stone-50 p-3"><div class="text-xs text-slate-500">{{ detail.data.code }}</div><div class="font-semibold">{{ detail.data.title }}</div><p class="mt-1 text-sm text-slate-600">{{ detail.data.description }}</p></div>
           <label class="block text-sm font-medium">Situação<select v-model="updateStatus" class="field mt-1 w-full"><option v-for="(label, key) in statuses" :key="key" :value="key">{{ label }}</option></select></label>
-          <label class="block text-sm font-medium">Responsável pelo atendimento<select v-model="updateAssignee" class="field mt-1 w-full"><option value="">Não atribuído</option><option v-for="m in members" :key="m.id" :value="m.id">{{ m.name }}</option></select></label>
+          <label class="block text-sm font-medium">Responsável pelo atendimento<SearchSelect v-model="updateAssignee" :options="memberOptions" /></label>
           <label class="block text-sm font-medium">Observação / resolução<textarea v-model="note" class="field mt-1 w-full" rows="3" placeholder="Registre a movimentação…" /></label>
           <div class="max-h-56 space-y-2 overflow-auto border-t pt-3"><h3 class="font-semibold">Histórico</h3><div v-for="h in detail.history" :key="h.id" class="rounded-lg bg-stone-50 p-3 text-sm"><div class="text-xs text-slate-500">{{ h.actor_name }} · {{ new Date(h.created_at).toLocaleString('pt-BR') }}</div><p>{{ h.from_status ? statuses[h.from_status as ProtocolStatus] : 'Abertura' }} → {{ statuses[h.to_status as ProtocolStatus] }}</p><p v-if="h.note">{{ h.note }}</p></div></div>
         </template>
         <template v-else>
           <label class="block text-sm font-medium">Número do protocolo da operadora<input v-model.trim="form.code" class="field mt-1 w-full" maxlength="40" placeholder="Informe o número fornecido pela operadora" /></label>
-          <label class="block text-sm font-medium">Cliente<select v-model="form.client_id" class="field mt-1 w-full"><option value="">Selecione o cliente</option><option v-for="c in clients" :key="c.id" :value="c.id">{{ c.company_name }}</option></select></label>
+          <label class="block text-sm font-medium">Cliente<SearchSelect v-model="form.client_id" :options="clientOptions" placeholder="Selecione o cliente" /></label>
           <label class="block text-sm font-medium">Assunto<input v-model="form.title" class="field mt-1 w-full" maxlength="180" /></label>
           <div class="grid grid-cols-2 gap-3"><label class="text-sm font-medium">Categoria<select v-model="form.category" class="field mt-1 w-full"><option v-for="(label, key) in categories" :key="key" :value="key">{{ label }}</option></select></label><label class="text-sm font-medium">Prioridade<select v-model="form.priority" class="field mt-1 w-full"><option v-for="(label, key) in priorities" :key="key" :value="key">{{ label }}</option></select></label></div>
-          <label class="block text-sm font-medium">Responsável pelo atendimento (você por padrão)<select v-model="form.assigned_to_tenant_user_id" class="field mt-1 w-full"><option :value="null">Não atribuído</option><option v-for="m in members" :key="m.id" :value="m.id">{{ m.name }}</option></select></label>
+          <label class="block text-sm font-medium">Responsável pelo atendimento (você por padrão)<SearchSelect v-model="form.assigned_to_tenant_user_id" :options="memberOptions" placeholder="Selecione o responsável" /></label>
           <label class="block text-sm font-medium">Descrição<textarea v-model="form.description" class="field mt-1 w-full" rows="4" /></label>
         </template>
         <p v-if="error" class="text-sm text-red-700">{{ error }}</p>
