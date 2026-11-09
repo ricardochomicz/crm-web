@@ -135,7 +135,8 @@ function saved() {
             <button v-for="event in (byDay.get(dateKey(new Date(month.getFullYear(), month.getMonth(), day))) ?? []).slice(0, 3)" :key="event.id" type="button" class="mb-1 flex w-full items-center gap-1 rounded-md px-1.5 py-1 text-left text-[11px] font-medium" :class="[event.status === 'completed' ? completedColors[event.type] : eventStyles[event.type].color, { 'border-l-2 border-orange-500': isOverdue(event) }]" :title="`${event.title} · ${statusLabel(event)}`" :aria-label="`${event.title} · ${statusLabel(event)}`" @click.stop="focusedDay = dateKey(new Date(event.starts_at)); edit(event)">
               <AppIcon v-if="event.status === 'completed'" name="checkCircle" class="size-3.5 shrink-0" />
               <AppIcon v-else-if="isOverdue(event)" name="alertTriangle" class="size-3.5 shrink-0 text-orange-700" />
-              <span class="truncate">{{ event.title }}</span>
+              <AppIcon v-else-if="event.status === 'cancelled'" name="xCircle" class="size-3.5 shrink-0 text-slate-500" />
+              <span class="truncate" :class="{ 'line-through opacity-60': event.status === 'cancelled' }">{{ event.title }}</span>
             </button>
             <p v-if="(byDay.get(dateKey(new Date(month.getFullYear(), month.getMonth(), day))) ?? []).length > 3" class="text-[10px] text-slate-500">Mais compromissos…</p>
           </template>
@@ -155,9 +156,10 @@ function saved() {
         <button v-for="event in dayEvents" :key="event.id" type="button" class="flex w-full items-start gap-3 rounded-xl border border-stone-100 p-3 text-left transition hover:border-stone-300" :class="{ 'border-l-2 border-l-orange-500': isOverdue(event) }" :disabled="scope === 'team' || !canEdit" @click="edit(event)">
           <AppIcon v-if="event.status === 'completed'" name="checkCircle" class="mt-0.5 size-4 shrink-0 text-emerald-700" />
           <AppIcon v-else-if="isOverdue(event)" name="alertTriangle" class="mt-0.5 size-4 shrink-0 text-orange-700" />
+          <AppIcon v-else-if="event.status === 'cancelled'" name="xCircle" class="mt-0.5 size-4 shrink-0 text-slate-500" />
           <span v-else class="mt-1 size-2.5 shrink-0 rounded-full" :class="eventStyles[event.type].dot" />
           <span class="min-w-0 flex-1">
-            <span class="flex flex-wrap items-center gap-2"><span class="font-semibold text-slate-800">{{ event.title }}</span><span class="rounded-md px-2 py-0.5 text-xs" :class="eventStyles[event.type].color">{{ eventStyles[event.type].label }}</span></span>
+            <span class="flex flex-wrap items-center gap-2"><span class="font-semibold text-slate-800" :class="{ 'line-through opacity-60': event.status === 'cancelled' }">{{ event.title }}</span><span class="rounded-md px-2 py-0.5 text-xs" :class="eventStyles[event.type].color">{{ eventStyles[event.type].label }}</span></span>
             <span class="mt-1 block text-xs text-slate-500">{{ event.all_day ? 'Dia inteiro' : eventTime(event.starts_at) + ' – ' + eventTime(event.ends_at) }} · <span :class="{ 'font-semibold text-orange-700': isOverdue(event), 'font-medium text-emerald-700': event.status === 'completed' }">{{ statusLabel(event) }}</span><template v-if="event.client_name"> · {{ event.client_name }}</template></span>
           </span>
         </button>
