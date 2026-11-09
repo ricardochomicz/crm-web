@@ -572,6 +572,7 @@ watch(
                   <span class="rounded-lg bg-stone-100 px-2 py-1 text-xs font-medium text-slate-700">{{ protocolStatuses[protocol.status] ?? protocol.status }}</span>
                 </div>
                 <p class="mt-2 text-sm text-slate-600">Responsável: {{ protocol.assignee_name || 'Não atribuído' }} · Aberto em {{ new Date(protocol.created_at).toLocaleDateString('pt-BR') }}</p>
+                <p v-if="protocol.status === 'resolved' && protocol.resolved_at" class="mt-1 text-sm font-medium text-emerald-700">Resolvido em: {{ new Date(protocol.resolved_at).toLocaleString('pt-BR') }}</p>
                 <p v-if="protocol.due_at" class="mt-1 text-xs text-slate-500">Prazo: {{ new Date(protocol.due_at).toLocaleString('pt-BR') }}</p>
                 <p v-if="protocol.description" class="mt-2 whitespace-pre-line text-sm text-slate-600">{{ protocol.description }}</p>
               </div>
