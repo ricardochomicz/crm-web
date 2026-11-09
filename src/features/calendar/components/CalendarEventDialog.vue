@@ -82,7 +82,12 @@ async function remove() {
   <AppDialog :open="open" :title="title" description="Organize suas atividades e compromissos." :busy="busy" @close="emit('close')">
     <form class="space-y-4" @submit.prevent="save">
       <fieldset :disabled="busy || !canWrite" class="space-y-4">
-        <p v-if="opportunityId || event?.opportunity_id" class="rounded-lg bg-orange-50 p-3 text-sm text-orange-900">Compromisso vinculado à oportunidade {{ opportunityTitle || event?.opportunity_id }}.</p>
+        <div v-if="opportunityId || event?.opportunity_id || clientId || event?.client_id" class="space-y-1 rounded-lg bg-orange-50 p-3 text-sm text-orange-900">
+          <p class="font-semibold">Compromisso vinculado</p>
+          <p v-if="event?.client_name"><span class="font-medium">Cliente:</span> {{ event.client_name }}</p>
+          <p v-if="opportunityTitle || event?.opportunity_title"><span class="font-medium">Oportunidade:</span> {{ opportunityTitle || event?.opportunity_title }}</p>
+          <p v-if="!event?.client_name && !opportunityTitle && !event?.opportunity_title" class="text-orange-700">Vinculado ao cadastro do cliente ou à oportunidade.</p>
+        </div>
         <FormField id="calendar-title" v-model="form.title" label="Título" maxlength="200" required placeholder="Ex.: Reunião com cliente" />
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Tipo
           <select v-model="form.type" class="field"><option v-for="type in types" :key="type.value" :value="type.value">{{ type.label }}</option></select>
