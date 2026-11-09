@@ -52,7 +52,7 @@ async function save() {
   if (busy.value || !props.canWrite) return
   const start = new Date(form.value.starts_at)
   const end = new Date(form.value.ends_at)
-  if (Number.isNaN(start.getTime()) || start <= new Date()) {
+  if (Number.isNaN(start.getTime()) || (!props.event && start <= new Date())) {
     error.value = 'Escolha uma data e horário de início futuros.'
     return
   }
