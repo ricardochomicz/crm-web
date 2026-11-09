@@ -34,6 +34,8 @@ const form = ref<ProtocolInput>({ code: '', client_id: '', title: '', category: 
 const updateStatus = ref<ProtocolStatus>('open')
 const updateAssignee = ref('')
 const note = ref('')
+const resolutionDate = ref('')
+const localDateTime = (date: Date) => { const d = new Date(date.getTime() - date.getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16) }
 const statuses: Record<ProtocolStatus, string> = { open: 'Aberto', in_progress: 'Em atendimento', waiting: 'Aguardando retorno', resolved: 'Resolvido', cancelled: 'Cancelado', reopened: 'Reaberto' }
 const categories: Record<string, string> = { activation: 'Ativação', portability: 'Portabilidade', billing: 'Financeiro', support: 'Suporte', contract: 'Contratos', cancellation: 'Cancelamento', other: 'Outros' }
 const priorities: Record<string, string> = { low: 'Baixa', normal: 'Normal', high: 'Alta', urgent: 'Urgente' }
@@ -67,6 +69,7 @@ async function openProtocol(p: Protocol) {
     updateStatus.value = detail.value.data.status
     updateAssignee.value = detail.value.data.assigned_to_tenant_user_id ?? ''
     note.value = ''
+    resolutionDate.value = detail.value.data.resolved_at ? localDateTime(new Date(detail.value.data.resolved_at)) : localDateTime(new Date())
     dialogOpen.value = true
   } catch (e) { error.value = errorMessage(e) }
 }
@@ -74,7 +77,7 @@ async function save() {
   saving.value = true; error.value = ''
   try {
     if (detail.value) {
-      detail.value = await protocolApi.update(tenantId, detail.value.data.id, { status: updateStatus.value, assigned_to_tenant_user_id: updateAssignee.value || null, note: note.value })
+      detail.value = await protocolApi.update(tenantId, detail.value.data.id, { status: updateStatus.value, assigned_to_tenant_user_id: updateAssignee.value || null, note: note.value, ...(updateStatus.value === 'resolved' ? { resolved_at: resolutionDate.value ? new Date(resolutionDate.value).toISOString() : null } : {}) })
     } else {
       await protocolApi.create(tenantId, { ...form.value, due_at: form.value.due_at ? new Date(form.value.due_at).toISOString() : null })
     }
@@ -135,8 +138,10 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
         <template v-if="detail">
           <div class="rounded-xl bg-stone-50 p-3"><div class="text-xs text-slate-500">{{ detail.data.code }}</div><div class="font-semibold">{{ detail.data.title }}</div><p class="mt-1 text-sm text-slate-600">{{ detail.data.description }}</p></div>
           <label class="block text-sm font-medium">Situação<SearchSelect v-model="updateStatus" :options="workflowStatusOptions" /></label>
+          <label v-if="updateStatus === 'resolved'" class="block text-sm font-medium">Data da resolução<input v-model="resolutionDate" type="datetime-local" class="field mt-1 w-full" :max="localDateTime(new Date())" /></label>
           <label class="block text-sm font-medium">Responsável pelo atendimento<SearchSelect v-model="updateAssignee" :options="memberOptions" /></label>
           <label class="block text-sm font-medium">Observação / resolução<textarea v-model="note" class="field mt-1 w-full" rows="3" placeholder="Registre a movimentação…" /></label>
+          <p v-if="detail.data.status === 'resolved' && detail.data.resolved_at" class="text-sm text-emerald-700">Resolvido em {{ new Date(detail.data.resolved_at).toLocaleString('pt-BR') }}</p>
           <div class="max-h-56 space-y-2 overflow-auto border-t pt-3"><h3 class="font-semibold">Histórico</h3><div v-for="h in detail.history" :key="h.id" class="rounded-lg bg-stone-50 p-3 text-sm"><div class="text-xs text-slate-500">{{ h.actor_name }} · {{ new Date(h.created_at).toLocaleString('pt-BR') }}</div><p>{{ h.from_status ? statuses[h.from_status as ProtocolStatus] : 'Abertura' }} → {{ statuses[h.to_status as ProtocolStatus] }}</p><p v-if="h.note">{{ h.note }}</p></div></div>
         </template>
         <template v-else>
