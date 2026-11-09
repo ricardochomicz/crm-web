@@ -14,7 +14,7 @@ export const calendarApi = {
   create(tenantId: string, data: CalendarEventInput) {
     return mutate<{ data: CalendarEvent }>(base(tenantId), data)
   },
-  update(tenantId: string, id: string, data: CalendarEventInput) {
+  update(tenantId: string, id: string, data: Partial<CalendarEventInput>) {
     return mutate<{ data: CalendarEvent }>(`${base(tenantId)}/${encodeURIComponent(id)}`, data, 'PATCH')
   },
   remove(tenantId: string, id: string) {
