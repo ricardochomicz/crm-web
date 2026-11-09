@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { protocolApi, type Protocol } from '@/features/after-sales/api'
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
@@ -133,7 +134,28 @@ const form = ref<ClientInput>(blank()),
   modal = ref(false),
   selected = ref<Client | null>(null),
   tab = ref<'data' | 'contracts' | 'contacts' | 'sellers' | 'history'>('data')
-const historyOrigin = ref<'client' | 'opportunity' | 'commercial_order'>('client')
+const historyOrigin = ref<'client' | 'opportunity' | 'commercial_order' | 'protocol'>('client')
+const clientProtocols = ref<Protocol[]>([])
+const protocolPage = ref(1)
+const protocolLastPage = ref(1)
+const protocolsLoading = ref(false)
+const protocolsError = ref('')
+const protocolStatuses: Record<string, string> = { open: 'Aberto', in_progress: 'Em atendimento', waiting: 'Aguardando retorno', resolved: 'Resolvido', cancelled: 'Cancelado', reopened: 'Reaberto' }
+async function loadClientProtocols() {
+  if (!selected.value || tab.value !== 'history' || historyOrigin.value !== 'protocol') return
+  const clientId = selected.value.id
+  protocolsLoading.value = true
+  protocolsError.value = ''
+  try {
+    const response = await protocolApi.list(tenantId.value, { client_id: clientId, page: String(protocolPage.value) })
+    if (selected.value?.id !== clientId) return
+    clientProtocols.value = response.data
+    protocolLastPage.value = response.last_page
+  } catch (e) {
+    protocolsError.value = e instanceof Error ? e.message : 'Erro ao carregar protocolos.'
+  } finally { protocolsLoading.value = false }
+}
+watch([historyOrigin, tab, protocolPage, () => selected.value?.id], () => { void loadClientProtocols() })
 const contactBlank = (): ContactInput => ({
   name: '',
   position: null,
@@ -527,18 +549,40 @@ watch(
                 { id: 'client', label: 'Cliente' },
                 { id: 'opportunity', label: 'Oportunidades' },
                 { id: 'commercial_order', label: 'Pedidos' },
+                { id: 'protocol', label: 'Protocolos' },
               ] as const"
               :key="category.id"
               type="button"
               class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
               :class="historyOrigin === category.id ? 'bg-orange-100 text-orange-900' : 'bg-stone-100 text-slate-600 hover:bg-stone-200'"
               :aria-pressed="historyOrigin === category.id"
-              @click="historyOrigin = category.id"
+              @click="historyOrigin = category.id; if (category.id === 'protocol') protocolPage = 1"
             >
               {{ category.label }}
             </button>
           </div>
-          <TimelinePanel :tenant-id="tenantId" type="client" :subject-id="selected.id" :origin-filter="historyOrigin" :can-write="writable && historyOrigin === 'client'" />
+          <TimelinePanel v-if="historyOrigin !== 'protocol'" :tenant-id="tenantId" type="client" :subject-id="selected.id" :origin-filter="historyOrigin" :can-write="writable && historyOrigin === 'client'" />
+          <div v-else class="space-y-3">
+            <p v-if="protocolsLoading" class="py-6 text-center text-sm text-slate-500">Carregando protocolos…</p>
+            <p v-else-if="protocolsError" class="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{{ protocolsError }} <button type="button" class="underline" @click="loadClientProtocols">Tentar novamente</button></p>
+            <template v-else>
+              <div v-for="protocol in clientProtocols" :key="protocol.id" class="rounded-xl border border-stone-200 bg-white p-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="font-semibold text-slate-800">{{ protocol.code }} · {{ protocol.title }}</span>
+                  <span class="rounded-lg bg-stone-100 px-2 py-1 text-xs font-medium text-slate-700">{{ protocolStatuses[protocol.status] ?? protocol.status }}</span>
+                </div>
+                <p class="mt-2 text-sm text-slate-600">Responsável: {{ protocol.assignee_name || 'Não atribuído' }} · Aberto em {{ new Date(protocol.created_at).toLocaleDateString('pt-BR') }}</p>
+                <p v-if="protocol.due_at" class="mt-1 text-xs text-slate-500">Prazo: {{ new Date(protocol.due_at).toLocaleString('pt-BR') }}</p>
+                <p v-if="protocol.description" class="mt-2 whitespace-pre-line text-sm text-slate-600">{{ protocol.description }}</p>
+              </div>
+              <p v-if="!clientProtocols.length" class="rounded-xl border border-dashed border-stone-200 p-6 text-center text-sm text-slate-500">Nenhum protocolo registrado para este cliente.</p>
+              <div v-if="protocolLastPage > 1" class="flex items-center justify-end gap-3 text-sm">
+                <button type="button" class="secondary-button w-auto" :disabled="protocolPage <= 1" @click="protocolPage--">Anterior</button>
+                <span>{{ protocolPage }} / {{ protocolLastPage }}</span>
+                <button type="button" class="secondary-button w-auto" :disabled="protocolPage >= protocolLastPage" @click="protocolPage++">Próximo</button>
+              </div>
+            </template>
+          </div>
         </div>
         <div v-if="tab === 'sellers'" class="space-y-2">
           <p v-for="s in selected.sellers" :key="s.id" class="border-b py-2 text-sm">
