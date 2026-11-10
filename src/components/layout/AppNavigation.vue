@@ -86,17 +86,17 @@ watch(() => route.path, (path) => {
             <RouterLink v-if="can(tenant, 'commissions.view')" :to="`/empresas/${tenant.id}/participantes-comerciais`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/participantes-comerciais') }"><AppIcon name="users" class="size-5 shrink-0" />Parceiros e indicadores</RouterLink>
           </div>
         </div>
-        <div v-if="can(tenant, 'products.view') || can(tenant, 'clients.view') || can(tenant, 'opportunities.view') || can(tenant, 'commissions.view')" class="space-y-2">
+        <div v-if="can(tenant, 'products.view') || can(tenant, 'clients.view') || can(tenant, 'opportunities.view') || can(tenant, 'orders.view') || can(tenant, 'portfolio.view') || can(tenant, 'commissions.view')" class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="commercialOpen" @click="commercialOpen = !commercialOpen"><span class="inline-flex items-center gap-2"><AppIcon name="briefcase" class="size-4" />Comercial</span> <span aria-hidden="true">{{ commercialOpen ? '⌄' : '›' }}</span></button>
           <div v-show="commercialOpen" class="space-y-1 border-l border-stone-200 pl-2">
             <RouterLink v-if="can(tenant, 'opportunities.view')" :to="`/empresas/${tenant.id}/oportunidades`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/oportunidades') }"><AppIcon name="target" class="size-5 shrink-0" />Oportunidades</RouterLink>
-            <RouterLink v-if="can(tenant, 'opportunities.view')" :to="`/empresas/${tenant.id}/pedidos`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/pedidos') }"><AppIcon name="fileText" class="size-5 shrink-0" />Pedidos comerciais</RouterLink>
-            <RouterLink v-if="can(tenant, 'clients.view')" :to="`/empresas/${tenant.id}/carteira`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/carteira') }"><AppIcon name="layers" class="size-5 shrink-0" />Carteira de contratos</RouterLink>
+            <RouterLink v-if="can(tenant, 'orders.view')" :to="`/empresas/${tenant.id}/pedidos`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/pedidos') }"><AppIcon name="fileText" class="size-5 shrink-0" />Pedidos comerciais</RouterLink>
+            <RouterLink v-if="can(tenant, 'portfolio.view')" :to="`/empresas/${tenant.id}/carteira`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/carteira') }"><AppIcon name="layers" class="size-5 shrink-0" />Carteira de contratos</RouterLink>
             <RouterLink v-if="can(tenant, 'clients.view')" :to="`/empresas/${tenant.id}/clientes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/clientes') }"><AppIcon name="userRound" class="size-5 shrink-0" />Clientes</RouterLink>
             <RouterLink v-if="can(tenant, 'products.view')" :to="`/empresas/${tenant.id}/produtos`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/produtos') }" :aria-current="route.path.endsWith('/produtos') ? 'page' : undefined"><AppIcon name="package" class="size-5 shrink-0" />Produtos e planos</RouterLink>
           </div>
         </div>
-        <div v-if="tenant && ['OWNER', 'MANAGER', 'CONSULTANT', 'ASSISTANT'].includes(tenant.role)" class="space-y-2">
+        <div v-if="can(tenant, 'after-sales.view')" class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="afterSalesOpen" @click="afterSalesOpen = !afterSalesOpen"><span class="inline-flex items-center gap-2"><AppIcon name="briefcase" class="size-4" />Pós-venda</span><span>{{ afterSalesOpen ? '⌄' : '›' }}</span></button>
           <div v-show="afterSalesOpen" class="border-l border-stone-200 pl-2"><RouterLink :to="`/empresas/${tenant.id}/pos-venda/protocolos`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/pos-venda/protocolos') }"><AppIcon name="fileText" class="size-5" />Protocolos</RouterLink></div>
         </div>
