@@ -17,7 +17,7 @@ const route = useRoute()
 const router = useRouter()
 const renewing = ref<PortfolioContract | null>(null)
 const savingRenewal = ref(false)
-const visibleRows = computed(() => rows.value.filter(row => !row.renewal_opportunity_id))
+const visibleRows = computed(() => rows.value)
 function openRenewal(contract: PortfolioContract) {
   renewing.value = contract
 }
@@ -39,7 +39,7 @@ const tenantId = computed(() => String(route.params.tenantId))
 const tenant = ref<Tenant>()
 const operators = ref<{ id: number; name: string }[]>([])
 const rows = ref<PortfolioContract[]>([])
-const viewMode = ref<'contracts' | 'orders'>('contracts')
+const viewMode = ref<'contracts' | 'orders' | 'renewing'>('contracts')
 const ungroupedCount = ref(0)
 const hasCheckedLegacy = ref(false)
 const search = ref('')
@@ -84,6 +84,7 @@ async function load() {
       operator_id: appliedOperator.value ? Number(appliedOperator.value) : undefined,
       page: page.value,
       per_page: perPage,
+      ...(viewMode.value !== 'contracts' ? { renewal_state: viewMode.value === 'renewing' ? 'in_progress' as const : 'available' as const } : {}),
     }
     let response = viewMode.value === 'contracts'
       ? await clientsApi.consolidatedPortfolio(id, params)
@@ -156,7 +157,7 @@ function clearFilters() {
   applyFilters()
 }
 
-function changeMode(mode: 'contracts' | 'orders') {
+function changeMode(mode: 'contracts' | 'orders' | 'renewing') {
   if (viewMode.value === mode) return
   viewMode.value = mode
   page.value = 1
@@ -206,6 +207,7 @@ watch(tenantId, () => void initialize(), { immediate: true })
     <div class="mb-4 flex flex-wrap items-center gap-2">
       <button type="button" class="rounded-lg border px-4 py-2 text-sm font-medium" :class="viewMode === 'contracts' ? 'border-slate-900 bg-slate-900 text-white' : 'border-stone-200 bg-white text-slate-700'" @click="changeMode('contracts')">Contratos consolidados</button>
       <button type="button" class="rounded-lg border px-4 py-2 text-sm font-medium" :class="viewMode === 'orders' ? 'border-slate-900 bg-slate-900 text-white' : 'border-stone-200 bg-white text-slate-700'" @click="changeMode('orders')">Pedidos históricos</button>
+      <button type="button" class="rounded-lg border px-4 py-2 text-sm font-medium" :class="viewMode === 'renewing' ? 'border-slate-900 bg-slate-900 text-white' : 'border-stone-200 bg-white text-slate-700'" @click="changeMode('renewing')">Em renovação</button>
     </div>
     <p v-if="viewMode === 'orders'" class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Estes pedidos ainda são exibidos individualmente. Vincule-os aos contratos pelo cadastro do cliente para que apareçam na carteira consolidada. A renovação integral deve ser calculada somente após a consolidação.</p>
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
@@ -238,17 +240,18 @@ watch(tenantId, () => void initialize(), { immediate: true })
               <td class="p-4">{{ formatDate(contract.average_activation_date) }}</td>
               <td class="p-4">{{ contract.renewal_months === null ? '—' : `${contract.renewal_months} meses` }}</td>
               <td class="p-4">{{ formatDate(contract.renewal_date) }}</td>
-              <td class="p-4 text-sm">{{ statuses[contract.status] }}</td>
+              <td class="p-4 text-sm">{{ viewMode === 'renewing' ? 'Em renovação' : statuses[contract.status] }}</td>
               <td class="p-4">
                 <button v-if="viewMode === 'orders' && contract.status === 'overdue' && contract.order_id && !contract.renewal_opportunity_id"
                   type="button" class="primary-button w-auto whitespace-nowrap" @click="openRenewal(contract)">Renovar</button>
+                <button v-else-if="viewMode === 'renewing' && contract.renewal_opportunity_id" type="button" class="rounded-lg border border-stone-200 px-3 py-2 text-xs font-semibold" @click="router.push('/empresas/' + tenantId + '/oportunidades')">Ver oportunidade</button>
                 <span v-else class="text-xs text-slate-400">—</span>
               </td>
             </tr>
           </tbody>
         </ListTable>
         <p v-if="!rows.length" class="p-8 text-center text-sm text-slate-500">
-          {{ viewMode === 'contracts' ? 'Nenhum contrato consolidado encontrado. Consulte Pedidos históricos para vincular os registros antigos.' : 'Nenhum pedido concluído encontrado para os filtros informados.' }}
+          {{ viewMode === 'contracts' ? 'Nenhum contrato consolidado encontrado. Consulte Pedidos históricos para vincular os registros antigos.' : viewMode === 'renewing' ? 'Nenhum pedido com renovação em andamento.' : 'Nenhum pedido concluído encontrado para os filtros informados.' }}
         </p>
       </section>
       <PagePagination
