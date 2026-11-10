@@ -38,6 +38,25 @@ function isOverdue(item: Opportunity): boolean {
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     return item.expected_close_at.slice(0, 10) < today
 }
+function startDrag(event: DragEvent, item: Opportunity) {
+  if (!props.canEdit || props.busyId || item.status !== 'open') return
+  dragging.value = item.id
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', item.id)
+  }
+}
+function overStage(event: DragEvent, stageId: string) {
+  if (!dragging.value || !props.canEdit || props.busyId) return
+  event.preventDefault()
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+  hover.value = stageId
+}
+function leaveStage(event: DragEvent, stageId: string) {
+  const current = event.currentTarget as HTMLElement | null
+  const next = event.relatedTarget as Node | null
+  if (hover.value === stageId && (!next || !current?.contains(next))) hover.value = null
+}
 function drop(stageId: string) {
   hover.value = null
   const item = props.items.find(item => item.id === dragging.value)
@@ -50,20 +69,27 @@ function drop(stageId: string) {
     <div class="overflow-x-auto pb-4">
     <div class="flex min-w-max items-start gap-4">
       <section v-for="stage in columns" :key="stage.id || 'unassigned'"
-        class="flex w-72 shrink-0 flex-col rounded-2xl border p-3 transition-colors"
-        :class="[palette(stage.name).background, palette(stage.name).border, hover === stage.id && stage.id ? 'ring-2 ' + palette(stage.name).hover : '']"
-        @dragover.prevent="hover = stage.id" @dragleave.self="hover = null" @drop.prevent="drop(stage.id)">
+        class="flex w-72 shrink-0 flex-col rounded-2xl border p-3 transition-all"
+        :class="[palette(stage.name).background, palette(stage.name).border, hover === stage.id && stage.id ? 'ring-4 ring-inset ' + palette(stage.name).hover + ' border-current' : '']"
+        @dragover="overStage($event, stage.id)" @dragleave="leaveStage($event, stage.id)" @drop.prevent.stop="drop(stage.id)">
         <div class="mb-3 flex items-center justify-between gap-2 px-1">
           <h3 class="flex items-center gap-2 text-sm font-bold" :class="palette(stage.name).text"><span class="h-5 w-1 rounded-full" :class="palette(stage.name).accent"></span>{{ stage.name }}</h3>
           <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="palette(stage.name).badge">{{ items.filter(i => matchesStage(i, stage)).length }}</span>
         </div>
         <div class="min-h-24 max-h-[calc(100vh-310px)] space-y-3 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]">
           <article v-for="item in stageItems(stage)" :key="item.id"
-            :draggable="canEdit && item.status === 'open' && !busyId && !/para correção/i.test(stage.name)"
+
             class="rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             :class="[dragging === item.id ? 'opacity-50' : '', isOverdue(item) ? 'border-rose-200 bg-rose-50/40' : '']"
-            @dragstart="dragging = item.id" @dragend="dragging = null; hover = null">
-            <div class="mb-2 flex justify-end">
+            >
+            <div class="mb-2 flex items-center justify-between">
+              <span v-if="canEdit && item.status === 'open' && !busyId && !/para correção/i.test(stage.name)"
+                draggable="true" title="Arraste por aqui para mudar de etapa" aria-label="Arrastar oportunidade para outra etapa"
+                class="inline-flex cursor-grab select-none items-center gap-1 rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-[11px] font-medium text-slate-500 active:cursor-grabbing"
+                @dragstart.stop="startDrag($event, item)" @dragend="dragging = null; hover = null">
+                <span aria-hidden="true">⠿</span> Mover
+              </span>
+              <span v-else></span>
               <button type="button" class="rounded-md p-1 hover:bg-amber-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500" :class="highlightedIds.has(item.id) ? 'text-amber-600' : 'text-slate-400'" :aria-label="highlightedIds.has(item.id) ? 'Remover destaque' : 'Destacar oportunidade'" :aria-pressed="highlightedIds.has(item.id)" @click="emit('highlight', item.id, !highlightedIds.has(item.id))" :disabled="highlightingId === item.id"><span class="inline-flex h-4 w-4 [&_svg]:h-4 [&_svg]:w-4"><AppIcon name="star" /></span></button>
             </div>
             <button type="button" class="w-full text-left" @click="emit('edit', item)">
