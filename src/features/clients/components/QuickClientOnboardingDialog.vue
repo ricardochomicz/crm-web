@@ -99,7 +99,7 @@ async function saveContact() {
             @input="duplicate = false" @blur="checkDuplicate" />
         </label>
         <label class="block text-sm font-medium">Razão social / Nome *
-          <input v-model="form.company_name" class="field" required maxlength="255" />
+          <input v-model="form.company_name" class="field uppercase" required maxlength="255" @input="form.company_name = form.company_name.toLocaleUpperCase('pt-BR')" />
         </label>
         <label class="block text-sm font-medium">Telefone
           <input v-model="phoneModel" class="field" inputmode="tel" maxlength="15" />
