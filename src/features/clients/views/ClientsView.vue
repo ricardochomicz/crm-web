@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { protocolApi, type Protocol } from '@/features/after-sales/api'
-import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
-import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
@@ -22,7 +19,7 @@ import { useClientAddress } from '../composables/useClientAddress'
 import { digits } from '@/lib/masks'
 import { useFormValidation } from '@/composables/useFormValidation'
 import ClientForm from '../components/ClientForm.vue'
-import ClientContractRenewals from '../components/ClientContractRenewals.vue'
+import ClientDetailsDialog from '../components/ClientDetailsDialog.vue'
 import {
   clientsApi,
   type Client,
@@ -134,29 +131,7 @@ const form = ref<ClientInput>(blank()),
   editing = ref(''),
   modal = ref(false),
   selected = ref<Client | null>(null),
-  tab = ref<'data' | 'contracts' | 'contacts' | 'sellers' | 'history'>('data')
-const historyOrigin = ref<'client' | 'opportunity' | 'commercial_order' | 'protocol'>('client')
-const clientProtocols = ref<Protocol[]>([])
-const protocolPage = ref(1)
-const protocolLastPage = ref(1)
-const protocolsLoading = ref(false)
-const protocolsError = ref('')
-const protocolStatuses: Record<string, string> = { open: 'Aberto', in_progress: 'Em atendimento', waiting: 'Aguardando retorno', resolved: 'Resolvido', cancelled: 'Cancelado', reopened: 'Reaberto' }
-async function loadClientProtocols() {
-  if (!selected.value || tab.value !== 'history' || historyOrigin.value !== 'protocol') return
-  const clientId = selected.value.id
-  protocolsLoading.value = true
-  protocolsError.value = ''
-  try {
-    const response = await protocolApi.list(tenantId.value, { client_id: clientId, page: String(protocolPage.value) })
-    if (selected.value?.id !== clientId) return
-    clientProtocols.value = response.data
-    protocolLastPage.value = response.last_page
-  } catch (e) {
-    protocolsError.value = e instanceof Error ? e.message : 'Erro ao carregar protocolos.'
-  } finally { protocolsLoading.value = false }
-}
-watch([historyOrigin, tab, protocolPage, () => selected.value?.id], () => { void loadClientProtocols() })
+  detailsInitialTab = ref<'data' | 'history'>('data')
 const contactBlank = (): ContactInput => ({
   name: '',
   position: null,
@@ -305,12 +280,12 @@ async function assignContractClassification(orderId: string, classificationId: n
 
 async function openHistory(id: string) {
   await details(id)
-  if (selected.value?.id === id) tab.value = 'history'
+  if (selected.value?.id === id) detailsInitialTab.value = 'history'
 }
 async function details(id: string) {
   try {
     selected.value = (await clientsApi.show(tenantId.value, id)).data
-    tab.value = 'data'
+    detailsInitialTab.value = 'data'
   } catch (e) {
     toast.error(e instanceof Error ? e.message : 'Erro ao carregar cliente.')
   }
@@ -460,147 +435,18 @@ watch(
         :busy="loading || busy"
         @change="changePage"
       />
-      <AppDialog :open="!!selected" :title="selected?.company_name ?? 'Detalhes do cliente'" description="Dados cadastrais, contratos, contatos e histórico do cliente." size="wide" @close="selected = null">
-        <div v-if="selected" class="space-y-4">
-        <div class="flex flex-wrap gap-2">
-          <button
-            v-for="item in [
-              { id: 'data', label: 'Dados' },
-              { id: 'contracts', label: 'Contratos e renovações' },
-              { id: 'contacts', label: 'Pessoas de contato' },
-              { id: 'sellers', label: 'Histórico de vendedores' },
-              { id: 'history', label: 'Histórico' },
-            ] as const"
-            :key="item.id"
-            class="rounded-lg px-3 py-2 text-sm"
-            :class="tab === item.id ? 'bg-orange-100 text-orange-900' : 'bg-stone-100'"
-            @click="tab = item.id"
-          >
-            {{ item.label }}
-          </button>
-        </div>
-        <div v-if="tab === 'data'" class="space-y-2 text-sm">
-          <p>
-            <strong>Operadora:</strong> {{ selected.operator?.name ?? '—' }} ·
-            <strong>Classificação:</strong> {{ selected.classification?.code ?? '—' }}
-          </p>
-          <p><strong>Contato:</strong> {{ selected.phone ?? '—' }} · {{ selected.email ?? '—' }}</p>
-          <p>
-            <strong>Endereço:</strong>
-            {{
-              [
-                selected.address,
-                selected.address_number,
-                selected.neighborhood,
-                selected.city,
-                selected.state,
-              ]
-                .filter(Boolean)
-                .join(', ')
-            }}
-          </p>
-          <p>
-            <strong>Contrato:</strong> {{ selected.contract_started_on ?? '—' }} até
-            {{ selected.contract_ends_on ?? '—' }}
-          </p>
-        </div>
-        <RouterLink
-          v-if="tab === 'contracts' && writable"
-          :to="`/empresas/${tenantId}/clientes/${selected.id}/consolidar`"
-          class="secondary-button mb-4 inline-flex"
-        >Consolidar pedidos deste cliente</RouterLink>
-        <ClientContractRenewals
-          v-if="tab === 'contracts'"
-          :contracts="selected.contract_renewals ?? []"
-          :classifications="classes"
-          :writable="writable"
-          :busy="busy"
-          @assign="assignContractClassification"
-        />
-        <div v-if="tab === 'contacts'">
-          <button v-if="writable" class="mb-4 rounded-lg border px-3 py-2" @click="editContact()">
-            + Pessoa de contato
-          </button>
-          <div
-            v-for="c in selected.contacts"
-            :key="c.id"
-            class="flex items-center justify-between border-b py-3 text-sm"
-          >
-            <div>
-              <strong>{{ c.name }}</strong> {{ c.is_primary ? '· Principal' : '' }}
-              <p class="text-slate-500">
-                {{ [c.position, c.phone, c.email].filter(Boolean).join(' · ') }}
-              </p>
-            </div>
-            <button v-if="writable" class="rounded-lg border px-3 py-1.5" @click="editContact(c)">
-              Editar
-            </button>
-          </div>
-          <p v-if="!selected.contacts?.length" class="text-sm text-slate-500">
-            Nenhum contato cadastrado.
-          </p>
-        </div>
-        <div v-if="tab === 'history' && selected" class="space-y-4">
-          <div class="flex flex-wrap gap-2 border-b border-stone-200 pb-3" aria-label="Filtrar histórico por origem">
-            <button
-              v-for="category in [
-                { id: 'client', label: 'Cliente' },
-                { id: 'opportunity', label: 'Oportunidades' },
-                { id: 'commercial_order', label: 'Pedidos' },
-                { id: 'protocol', label: 'Protocolos' },
-              ] as const"
-              :key="category.id"
-              type="button"
-              class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-              :class="historyOrigin === category.id ? 'bg-orange-100 text-orange-900' : 'bg-stone-100 text-slate-600 hover:bg-stone-200'"
-              :aria-pressed="historyOrigin === category.id"
-              @click="historyOrigin = category.id; if (category.id === 'protocol') protocolPage = 1"
-            >
-              {{ category.label }}
-            </button>
-          </div>
-          <TimelinePanel v-if="historyOrigin !== 'protocol'" :tenant-id="tenantId" type="client" :subject-id="selected.id" :origin-filter="historyOrigin" :can-write="writable && historyOrigin === 'client'" />
-          <div v-else class="space-y-3">
-            <p v-if="protocolsLoading" class="py-6 text-center text-sm text-slate-500">Carregando protocolos…</p>
-            <p v-else-if="protocolsError" class="rounded-xl bg-rose-50 p-4 text-sm text-rose-700">{{ protocolsError }} <button type="button" class="underline" @click="loadClientProtocols">Tentar novamente</button></p>
-            <template v-else>
-              <div v-for="protocol in clientProtocols" :key="protocol.id" class="rounded-xl border border-stone-200 bg-white p-4">
-                <div class="flex flex-wrap items-center justify-between gap-2">
-                  <span class="font-semibold text-slate-800">{{ protocol.code }} · {{ protocol.title }}</span>
-                  <span class="rounded-lg bg-stone-100 px-2 py-1 text-xs font-medium text-slate-700">{{ protocolStatuses[protocol.status] ?? protocol.status }}</span>
-                </div>
-                <p class="mt-2 text-sm text-slate-600">Responsável: {{ protocol.assignee_name || 'Não atribuído' }} · Aberto em {{ new Date(protocol.created_at).toLocaleDateString('pt-BR') }}</p>
-                <p v-if="protocol.status === 'resolved' && protocol.resolved_at" class="mt-1 text-sm font-medium text-emerald-700">Resolvido em: {{ new Date(protocol.resolved_at).toLocaleString('pt-BR') }}</p>
-                <p v-if="protocol.due_at" class="mt-1 text-xs text-slate-500">Prazo: {{ new Date(protocol.due_at).toLocaleString('pt-BR') }}</p>
-                <p v-if="protocol.description" class="mt-2 whitespace-pre-line text-sm text-slate-600">{{ protocol.description }}</p>
-              </div>
-              <p v-if="!clientProtocols.length" class="rounded-xl border border-dashed border-stone-200 p-6 text-center text-sm text-slate-500">Nenhum protocolo registrado para este cliente.</p>
-              <div v-if="protocolLastPage > 1" class="flex items-center justify-end gap-3 text-sm">
-                <button type="button" class="secondary-button w-auto" :disabled="protocolPage <= 1" @click="protocolPage--">Anterior</button>
-                <span>{{ protocolPage }} / {{ protocolLastPage }}</span>
-                <button type="button" class="secondary-button w-auto" :disabled="protocolPage >= protocolLastPage" @click="protocolPage++">Próximo</button>
-              </div>
-            </template>
-          </div>
-        </div>
-        <div v-if="tab === 'sellers'" class="space-y-2">
-          <p v-for="s in selected.sellers" :key="s.id" class="border-b py-2 text-sm">
-            {{
-              sellers.find((m) => m.id === s.tenant_user_id)?.name ??
-              s.membership?.user?.name ??
-              s.tenant_user_id
-            }}
-            · {{ new Date(s.started_at).toLocaleDateString('pt-BR') }} até
-            {{ s.ended_at ? new Date(s.ended_at).toLocaleDateString('pt-BR') : 'Atual' }}
-            {{ s.reason ? '· ' + s.reason : '' }}
-          </p>
-          <p v-if="!selected.sellers?.length" class="text-sm text-slate-500">
-            Nenhuma atribuição registrada.
-          </p>
-        </div>
-        </div>
-      </AppDialog>
-    </template>
+      <ClientDetailsDialog
+        :client="selected"
+        :tenant-id="tenantId"
+        :writable="writable"
+        :busy="busy"
+        :classes="classes"
+        :sellers="sellers"
+        :initial-tab="detailsInitialTab"
+        @close="selected = null"
+        @assign-classification="assignContractClassification"
+        @edit-contact="editContact"
+      />
     <ClientForm
       v-if="modal"
       :form="form"
