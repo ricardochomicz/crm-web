@@ -268,7 +268,7 @@ async function saveOperatorClassification(operatorId: number, classificationId: 
   try {
     const clientId = selected.value.id
     await clientsApi.setOperatorClassification(tenantId.value, clientId, operatorId, classificationId)
-    selected.value = (await clientsApi.show(tenantId.value, clientId)).data
+    selected.value = null
     toast.success('Classificação da operadora atualizada.')
   } catch (e) {
     toast.error(e instanceof Error ? e.message : 'Erro ao atualizar classificação.')
