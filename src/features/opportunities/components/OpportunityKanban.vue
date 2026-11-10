@@ -2,17 +2,11 @@
 import { computed, ref } from 'vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import type { FunnelStage, Opportunity } from '../api'
-const props = defineProps<{ stages: FunnelStage[]; items: Opportunity[]; canEdit: boolean; busyId: string | null; highlightsOnly?: boolean }>()
-const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; schedule: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity]; resend: [item: Opportunity] }>()
+const props = defineProps<{ stages: FunnelStage[]; items: Opportunity[]; canEdit: boolean; busyId: string | null; highlightsOnly?: boolean; highlightedIds: string[]; highlightingId?: string | null }>()
+const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; schedule: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity]; resend: [item: Opportunity]; highlight: [id: string, highlighted: boolean] }>()
 const dragging = ref<string | null>(null)
 const hover = ref<string | null>(null)
-const highlightedIds = ref<Set<string>>(new Set())
-function toggleHighlight(id: string) {
-  const next = new Set(highlightedIds.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  highlightedIds.value = next
-}
+const highlightedIds = computed(() => new Set(props.highlightedIds))
 function stageItems(stage: FunnelStage) {
   return props.items.filter(item => matchesStage(item, stage))
     .filter(item => !props.highlightsOnly || highlightedIds.value.has(item.id))
@@ -70,7 +64,7 @@ function drop(stageId: string) {
             :class="[dragging === item.id ? 'opacity-50' : '', isOverdue(item) ? 'border-rose-200 bg-rose-50/40' : '']"
             @dragstart="dragging = item.id" @dragend="dragging = null; hover = null">
             <div class="mb-2 flex justify-end">
-              <button type="button" class="rounded-md p-1 hover:bg-amber-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500" :class="highlightedIds.has(item.id) ? 'text-amber-600' : 'text-slate-400'" :aria-label="highlightedIds.has(item.id) ? 'Remover destaque' : 'Destacar oportunidade'" :aria-pressed="highlightedIds.has(item.id)" @click="toggleHighlight(item.id)"><AppIcon name="star" /></button>
+              <button type="button" class="rounded-md p-1 hover:bg-amber-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500" :class="highlightedIds.has(item.id) ? 'text-amber-600' : 'text-slate-400'" :aria-label="highlightedIds.has(item.id) ? 'Remover destaque' : 'Destacar oportunidade'" :aria-pressed="highlightedIds.has(item.id)" @click="emit('highlight', item.id, !highlightedIds.has(item.id))" :disabled="highlightingId === item.id"><span class="inline-flex h-4 w-4 [&_svg]:h-4 [&_svg]:w-4"><AppIcon name="star" /></span></button>
             </div>
             <button type="button" class="w-full text-left" @click="emit('edit', item)">
               <span v-if="/para correção/i.test(stage.name)" class="mb-2 inline-block rounded-md bg-rose-100 px-2 py-1 text-xs font-bold text-rose-800">Devolvida pelo Backoffice</span>
@@ -97,7 +91,7 @@ function drop(stageId: string) {
               </button>
             </div>
           </article>
-          <p v-if="!stageItems(stage).length" class="rounded-xl border border-dashed border-stone-300 p-5 text-center text-xs text-slate-400">{{ showHighlightsOnly ? 'Nenhum destaque nesta etapa' : 'Arraste oportunidades para esta etapa' }}</p>
+          <p v-if="!stageItems(stage).length" class="rounded-xl border border-dashed border-stone-300 p-5 text-center text-xs text-slate-400">{{ highlightsOnly ? 'Nenhum destaque nesta etapa' : 'Arraste oportunidades para esta etapa' }}</p>
         </div>
       </section>
     </div>
