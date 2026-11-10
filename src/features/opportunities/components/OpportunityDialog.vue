@@ -262,7 +262,7 @@ async function save() {
         <OpportunityReceipt :form="form" :order-types="orderTypes" />
       </div>
       <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ error }}</p>
-      <footer class="sticky bottom-0 z-10 -mx-6 -mb-6 flex items-center justify-between gap-3 border-t border-stone-200 bg-white px-6 py-4 sm:-mx-8 sm:px-8">
+      <footer class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-stone-200 bg-white pt-4 pb-1">
         <span class="hidden text-sm font-semibold text-slate-600 sm:block">{{ lineCount }} itens · {{ money(totalMonthly) }}/mês</span>
         <div class="ml-auto flex gap-2">
           <button type="button" class="secondary-button w-auto" :disabled="busy" @click="emit('close')">Cancelar</button>
