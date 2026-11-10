@@ -58,7 +58,7 @@ async function loadClientProtocols() {
 watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, protocolPage], () => { void loadClientProtocols() }, { immediate: true })
 </script>
 <template>
-      <AppDialog :open="!!client" :title="client?.company_name ?? 'Detalhes do cliente'" description="Dados cadastrais, contratos, contatos e histórico do cliente." size="wide" @close="emit('close')">
+      <AppDialog :open="!!client" :title="client?.company_name ?? 'Detalhes do cliente'" description="Dados cadastrais, contratos, contatos e histórico do cliente." size="full" @close="emit('close')">
         <div v-if="client" class="space-y-4">
         <div class="flex flex-wrap gap-2">
           <button
@@ -198,5 +198,4 @@ watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, p
         </div>
         </div>
       </AppDialog>
-    </template>
 </template>
