@@ -1,230 +1,196 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { opportunitiesApi, type FunnelOverview, type CommercialOverview } from '@/features/opportunities/api'
-import { errorMessage } from '@/lib/feedback'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import DashboardMetricCard from '../components/DashboardMetricCard.vue'
 import { useTenantDashboard } from '../composables/useTenantDashboard'
+import { opportunitiesApi, type CommercialOverview, type FunnelOverview } from '@/features/opportunities/api'
+import { errorMessage } from '@/lib/feedback'
 import { can } from '../types'
 
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
 const { tenant, loading, error, load } = useTenantDashboard(tenantId)
+const period = ref<'month' | 'quarter'>('month')
 const overview = ref<CommercialOverview | null>(null)
 const funnel = ref<FunnelOverview | null>(null)
-const funnelLoading = ref(false)
-const funnelError = ref('')
-let funnelRequest = 0
-const overviewLoading = ref(false)
 const overviewError = ref('')
-const period = ref<'month' | 'quarter'>('month')
-let overviewRequest = 0
-const dateRange = computed(() => {
+const funnelError = ref('')
+const overviewLoading = ref(false)
+const funnelLoading = ref(false)
+let overviewVersion = 0
+let funnelVersion = 0
+const money = (amount: number | string) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(Number(amount))
+const base = computed(() => '/empresas/' + tenantId.value)
+const canSee = computed(() => can(tenant.value, 'opportunities.view'))
+const isOwner = computed(() => tenant.value?.role === 'OWNER')
+const profile = computed(() => tenant.value?.role === 'CONSULTANT' ? 'Consultor' : tenant.value?.role === 'MANAGER' ? 'Gerencial' : 'Gerencial')
+const intro = computed(() => tenant.value?.role === 'CONSULTANT' ? 'Acompanhe suas negociações e prioridades comerciais.' : 'Uma visão estratégica da operação comercial.')
+const range = computed(() => {
   const now = new Date()
   const year = now.getFullYear()
   const month = now.getMonth()
-  const startMonth = period.value === 'quarter' ? Math.floor(month / 3) * 3 : month
-  const endMonth = period.value === 'quarter' ? startMonth + 3 : month + 1
-  const iso = (date: Date) => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-')
-  return { from: iso(new Date(year, startMonth, 1)), to: iso(new Date(year, endMonth, 0)) }
+  const first = period.value === 'quarter' ? Math.floor(month / 3) * 3 : month
+  const last = period.value === 'quarter' ? first + 3 : month + 1
+  const iso = (d: Date) => [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-')
+  return { from: iso(new Date(year, first, 1)), to: iso(new Date(year, last, 0)) }
 })
-const canViewOpportunities = computed(() => can(tenant.value, 'opportunities.view'))
-async function loadOverview() {
-  const id = tenantId.value
-  const request = ++overviewRequest
+async function refreshOverview() {
+  const version = ++overviewVersion
   overview.value = null
   overviewError.value = ''
-  if (!tenant.value || !canViewOpportunities.value) return
+  if (!tenant.value || !canSee.value) return
   overviewLoading.value = true
   try {
-    const response = await opportunitiesApi.overview(id, dateRange.value.from, dateRange.value.to)
-    if (request === overviewRequest) overview.value = response.data
-  } catch (failure) {
-    if (request === overviewRequest) overviewError.value = errorMessage(failure)
+    const response = await opportunitiesApi.overview(tenantId.value, range.value.from, range.value.to)
+    if (version === overviewVersion) overview.value = response.data
+  } catch (e) {
+    if (version === overviewVersion) overviewError.value = errorMessage(e)
   } finally {
-    if (request === overviewRequest) overviewLoading.value = false
+    if (version === overviewVersion) overviewLoading.value = false
   }
 }
-async function loadFunnel() {
-  const id = tenantId.value
-  const request = ++funnelRequest
+async function refreshFunnel() {
+  const version = ++funnelVersion
   funnel.value = null
   funnelError.value = ''
-  if (!tenant.value || !canViewOpportunities.value) return
+  if (!tenant.value || !canSee.value) return
   funnelLoading.value = true
   try {
-    const response = await opportunitiesApi.funnelOverview(id)
-    if (request === funnelRequest) funnel.value = response.data
-  } catch (failure) {
-    if (request === funnelRequest) funnelError.value = errorMessage(failure)
+    const response = await opportunitiesApi.funnelOverview(tenantId.value)
+    if (version === funnelVersion) funnel.value = response.data
+  } catch (e) {
+    if (version === funnelVersion) funnelError.value = errorMessage(e)
   } finally {
-    if (request === funnelRequest) funnelLoading.value = false
+    if (version === funnelVersion) funnelLoading.value = false
   }
 }
-watch([tenantId, tenant], () => { void loadFunnel() }, { immediate: true })
-const funnelMax = computed(() => Math.max(1, ...(funnel.value?.stages.map(stage => stage.count) ?? [])))
-const funnelTotal = computed(() => (funnel.value?.stages.reduce((sum, stage) => sum + stage.count, 0) ?? 0) + (funnel.value?.unassigned.count ?? 0))
-watch([tenantId, period, tenant], () => { void loadOverview() }, { immediate: true })
-const currency = (value: string | number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value))
-const base = computed(() => `/empresas/${tenantId.value}`)
-const profile = computed(() => {
-  if (tenant.value?.role === 'CONSULTANT') return 'consultant'
-  if (tenant.value?.role === 'MANAGER') return 'supervisor'
-  return 'manager'
-})
-const config = computed(() => {
-  if (profile.value === 'consultant') return {
-    eyebrow: 'Minha operação', title: 'Seu dia comercial, em um só lugar.',
-    description: 'Negociações, resultados e prioridades da sua carteira.',
-  }
-  if (profile.value === 'supervisor') return {
-    eyebrow: 'Gestão da equipe', title: 'Prioridades da operação comercial.',
-    description: 'Negociações e resultados da equipe sob sua responsabilidade.',
-  }
-  return {
-    eyebrow: 'Visão gerencial', title: 'Resultados claros. Decisões melhores.',
-    description: 'Uma visão estratégica das oportunidades comerciais.',
-  }
-})
+function refresh() { void refreshOverview(); void refreshFunnel() }
+watch([tenantId, tenant, period], () => { void refreshOverview() }, { immediate: true })
+watch([tenantId, tenant], () => { void refreshFunnel() }, { immediate: true })
 const metrics = computed(() => [
-  { label: 'Negociações ganhas', value: overview.value ? String(overview.value.won.count) : '—', detail: 'Encerradas no período' },
-  { label: 'Valor mensal ganho', value: overview.value ? currency(overview.value.won.monthly) : '—', detail: 'Valor mensal estimado das oportunidades ganhas' },
-  { label: 'Oportunidades abertas', value: overview.value ? String(overview.value.open_period.count) : '—', detail: 'Previsão de fechamento no período' },
-  { label: 'Taxa de conversão', value: overview.value?.conversion_rate != null ? `${overview.value.conversion_rate.toLocaleString('pt-BR')}%` : '—', detail: 'Ganhas / (ganhas + perdidas) no período' },
-])
-const pipeline = computed(() => [
-  { label: 'Abertas no período', count: overview.value?.open_period.count ?? 0, amount: overview.value?.open_period.monthly ?? '0' },
-  { label: 'Atrasadas', count: overview.value?.overdue.count ?? 0, amount: overview.value?.overdue.monthly ?? '0' },
-  { label: 'Previstas após o período', count: overview.value?.future.count ?? 0, amount: overview.value?.future.monthly ?? '0' },
-  { label: 'Sem previsão', count: overview.value?.unscheduled.count ?? 0, amount: overview.value?.unscheduled.monthly ?? '0' },
-])
-const maxPipeline = computed(() => Math.max(1, ...pipeline.value.map(item => item.count)))
+  { label: 'Negociações ganhas', value: overview.value ? String(overview.value.won.count) : '—', detail: 'Fechadas no período', accent: 'violet' },
+  { label: 'Valor mensal ganho', value: overview.value ? money(overview.value.won.monthly) : '—', detail: 'Estimado, não faturamento', accent: 'emerald' },
+  { label: 'Em negociação', value: overview.value ? money(overview.value.open_period.monthly) : '—', detail: 'Potencial mensal do período', accent: 'sky' },
+  { label: 'Conversão comercial', value: overview.value?.conversion_rate != null ? overview.value.conversion_rate.toLocaleString('pt-BR') + '%' : '—', detail: 'Ganhas / decisões concluídas', accent: 'fuchsia' },
+] as const)
+const funnelTotal = computed(() => (funnel.value?.stages.reduce((total, stage) => total + stage.count, 0) ?? 0) + (funnel.value?.unassigned.count ?? 0))
+const funnelMax = computed(() => Math.max(1, ...(funnel.value?.stages.map(stage => stage.count) ?? [])))
 const shortcuts = computed(() => [
-  { label: 'Clientes', description: 'Cadastros e relacionamento', path: 'clientes', permission: 'clients.view' },
-  { label: 'Oportunidades', description: 'Negociações e propostas', path: 'oportunidades', permission: 'opportunities.view' },
-  { label: 'Pedidos', description: 'Acompanhamento comercial', path: 'pedidos', permission: 'opportunities.view' },
-  { label: 'Agenda', description: 'Compromissos e atividades', path: 'agenda', permission: 'calendar.view' },
-  { label: 'Carteira', description: 'Contratos e clientes', path: 'carteira', permission: 'clients.view' },
-  { label: 'Metas', description: 'Objetivos comerciais', path: 'metas-comerciais', permission: 'commercial-goals.view' },
-  { label: 'Equipe', description: 'Consultores e membros', path: 'equipe', permission: 'members.view' },
-  { label: 'Comissões', description: 'Resultados e remuneração', path: 'comissoes-equipe', permission: 'team-commissions.view' },
-].filter(item => can(tenant.value, item.permission)))
+  { label: 'Clientes', path: 'clientes', permission: 'clients.view', symbol: '◉' },
+  { label: 'Oportunidades', path: 'oportunidades', permission: 'opportunities.view', symbol: '◎' },
+  { label: 'Pedidos', path: 'pedidos', permission: 'opportunities.view', symbol: '▣' },
+  { label: 'Metas', path: 'metas-comerciais', permission: 'commercial-goals.view', symbol: '◈' },
+  { label: 'Equipes', path: 'equipes', permission: 'teams.view', symbol: '♧' },
+  { label: 'Agenda', path: 'agenda', permission: 'calendar.view', symbol: '▦' },
+].filter(link => can(tenant.value, link.permission)))
+const attention = computed(() => overview.value ? [
+  { label: 'Oportunidades atrasadas', count: overview.value.overdue.count, detail: money(overview.value.overdue.monthly) + '/mês em risco', tone: 'text-rose-300' },
+  { label: 'Negociações perdidas', count: overview.value.lost.count, detail: 'Encerradas no período', tone: 'text-amber-300' },
+  { label: 'Sem previsão de fechamento', count: overview.value.unscheduled.count, detail: 'Precisam de planejamento', tone: 'text-sky-300' },
+] : [])
 </script>
 
 <template>
-  <AppShell :tenant="tenant" :title="tenant?.name ?? 'Dashboard'" subtitle="Dashboard comercial">
+  <AppShell :tenant="tenant" :title="tenant?.name ?? 'Dashboard'" subtitle="CRM Telecom · Operações comerciais" dashboard-dark>
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
-    <div v-if="!loading && tenant" class="space-y-7">
-      <header class="flex flex-wrap items-end justify-between gap-4">
+    <div v-if="!loading && tenant" class="space-y-5">
+      <header class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p class="text-xs font-semibold uppercase tracking-widest text-orange-600">{{ config.eyebrow }}</p>
-          <h1 class="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">{{ config.title }}</h1>
-          <p class="mt-2 text-sm text-slate-500">{{ config.description }}</p>
+          <p class="text-xs font-semibold uppercase tracking-[.2em] text-violet-400">{{ isOwner ? 'Painel do proprietário' : profile }}</p>
+          <h1 class="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">Visão geral do negócio <span aria-hidden="true">✦</span></h1>
+          <p class="mt-1 text-sm text-slate-400">{{ intro }}</p>
         </div>
-        <label class="flex items-center gap-2 text-xs text-slate-500">Período
-          <select v-model="period" class="rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-slate-700 focus-visible:outline-2 focus-visible:outline-orange-600">
-            <option value="month">Este mês</option>
-            <option value="quarter">Este trimestre</option>
+        <div class="flex items-center gap-2">
+          <label class="sr-only" for="dashboard-period">Período</label>
+          <select id="dashboard-period" v-model="period" class="rounded-xl border border-indigo-300/20 bg-[#151f3b] px-4 py-2.5 text-sm text-white focus:outline-2 focus:outline-violet-400">
+            <option value="month">Este mês</option><option value="quarter">Este trimestre</option>
           </select>
-        </label>
+          <button type="button" class="rounded-xl border border-indigo-300/20 bg-[#151f3b] px-3 py-2.5 text-sm text-white transition hover:bg-[#243154]" aria-label="Atualizar dashboard" @click="refresh">↻</button>
+        </div>
       </header>
 
-      <section v-if="!canViewOpportunities" class="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-slate-500">
-        Os indicadores comerciais não estão disponíveis para as permissões atuais.
-      </section>
+      <section v-if="!canSee" class="rounded-2xl border border-white/10 bg-[#111b34] p-6 text-sm text-slate-300">Os indicadores comerciais não estão disponíveis para seu perfil.</section>
       <template v-else>
-        <div v-if="overviewError" role="alert" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          <span>{{ overviewError }}</span><button type="button" class="font-semibold underline" @click="loadOverview">Tentar novamente</button>
-        </div>
-        <section aria-label="Indicadores comerciais" :aria-busy="overviewLoading" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <DashboardMetricCard v-for="metric in metrics" :key="metric.label" v-bind="metric" />
+        <div v-if="overviewError" role="alert" class="rounded-xl border border-rose-400/30 bg-rose-950/30 p-4 text-sm text-rose-200">{{ overviewError }} <button type="button" class="ml-2 underline" @click="refreshOverview">Tentar novamente</button></div>
+        <section aria-label="Indicadores principais" :aria-busy="overviewLoading" class="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+          <DashboardMetricCard v-for="metric in metrics" :key="metric.label" v-bind="metric" dark />
         </section>
-        <div class="grid gap-4 xl:grid-cols-5">
-          <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm xl:col-span-3">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 class="text-base font-semibold text-slate-900">Funil de vendas</h2>
-                <p class="mt-1 text-xs text-slate-500">Oportunidades abertas por etapa · posição atual, sem filtro de período</p>
-              </div>
-              <RouterLink :to="`${base}/oportunidades`" class="text-xs font-semibold text-orange-700 hover:underline">Abrir negociações →</RouterLink>
+
+        <div class="grid gap-4 xl:grid-cols-12">
+          <section class="rounded-2xl border border-indigo-300/15 bg-[#111b34] p-5 shadow-xl shadow-black/10 xl:col-span-7">
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <div><h2 class="text-base font-semibold text-white">Funil de vendas</h2><p class="mt-1 text-xs text-slate-400">Oportunidades abertas por etapa · situação atual</p></div>
+              <RouterLink :to="base + '/oportunidades'" class="text-xs font-semibold text-violet-300 hover:text-white">Ver oportunidades ↗</RouterLink>
             </div>
-            <div v-if="funnelLoading" class="mt-6 h-56 animate-pulse rounded-xl bg-stone-100" />
-            <div v-else-if="funnelError" class="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700" role="alert">
-              {{ funnelError }} <button class="ml-2 font-semibold underline" @click="loadFunnel">Tentar novamente</button>
-            </div>
-            <div v-else-if="funnel" class="mt-6 space-y-4">
-              <div class="flex items-baseline gap-2 border-b border-stone-100 pb-5">
-                <strong class="text-3xl font-semibold tracking-tight text-slate-900 tabular-nums">{{ funnelTotal }}</strong>
-                <span class="text-xs text-slate-500">negociações abertas no funil</span>
-              </div>
-              <div v-for="(stage, index) in funnel.stages" :key="stage.id" class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2">
-                <div class="flex items-center gap-2 text-xs">
-                  <span class="flex size-6 shrink-0 items-center justify-center rounded-lg bg-orange-50 font-semibold text-orange-700">{{ index + 1 }}</span>
-                  <span class="truncate font-medium text-slate-700">{{ stage.name }}</span>
+            <div v-if="funnelLoading" class="mt-7 h-64 animate-pulse rounded-xl bg-white/5" />
+            <div v-else-if="funnelError" role="alert" class="mt-7 text-sm text-rose-300">{{ funnelError }} <button class="underline" @click="refreshFunnel">Recarregar</button></div>
+            <div v-else-if="funnel" class="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_135px]">
+              <div class="space-y-3">
+                <div v-for="(stage, index) in funnel.stages" :key="stage.id" class="relative mx-auto flex min-h-11 items-center justify-between gap-3 overflow-hidden rounded-lg px-4 py-2 text-xs font-semibold text-white transition-all" :class="['bg-violet-600','bg-blue-600','bg-sky-600','bg-emerald-600','bg-green-700'][index % 5]" :style="{ width: (100 - Math.min(index * 8, 40)) + '%', opacity: stage.count === 0 ? .5 : 1 }">
+                  <span class="truncate">{{ stage.name }}</span><span class="shrink-0 tabular-nums">{{ stage.count }}</span>
                 </div>
-                <span class="text-right text-xs font-semibold tabular-nums text-slate-800">{{ stage.count }} <span class="font-normal text-slate-400">· {{ currency(stage.monthly) }}/mês</span></span>
-                <div class="col-span-2 h-2.5 overflow-hidden rounded-full bg-stone-100">
-                  <div class="h-full rounded-full bg-orange-500 transition-all" :style="{ width: `${stage.count / funnelMax * 100}%`, opacity: Math.max(.45, 1 - index * .1) }" />
-                </div>
+                <p v-if="!funnel.stages.length" class="py-12 text-center text-sm text-slate-400">Configure as etapas do funil para visualizar os resultados.</p>
+                <p v-if="funnel.unassigned.count" class="text-xs text-amber-300">{{ funnel.unassigned.count }} oportunidades sem etapa atribuída.</p>
               </div>
-              <p v-if="!funnel.stages.length" class="text-sm text-slate-500">Nenhuma etapa configurada.</p>
-              <p v-if="funnel.unassigned.count" class="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">{{ funnel.unassigned.count }} oportunidades sem etapa definida.</p>
+              <div class="space-y-3">
+                <div class="rounded-xl border border-white/10 bg-white/[.035] p-4"><p class="text-xs text-slate-400">Total em aberto</p><p class="mt-1 text-3xl font-bold tabular-nums text-white">{{ funnelTotal }}</p><p class="text-xs text-slate-400">oportunidades</p></div>
+                <div class="rounded-xl border border-white/10 bg-white/[.035] p-4"><p class="text-xs text-slate-400">Maior etapa</p><p class="mt-2 text-xl font-bold text-white">{{ Math.max(0, funnelMax === 1 && funnelTotal === 0 ? 0 : funnelMax) }}</p><p class="mt-1 text-xs text-slate-400">oportunidades</p></div>
+              </div>
             </div>
-            <p v-else class="mt-6 text-sm text-slate-500">Funil indisponível.</p>
+            <p v-else class="mt-6 text-sm text-slate-400">Funil indisponível.</p>
           </section>
-          <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm xl:col-span-2">
-            <h2 class="text-sm font-semibold text-slate-900">Pontos de atenção</h2>
-            <p class="mt-1 text-xs text-slate-500">Acompanhamento comercial</p>
-            <div v-if="overview" class="mt-6 space-y-4">
-              <RouterLink :to="`${base}/oportunidades`" class="flex items-center justify-between rounded-xl bg-amber-50 p-4 text-sm hover:bg-amber-100">
-                <span class="font-medium text-amber-900">Oportunidades atrasadas</span>
-                <strong class="tabular-nums text-amber-900">{{ overview.overdue.count }}</strong>
-              </RouterLink>
-              <div class="flex items-center justify-between rounded-xl bg-stone-50 p-4 text-sm">
-                <span class="text-slate-600">Negociações perdidas no período</span>
-                <strong class="tabular-nums text-slate-900">{{ overview.lost.count }}</strong>
+
+          <section class="rounded-2xl border border-indigo-300/15 bg-[#111b34] p-5 xl:col-span-5">
+            <h2 class="text-base font-semibold text-white">Resumo comercial</h2>
+            <p class="mt-1 text-xs text-slate-400">Indicadores para tomada de decisão</p>
+            <div v-if="overview" class="mt-6 space-y-5">
+              <div>
+                <div class="flex justify-between gap-2 text-sm"><span class="text-slate-300">Ganhas no período</span><strong class="text-emerald-300">{{ overview.won.count }}</strong></div>
+                <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/10"><div class="h-full rounded-full bg-emerald-400" :style="{ width: (overview.won.count + overview.lost.count ? overview.won.count / (overview.won.count + overview.lost.count) * 100 : 0) + '%' }" /></div>
               </div>
-              <div class="flex items-center justify-between rounded-xl bg-stone-50 p-4 text-sm">
-                <span class="text-slate-600">Sem data prevista</span>
-                <strong class="tabular-nums text-slate-900">{{ overview.unscheduled.count }}</strong>
+              <div class="flex items-center justify-between border-b border-white/10 pb-4 text-sm"><span class="text-slate-300">Perdidas no período</span><strong class="text-rose-300">{{ overview.lost.count }}</strong></div>
+              <div class="flex items-center justify-between border-b border-white/10 pb-4 text-sm"><span class="text-slate-300">Potencial mensal em aberto</span><strong class="text-sky-300">{{ money(overview.open_period.monthly) }}</strong></div>
+              <div class="flex items-center justify-between border-b border-white/10 pb-4 text-sm"><span class="text-slate-300">Valor mensal atrasado</span><strong class="text-amber-300">{{ money(overview.overdue.monthly) }}</strong></div>
+              <div class="rounded-xl bg-violet-500/10 p-4 text-xs leading-5 text-violet-200">Valores de oportunidades são estimativas comerciais, não faturamento efetivado.</div>
+            </div>
+            <p v-else class="mt-6 text-sm text-slate-400">{{ overviewLoading ? 'Carregando resumo…' : 'Resumo indisponível.' }}</p>
+          </section>
+        </div>
+
+        <div class="grid gap-4 xl:grid-cols-12">
+          <section class="rounded-2xl border border-indigo-300/15 bg-[#111b34] p-5 xl:col-span-7">
+            <div class="flex items-center justify-between"><div><h2 class="text-base font-semibold text-white">Visão de oportunidades</h2><p class="mt-1 text-xs text-slate-400">Previsões e pontos de atenção</p></div><span class="rounded-lg bg-violet-500/15 px-2 py-1 text-[11px] font-medium text-violet-200">Período selecionado</span></div>
+            <div v-if="overview" class="mt-5 grid gap-3 sm:grid-cols-3">
+              <div v-for="item in [{label:'No período', count:overview.open_period.count, value:overview.open_period.monthly},{label:'Após o período',count:overview.future.count,value:overview.future.monthly},{label:'Em atraso',count:overview.overdue.count,value:overview.overdue.monthly}]" :key="item.label" class="rounded-xl border border-white/10 bg-white/[.035] p-4">
+                <p class="text-xs text-slate-400">{{ item.label }}</p><p class="mt-2 text-2xl font-bold text-white">{{ item.count }}</p><p class="mt-1 text-xs text-slate-400">{{ money(item.value) }}/mês</p>
               </div>
             </div>
-            <p v-else class="mt-6 text-sm text-slate-500">{{ overviewLoading ? 'Carregando indicadores…' : 'Indicadores indisponíveis.' }}</p>
+            <p v-else class="mt-6 text-sm text-slate-400">Aguardando indicadores.</p>
+          </section>
+          <section class="rounded-2xl border border-indigo-300/15 bg-[#111b34] p-5 xl:col-span-5">
+            <div class="flex items-center justify-between"><div><h2 class="text-base font-semibold text-white">Central de atenção</h2><p class="mt-1 text-xs text-slate-400">O que precisa de acompanhamento</p></div><span class="text-lg text-fuchsia-400">♢</span></div>
+            <div v-if="overview" class="mt-4 space-y-2">
+              <RouterLink v-for="item in attention" :key="item.label" :to="base + '/oportunidades'" class="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[.035] px-4 py-3 transition hover:bg-white/10">
+                <div class="min-w-0"><p class="truncate text-sm font-medium text-white">{{ item.label }}</p><p class="mt-0.5 text-xs text-slate-400">{{ item.detail }}</p></div><strong class="text-xl tabular-nums" :class="item.tone">{{ item.count }}</strong>
+              </RouterLink>
+            </div>
+            <p v-else class="mt-5 text-sm text-slate-400">Aguardando indicadores.</p>
           </section>
         </div>
       </template>
 
-      <section v-if="canViewOpportunities && overview" class="grid gap-4 md:grid-cols-3">
-        <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-          <p class="text-xs font-medium text-slate-500">Potencial de fechamento no período</p>
-          <p class="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{{ currency(overview.open_period.monthly) }}</p>
-          <p class="mt-1 text-xs text-slate-400">Mensalidade estimada · não é receita realizada</p>
-        </div>
-        <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-          <p class="text-xs font-medium text-slate-500">Valor mensal em atraso</p>
-          <p class="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{{ currency(overview.overdue.monthly) }}</p>
-          <p class="mt-1 text-xs text-slate-400">Negociações com previsão vencida</p>
-        </div>
-        <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-          <p class="text-xs font-medium text-slate-500">Negociações perdidas</p>
-          <p class="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{{ overview.lost.count }}</p>
-          <p class="mt-1 text-xs text-slate-400">{{ currency(overview.lost.monthly) }}/mês em valor estimado</p>
-        </div>
-      </section>
-      <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-        <div>
-          <h2 class="text-sm font-semibold text-slate-900">Acesso rápido</h2>
-          <p class="mt-1 text-xs text-slate-500">Continue seu trabalho sem perder tempo.</p>
-        </div>
-        <div v-if="shortcuts.length" class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <RouterLink v-for="item in shortcuts" :key="item.path" :to="`${base}/${item.path}`" class="group rounded-xl border border-stone-200 p-4 transition hover:border-orange-300 hover:bg-orange-50 focus-visible:outline-2 focus-visible:outline-orange-600">
-            <span class="flex items-center justify-between text-sm font-semibold text-slate-800">{{ item.label }} <span aria-hidden="true" class="text-slate-400 transition group-hover:translate-x-1 group-hover:text-orange-600">→</span></span>
-            <span class="mt-1 block text-xs text-slate-500">{{ item.description }}</span>
+      <section class="rounded-2xl border border-indigo-300/15 bg-[#111b34] p-5">
+        <h2 class="text-base font-semibold text-white">Acesso rápido</h2>
+        <p class="mt-1 text-xs text-slate-400">Principais áreas do sistema</p>
+        <div v-if="shortcuts.length" class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+          <RouterLink v-for="link in shortcuts" :key="link.path" :to="base + '/' + link.path" class="group rounded-xl border border-indigo-300/15 bg-[#192542] p-4 transition hover:-translate-y-0.5 hover:border-violet-400/50 hover:bg-[#233158]">
+            <span class="flex items-start justify-between"><span class="text-2xl text-violet-400">{{ link.symbol }}</span><span class="text-slate-400 group-hover:text-white">↗</span></span>
+            <span class="mt-4 block text-sm font-semibold text-white">{{ link.label }}</span>
           </RouterLink>
         </div>
-        <p v-else class="mt-5 text-sm text-slate-500">Nenhum atalho disponível para as permissões atuais.</p>
+        <p v-else class="mt-4 text-sm text-slate-400">Nenhum atalho disponível para este perfil.</p>
       </section>
     </div>
   </AppShell>
