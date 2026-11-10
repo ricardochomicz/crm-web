@@ -12,7 +12,7 @@ import type { CommissionFormValue } from '../components/CommissionForm.vue'
 const blank = (): CommissionFormValue => ({
   order_type: '',
   operator_id: 0,
-  percentage: '400',
+  percentage: '',
   deduction_percentage: '',
   is_active: true,
 })
