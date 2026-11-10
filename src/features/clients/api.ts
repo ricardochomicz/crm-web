@@ -30,7 +30,7 @@ export const clientsApi={
  consolidate:(id:string,clientId:string,orderId:string,contractId?:string)=>mutate(base(id)+'/clients/'+clientId+'/orders/'+orderId+'/consolidate',{contract_id:contractId??null},'POST'),
  consolidatedPortfolio:(id:string,params:{search?:string;operator_id?:number;page?:number;per_page?:number})=>request<PortfolioResponse>(base(id)+'/client-portfolio/consolidated?'+new URLSearchParams(Object.entries(params).filter(([,value])=>value!==undefined&&value!=='').map(([key,value])=>[key,String(value)])).toString()),
  renewHistoricalOrder:(id:string,orderId:string,lineIds:string[])=>mutate<{data:{id:string}}>(base(id)+'/client-portfolio/orders/'+orderId+'/renew',{line_ids:lineIds},'POST'),
- portfolio:(id:string,params:{search?:string;operator_id?:number;page?:number;per_page?:number})=>request<PortfolioResponse>(base(id)+'/client-portfolio?'+new URLSearchParams(Object.entries(params).filter(([,value])=>value!==undefined&&value!=='').map(([key,value])=>[key,String(value)])).toString()),
+ portfolio:(id:string,params:{search?:string;operator_id?:number;page?:number;per_page?:number;renewal_state?:'available'|'in_progress'})=>request<PortfolioResponse>(base(id)+'/client-portfolio?'+new URLSearchParams(Object.entries(params).filter(([,value])=>value!==undefined&&value!=='').map(([key,value])=>[key,String(value)])).toString()),
  list:(id:string)=>request<{data:Client[];meta:{can_manage:boolean;can_create:boolean;can_delete:boolean}}>(base(id)+'/clients'),
  remove:(id:string,client:string)=>mutate(base(id)+'/clients/'+client,{},'DELETE'),
  show:(id:string,client:string)=>request<{data:Client}>(base(id)+'/clients/'+client),
