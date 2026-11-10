@@ -14,8 +14,9 @@ function addTier() { change('tiers', [...props.modelValue.tiers, { minimum: 0, p
 function removeTier(index: number) { change('tiers', props.modelValue.tiers.filter((_, i) => i !== index)) }
 </script>
 <template>
- <form class="w-full max-w-xl space-y-4 rounded-2xl bg-white p-6 shadow-xl" @submit.prevent="emit('submit')">
-  <h2 class="text-xl font-semibold">{{ editing ? 'Editar meta comercial' : 'Nova meta comercial' }}</h2>
+ <form class="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl" @submit.prevent="emit('submit')">
+  <h2 class="shrink-0 border-b border-stone-200 px-6 py-5 text-xl font-semibold">{{ editing ? 'Editar meta comercial' : 'Nova meta comercial' }}</h2>
+  <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
   <label class="block text-sm">Operadora<SearchSelect :model-value="modelValue.operator_id" :options="operators.map(o => ({value:o.id,label:o.name}))" required placeholder="Selecione a operadora" @update:model-value="change('operator_id', Number($event))"/></label>
   <label class="block text-sm">Categoria da meta<SearchSelect :model-value="modelValue.category ?? ''" :options="[{value:'NOVAS_VENDAS',label:'Novas vendas'},{value:'PORTABILIDADE',label:'Portabilidade'},{value:'RENOVACAO',label:'Renovação'},{value:'INCREMENTO',label:'Incremento'},{value:'BANDA_LARGA',label:'Banda larga'},{value:'RECEITA',label:'Receita'}]" required placeholder="Selecione a categoria" @update:model-value="change('category', String($event))"/></label>
   <fieldset class="space-y-2 rounded-xl border border-stone-200 p-3">
@@ -43,6 +44,7 @@ function removeTier(index: number) { change('tiers', props.modelValue.tiers.filt
   </div>
   <label class="flex items-center gap-2 text-sm"><input type="checkbox" :checked="modelValue.is_active" @change="change('is_active', ($event.target as HTMLInputElement).checked)"/>Ativa</label>
   <p class="text-xs text-slate-500">Ao alcançar uma faixa, seu percentual será aplicado retroativamente às vendas elegíveis do período na futura apuração.</p>
-  <div class="flex justify-end gap-2"><button type="button" class="rounded-lg border px-4 py-2" @click="emit('cancel')">Cancelar</button><button type="submit" class="primary-button w-auto" :disabled="busy || !modelValue.operator_id || !modelValue.category || !modelValue.negotiation_type_ids.length || !modelValue.commercial_role || !modelValue.metric">Salvar</button></div>
+  </div>
+  <div class="flex shrink-0 justify-end gap-2 border-t border-stone-200 bg-white px-6 py-4"><button type="button" class="rounded-lg border px-4 py-2" @click="emit('cancel')">Cancelar</button><button type="submit" class="primary-button w-auto" :disabled="busy || !modelValue.operator_id || !modelValue.category || !modelValue.negotiation_type_ids.length || !modelValue.commercial_role || !modelValue.metric">Salvar</button></div>
  </form>
 </template>
