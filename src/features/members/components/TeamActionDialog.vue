@@ -185,7 +185,7 @@ async function submit() {
           ><SearchSelect
             :model-value="selectedRoleId"
             @update:model-value="selectedRoleId = String($event)"
-            :options="selectableRoles.map((item) => ({ value: item.id, label: item.name }))"
+            :options="selectableRoles.map((item) => ({ value: item.id, label: item.code === 'TELEMARKETING' ? 'Consultor (Telemarketing)' : item.name }))"
             placeholder="Selecione o cargo"
           />
         </div>
