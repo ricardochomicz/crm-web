@@ -115,7 +115,7 @@ const attention = computed(() => overview.value ? [
       <template v-else>
         <div v-if="overviewError" role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{{ overviewError }} <button type="button" class="ml-2 underline" @click="refreshOverview">Tentar novamente</button></div>
         <section aria-label="Indicadores principais" :aria-busy="overviewLoading" class="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
-          <DashboardMetricCard v-for="metric in metrics" :key="metric.label" v-bind="metric" dark />
+          <DashboardMetricCard v-for="metric in metrics" :key="metric.label" v-bind="metric" />
         </section>
 
         <div class="grid gap-4 xl:grid-cols-12">
