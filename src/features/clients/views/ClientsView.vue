@@ -460,7 +460,7 @@ watch(
         @change="changePage"
       />
       <ClientDetailsDialog
-        :client="selected"
+        :client="contactModal ? null : selected"
         :tenant-id="tenantId"
         :writable="writable"
         :busy="busy"
@@ -496,9 +496,10 @@ watch(
       @cancel="modal = false"
       @save="save"
     />
+    <Teleport to="body">
     <div
       v-if="contactModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
     >
       <form
         class="w-full max-w-2xl max-h-[94dvh] overflow-y-auto space-y-3 rounded-2xl bg-white p-6"
@@ -529,5 +530,6 @@ watch(
         </div>
       </form>
     </div>
+    </Teleport>
   </AppShell>
 </template>
