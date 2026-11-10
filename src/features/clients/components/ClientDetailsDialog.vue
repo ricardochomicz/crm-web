@@ -12,6 +12,8 @@ const props = defineProps<{
   tenantId: string
   writable: boolean
   sellers: Seller[]
+  classes: Classification[]
+  busy: boolean
   initialTab?: 'data' | 'history'
 }>()
 const emit = defineEmits<{
