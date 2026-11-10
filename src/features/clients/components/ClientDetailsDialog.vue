@@ -79,8 +79,7 @@ watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, p
         </div>
         <div v-if="activeTab === 'data'" class="space-y-2 text-sm">
           <p>
-            <strong>Operadora:</strong> {{ client.operator?.name ?? '—' }} ·
-            <strong>Classificação:</strong> {{ client.classification?.code ?? '—' }}
+            <strong>Operadora atual:</strong> {{ client.operator?.name ?? '—' }}
           </p>
           <p><strong>Contato:</strong> {{ client.phone ?? '—' }} · {{ client.email ?? '—' }}</p>
           <p>
