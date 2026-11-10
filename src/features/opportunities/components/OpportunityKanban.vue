@@ -97,7 +97,6 @@ function drop(event: DragEvent, stageId: string) {
             <button type="button" class="w-full text-left" @click="emit('edit', item)">
               <span v-if="/para correção/i.test(stage.name)" class="mb-2 inline-block rounded-md bg-rose-100 px-2 py-1 text-xs font-bold text-rose-800">Devolvida pelo Backoffice</span>
               <p class="text-sm font-semibold text-slate-800">{{ item.title }}</p>
-              <p class="mt-1 text-xs text-slate-500">{{ item.code }}</p>
               <p class="mt-3 text-sm text-slate-600">{{ item.client?.company_name || 'Cliente não informado' }}</p>
               <p class="mt-3 text-sm font-bold text-slate-900">{{ money(item.estimated_monthly_amount) }}/mês</p>
               <p v-if="item.expected_close_at" class="mt-1 text-xs" :class="isOverdue(item) ? 'font-semibold text-rose-700' : 'text-slate-500'">
