@@ -4,20 +4,17 @@ import AppDialog from '@/components/ui/AppDialog.vue'
 import ClientContractRenewals from './ClientContractRenewals.vue'
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
 import { protocolApi, type Protocol } from '@/features/after-sales/api'
-import type { Client, Classification, Contact, Seller } from '../api'
+import type { Client, Contact, Seller } from '../api'
 
 const props = defineProps<{
   client: Client | null
   tenantId: string
   writable: boolean
-  busy: boolean
-  classes: Classification[]
   sellers: Seller[]
   initialTab?: 'data' | 'history'
 }>()
 const emit = defineEmits<{
   close: []
-  'assign-classification': [orderId: string, classificationId: number]
   'edit-contact': [contact?: Contact]
 }>()
 const activeTab = ref<'data' | 'contracts' | 'contacts' | 'sellers' | 'history'>('data')
@@ -110,10 +107,6 @@ watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, p
         <ClientContractRenewals
           v-if="activeTab === 'contracts'"
           :contracts="client.contract_renewals ?? []"
-          :classifications="classes"
-          :writable="writable"
-          :busy="busy"
-          @assign="(orderId, classificationId) => emit('assign-classification', orderId, classificationId)"
         />
         <div v-if="activeTab === 'contacts'">
           <button v-if="writable" class="mb-4 rounded-lg border px-3 py-2" @click="emit('edit-contact')">
