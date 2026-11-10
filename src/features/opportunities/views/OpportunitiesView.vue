@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import AppIcon from '@/components/ui/AppIcon.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import { toast } from '@/services/toast'
+const showHighlightsOnly = ref(false)
 const scheduling = ref<{ id: string; client_id?: string | null; title: string } | null>(null)
 import AppShell from '@/components/layout/AppShell.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
@@ -30,7 +32,8 @@ const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages
     <OpportunityCommercialOverview ref="commercialOverview" :tenant-id="tenantId" />
     <div v-if="section === 'closed'" class="mb-3 text-xs text-slate-500">Histórico de oportunidades ganhas e perdidas. Utilize os filtros para pesquisar por cliente, período e situação.</div>
     <OpportunityFiltersPanel v-model="filters" :section="section" :types="orderTypes" :busy="loading" :count="total" @search="applyFilters" @clear="clearFilters" />
-    <div v-if="section === 'open'" class="mb-4 flex justify-end">
+    <div v-if="section === 'open'" class="mb-4 flex flex-wrap items-center justify-end gap-2">
+      <button v-if="viewMode === 'kanban'" type="button" class="inline-flex h-10 items-center gap-2 rounded-xl border border-stone-200 bg-white px-3 text-sm font-semibold shadow-sm transition hover:bg-stone-50" :class="showHighlightsOnly ? 'border-amber-300 bg-amber-50 text-amber-800' : 'text-slate-600'" :aria-pressed="showHighlightsOnly" @click="showHighlightsOnly = !showHighlightsOnly"><AppIcon name="star" /> {{ showHighlightsOnly ? 'Mostrar todas' : 'Somente destaques' }}</button>
       <div class="inline-flex rounded-xl border border-stone-200 bg-white p-1 shadow-sm" role="group" aria-label="Visualização das oportunidades">
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="viewMode === 'list' ? 'bg-orange-50 text-orange-700' : 'text-slate-600 hover:bg-stone-50'" @click="changeView('list')">☷ Lista</button>
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="viewMode === 'kanban' ? 'bg-orange-50 text-orange-700' : 'text-slate-600 hover:bg-stone-50'" @click="changeView('kanban')">▦ Kanban</button>
@@ -39,7 +42,7 @@ const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages
     <AsyncNotice :loading="loading" :error="error" @retry="reload" />
     <div v-if="section === 'open' && viewMode === 'kanban' && !loading && !error">
       <p v-if="kanbanLimitReached" class="mb-3 text-sm text-amber-700">Há mais oportunidades do que o limite de carregamento do quadro. Refine os filtros para visualizar todas.</p>
-      <OpportunityKanban :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @schedule="item => scheduling = item" @won="askConfirmSale" @lost="askMarkLost" @resend="askResendToBackoffice" />
+      <OpportunityKanban :highlights-only="showHighlightsOnly" :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @schedule="item => scheduling = item" @won="askConfirmSale" @lost="askMarkLost" @resend="askResendToBackoffice" />
     </div>
     <section v-if="(section === 'closed' || viewMode === 'list') && !loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <ListTable min-width="750px">
