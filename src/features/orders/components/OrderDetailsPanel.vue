@@ -280,6 +280,14 @@ watch(
               <dt class="text-xs font-medium text-slate-500">Cliente</dt>
               <dd class="mt-1 text-sm font-semibold text-slate-800">{{ order.customer_name }}</dd>
             </div>
+            <div class="min-w-0">
+              <dt class="text-xs font-medium text-slate-500">Tipo de negociação</dt>
+              <dd class="mt-1 text-sm font-semibold text-slate-800">{{ order.order_type ? order.order_type.replace(/[_-]/g, ' ').toLocaleLowerCase('pt-BR').replace(/(^|\\s)\\S/g, (letter) => letter.toLocaleUpperCase('pt-BR')) : 'Não informado' }}</dd>
+            </div>
+            <div class="min-w-0">
+              <dt class="text-xs font-medium text-slate-500">Consultor responsável</dt>
+              <dd class="mt-1 text-sm font-semibold text-slate-800">{{ order.consultant_name || 'Não informado' }}</dd>
+            </div>
             <div>
               <dt class="text-xs font-medium text-slate-500">Quantidade de linhas</dt>
               <dd class="mt-1 text-lg font-semibold text-slate-800">{{ order.line_quantity }}</dd>
