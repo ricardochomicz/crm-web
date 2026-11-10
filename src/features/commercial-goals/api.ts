@@ -2,7 +2,7 @@ import { mutate, request } from '@/lib/http'
 export type GoalTier = { minimum: number; percentage: number }
 export type CommercialGoal = {
  id: string; operator_id: number; operator?: { id: number; name: string };
- order_type: string; category: string | null; negotiation_type_ids: string[]; commercial_role: string; metric: 'QUANTITY' | 'REVENUE';
+ order_type: string; category: string | null; negotiation_type_ids: string[]; target_scope: 'COMPANY' | 'CONSULTANT' | 'SUPERVISOR'; responsible_membership_id: string | null; commercial_role: string; metric: 'QUANTITY' | 'REVENUE';
  starts_on: string; ends_on: string | null; is_active: boolean; tiers: GoalTier[]
 }
 export type GoalInput = Omit<CommercialGoal, 'id' | 'operator'>
