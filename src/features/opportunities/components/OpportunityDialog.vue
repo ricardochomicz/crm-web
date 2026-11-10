@@ -19,7 +19,8 @@ import { errorMessage } from '@/lib/feedback'
 import type { OrderType } from '@/features/order-types/api'
 import type { Product } from '@/features/products/api'
 import type { TenantOperator } from '@/features/operators/api'
-import type { Client } from '@/features/clients/api'
+import { clientsApi, type Client } from '@/features/clients/api'
+import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
@@ -31,6 +32,20 @@ watch(() => [props.open, props.tenantId], async () => {
   try { viewerTenant.value = (await tenantApi.show(props.tenantId)).data } catch { viewerTenant.value = null }
 }, { immediate: true })
 const busy = ref(false)
+const quickClientOpen = ref(false)
+const canCreateClient = ref(false)
+const availableClients = ref<Client[]>([])
+watch(() => [props.open, props.clients] as const, () => { if (props.open) availableClients.value = [...props.clients] }, { immediate: true })
+watch(() => [props.open, props.tenantId] as const, async () => {
+  if (!props.open) return
+  try { canCreateClient.value = (await clientsApi.list(props.tenantId)).meta.can_create }
+  catch { canCreateClient.value = false }
+}, { immediate: true })
+function onClientCreated(client: Client) {
+  availableClients.value = [...availableClients.value.filter(item => item.id !== client.id), client]
+  form.value.client_id = client.id
+  quickClientOpen.value = false
+}
 const error = ref('')
 const showImport = ref(false)
 const editingLineIndex = ref<number | null>(null)
@@ -211,7 +226,7 @@ async function save() {
     <form v-show="activeTab === 'details'" class="flex min-h-full flex-col gap-5" @submit.prevent="save">
       <div class="grid flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
         <fieldset :disabled="busy" class="min-w-0 space-y-6">
-          <OpportunityDetailsForm v-model="form" :clients="clients" :order-types="orderTypes" :operators="operatorOptions" @change-operator="changeOperator" />
+          <OpportunityDetailsForm v-model="form" :clients="availableClients" :can-create-client="canCreateClient" :order-types="orderTypes" :operators="operatorOptions" @change-operator="changeOperator" @create-client="quickClientOpen = true" />
           <section class="space-y-4 rounded-2xl border border-stone-200 bg-stone-50/60 p-4 sm:p-5">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div><h3 class="text-lg font-semibold">Linhas e serviços</h3><p class="text-xs text-slate-500">Cole números do Excel em lotes, cada lote com seu plano.</p></div>
@@ -256,6 +271,8 @@ async function save() {
       </footer>
     </form>
   </AppDialog>
+  <QuickClientOnboardingDialog :open="open && quickClientOpen" :tenant-id="tenantId"
+    @close="quickClientOpen = false" @created="onClientCreated" />
   <OpportunityBulkEditDialog :open="open && showBulkEdit" :items="selectedItems" :products="filteredProducts" :order-types="orderTypes" @close="showBulkEdit = false" @apply="applyBulk" />
   <OpportunityLineEditDialog :open="open && editingLineIndex !== null" :item="editingLine" :products="products" :order-types="orderTypes" :existing-numbers="otherNumbers" @close="editingLineIndex = null" @save="updateLine" />
   <AppDialog :open="open && showImport" title="Importar linhas" description="Escolha o tipo de operação, informe as linhas e associe um plano ao lote." size="wide" @close="showImport = false">
