@@ -12,6 +12,11 @@ export type CommercialOrderItem = {
 }
 
 export type CommercialOrder = {
+    client_id?: string | null
+    customer_document?: string | null
+    consultant_team_id?: string | null
+    consultant_team_name?: string | null
+    created_at?: string | null
     items?: CommercialOrderItem[]
     id: string
     code: string | null
