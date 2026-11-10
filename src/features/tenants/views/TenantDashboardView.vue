@@ -81,12 +81,12 @@ const maxPipeline = computed(() => Math.max(1, ...pipeline.value.map(item => ite
 const shortcuts = computed(() => [
   { label: 'Clientes', description: 'Cadastros e relacionamento', path: 'clientes', permission: 'clients.view' },
   { label: 'Oportunidades', description: 'Negociações e propostas', path: 'oportunidades', permission: 'opportunities.view' },
-  { label: 'Pedidos', description: 'Acompanhamento comercial', path: 'pedidos', permission: 'orders.view' },
+  { label: 'Pedidos', description: 'Acompanhamento comercial', path: 'pedidos', permission: 'opportunities.view' },
   { label: 'Agenda', description: 'Compromissos e atividades', path: 'agenda', permission: 'calendar.view' },
   { label: 'Carteira', description: 'Contratos e clientes', path: 'carteira', permission: 'clients.view' },
-  { label: 'Metas', description: 'Objetivos comerciais', path: 'metas-comerciais', permission: 'commercial_goals.view' },
+  { label: 'Metas', description: 'Objetivos comerciais', path: 'metas-comerciais', permission: 'commercial-goals.view' },
   { label: 'Equipe', description: 'Consultores e membros', path: 'equipe', permission: 'members.view' },
-  { label: 'Comissões', description: 'Resultados e remuneração', path: 'comissoes-equipe', permission: 'team_commissions.view' },
+  { label: 'Comissões', description: 'Resultados e remuneração', path: 'comissoes-equipe', permission: 'team-commissions.view' },
 ].filter(item => can(tenant.value, item.permission)))
 </script>
 
