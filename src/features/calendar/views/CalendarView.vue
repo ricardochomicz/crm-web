@@ -103,6 +103,11 @@ function create(day: number) {
   selectedDate.value = dateKey(new Date(month.value.getFullYear(), month.value.getMonth(), day))
   dialogOpen.value = true
 }
+function selectDay(day: number) {
+  const key = dateKey(new Date(month.value.getFullYear(), month.value.getMonth(), day))
+  focusedDay.value = key
+  if (scope.value === 'mine' && canCreate.value && key >= dateKey(new Date())) create(day)
+}
 function edit(event: CalendarEvent) {
   if (scope.value === 'team' || !canEdit.value) return
   selectedEvent.value = event
@@ -129,9 +134,9 @@ function saved() {
     <section v-if="!loading && !error" aria-label="Calendário mensal" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <div class="grid grid-cols-7 border-b border-stone-200 bg-stone-50 text-center text-xs font-semibold text-slate-500"><div v-for="name in ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']" :key="name" class="py-3">{{ name }}</div></div>
       <div class="grid grid-cols-7">
-        <div v-for="(day, index) in days" :key="index" class="min-h-28 cursor-pointer border-b border-r border-stone-100 p-1.5 sm:min-h-36 sm:p-2"  :class="{ 'ring-2 ring-inset ring-orange-400': day && focusedDay === dateKey(new Date(month.getFullYear(), month.getMonth(), day)), 'bg-stone-50/70': day && dateKey(new Date(month.getFullYear(), month.getMonth(), day)) < dateKey(new Date()) }" @click="day && (focusedDay = dateKey(new Date(month.getFullYear(), month.getMonth(), day)))">
+        <div v-for="(day, index) in days" :key="index" class="min-h-28 cursor-pointer border-b border-r border-stone-100 p-1.5 sm:min-h-36 sm:p-2"  :class="{ 'ring-2 ring-inset ring-orange-400': day && focusedDay === dateKey(new Date(month.getFullYear(), month.getMonth(), day)), 'bg-stone-50/70': day && dateKey(new Date(month.getFullYear(), month.getMonth(), day)) < dateKey(new Date()) }" @click="day && selectDay(day)">
           <template v-if="day">
-            <button type="button" class="mb-1 flex size-7 items-center justify-center rounded-full text-xs font-semibold hover:bg-orange-100" :class="dateKey(new Date(month.getFullYear(), month.getMonth(), day)) === dateKey(new Date()) ? 'bg-orange-600 text-white hover:bg-orange-700' : 'text-slate-700'" :aria-label="`Ver compromissos do dia ${day}`" @click.stop="focusedDay = dateKey(new Date(month.getFullYear(), month.getMonth(), day))">{{ day }}</button>
+            <button type="button" class="mb-1 flex size-7 items-center justify-center rounded-full text-xs font-semibold hover:bg-orange-100" :class="dateKey(new Date(month.getFullYear(), month.getMonth(), day)) === dateKey(new Date()) ? 'bg-orange-600 text-white hover:bg-orange-700' : 'text-slate-700'" :aria-label="`Ver compromissos do dia ${day}`" @click.stop="selectDay(day)">{{ day }}</button>
             <button v-for="event in (byDay.get(dateKey(new Date(month.getFullYear(), month.getMonth(), day))) ?? []).slice(0, 3)" :key="event.id" type="button" class="mb-1 flex w-full items-center gap-1 rounded-md px-1.5 py-1 text-left text-[11px] font-medium" :class="[event.status === 'completed' ? completedColors[event.type] : eventStyles[event.type].color, { 'border-l-2 border-orange-500': isOverdue(event) }]" :title="`${event.title} · ${statusLabel(event)}`" :aria-label="`${event.title} · ${statusLabel(event)}`" @click.stop="focusedDay = dateKey(new Date(event.starts_at)); edit(event)">
               <AppIcon v-if="event.status === 'completed'" name="checkCircle" class="size-3.5 shrink-0" />
               <AppIcon v-else-if="isOverdue(event)" name="alertTriangle" class="size-3.5 shrink-0 text-orange-700" />
