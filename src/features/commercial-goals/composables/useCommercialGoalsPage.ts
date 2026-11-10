@@ -54,10 +54,18 @@ async function load() {
   if (id !== tenantId.value) return
   tenant.value = t.data; rows.value = g.data; canManage.value = g.meta.can_manage
   operators.value = o.data.filter(item => item.selected)
-  // The goal API persists legacy enum codes; only offer order types present in the active catalog.
+  // Use the same active, ordered negotiation catalog as the opportunity form.
+  // Commercial goals still persist OrderType enum values, so resolve each catalog entry
+  // to its supported code without changing the API contract.
   const normalize = (name: string) => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').trim()
-  const activeNames = new Set(catalog.data.filter(type => type.is_active).map(type => normalize(type.name)))
-  orderTypes.value = options.data.order_types.filter(type => activeNames.has(normalize(type.label)))
+  const legacyByName = new Map(options.data.order_types.map(type => [normalize(type.label), type.value]))
+  orderTypes.value = catalog.data
+    .filter(type => type.is_active)
+    .sort((a, b) => a.position - b.position)
+    .flatMap(type => {
+      const code = legacyByName.get(normalize(type.name))
+      return code ? [{ value: code, label: type.name }] : []
+    })
   roles.value = options.data.roles
  } catch (e) { if (id === tenantId.value) error.value = e instanceof Error ? e.message : 'Não foi possível carregar as metas.' }
  finally { if (id === tenantId.value) loading.value = false }
