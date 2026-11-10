@@ -62,7 +62,7 @@ watch(() => [model.value.client_id, props.clients] as const, () => {
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
               <AppAutocomplete v-model="model.order_type_id" label="Tipo de negociação" placeholder="Buscar tipo de negociação" :options="orderTypes" />
-              <div class="space-y-2"><label for="opportunity-forecast" class="block text-sm font-semibold text-slate-700">Previsão de fechamento</label><input id="opportunity-forecast" v-model="model.expected_close_at" type="date" class="field min-h-[44px]" /></div>
+              <div class="space-y-2"><label for="opportunity-forecast" class="block text-sm font-semibold text-slate-700">Previsão de fechamento *</label><input id="opportunity-forecast" v-model="model.expected_close_at" type="date" class="field min-h-[44px]" required /></div>
             </div>
           </section>
 
