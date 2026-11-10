@@ -180,6 +180,7 @@ async function save() {
   if (!form.value.operator_id) { error.value = 'Selecione a operadora da oportunidade.'; return }
   if (!form.value.client_id) { error.value = 'Selecione um cliente.'; return }
   if (!form.value.order_type_id) { error.value = 'Selecione o tipo da negociação.'; return }
+  if (!form.value.expected_close_at) { error.value = 'Informe a previsão de fechamento da oportunidade.'; return }
   if (!validateLines()) return
   busy.value = true
   error.value = ''
