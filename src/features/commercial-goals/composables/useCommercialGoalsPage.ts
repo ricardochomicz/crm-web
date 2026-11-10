@@ -24,7 +24,7 @@ const modalOpen = ref(false)
 const editingId = ref<string | null>(null)
 const initial = (): GoalInput => ({
  operator_id: 0,
- order_type: '',
+ order_type: '', category: null, negotiation_type_ids: [],
  commercial_role: '',
  metric: '' as GoalInput['metric'], starts_on: new Date().toISOString().slice(0,10),
  ends_on: null, is_active: true, tiers: [{minimum:0, percentage:50}],
@@ -71,14 +71,16 @@ async function load() {
 }
 function edit(goal?: CommercialGoal) {
  editingId.value = goal?.id ?? null
- form.value = goal ? {operator_id:goal.operator_id,order_type:goal.order_type,commercial_role:goal.commercial_role,metric:goal.metric,starts_on:goal.starts_on,ends_on:goal.ends_on,is_active:goal.is_active,tiers:goal.tiers.map(t=>({minimum:Number(t.minimum),percentage:Number(t.percentage)}))} : initial()
+ form.value = goal ? {operator_id:goal.operator_id,order_type:goal.order_type,category:goal.category ?? null,negotiation_type_ids:goal.negotiation_type_ids?.length ? goal.negotiation_type_ids : (orderTypes.value.some(t => t.value === goal.order_type) ? [goal.order_type] : []),commercial_role:goal.commercial_role,metric:goal.metric,starts_on:goal.starts_on,ends_on:goal.ends_on,is_active:goal.is_active,tiers:goal.tiers.map(t=>({minimum:Number(t.minimum),percentage:Number(t.percentage)}))} : initial()
  modalOpen.value = true
 }
 async function save() {
- if (!form.value.operator_id || !form.value.order_type || !form.value.commercial_role || !form.value.metric) {
-  toast.error('Selecione operadora, tipo de pedido, perfil e métrica antes de salvar.')
+ if (!form.value.operator_id || !form.value.negotiation_type_ids.length || !form.value.category || !form.value.commercial_role || !form.value.metric) {
+  toast.error('Selecione operadora, categoria, tipos de negociação, perfil e métrica antes de salvar.')
   return
  }
+ // Preserve the legacy field while the reporting pipeline transitions to category-based goals.
+ form.value.order_type = form.value.negotiation_type_ids[0]!
  busy.value = true
  try {
   await commercialGoalsApi.save(tenantId.value, form.value, editingId.value ?? undefined)
