@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { ContractRenewal } from '../api'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import ListTable from '@/components/ui/ListTable.vue'
 
-defineProps<{
+const props = defineProps<{
   contracts: ContractRenewal[]
   classifications: { id: number; operator_id: number; name: string; is_active: boolean }[]
   writable: boolean
@@ -16,6 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const selections = ref<Record<string, number | null>>({})
+const classificationsForOperator = computed(() => props.classifications.filter((item) => item.is_active))
 
 const labels: Record<ContractRenewal['status'], string> = {
   classification_required: 'Classificação pendente',
@@ -24,6 +25,10 @@ const labels: Record<ContractRenewal['status'], string> = {
   overdue: 'Prazo atingido',
   upcoming: 'Próxima renovação',
   waiting: 'Aguardando prazo',
+}
+
+function availableClassifications(operatorId: number | null) {
+  return classificationsForOperator.value.filter((item) => Number(item.operator_id) === Number(operatorId))
 }
 
 function date(value: string | null): string {
@@ -66,13 +71,12 @@ function date(value: string | null): string {
             <td class="p-4 font-semibold">{{ date(contract.renewal_date) }}</td>
             <td class="p-4 text-sm">{{ labels[contract.status] }}</td>
             <td v-if="writable" class="p-4">
-              <div class="flex min-w-52 items-center gap-2">
+              <div v-if="availableClassifications(contract.operator_id).length" class="flex min-w-52 items-center gap-2">
                 <SearchSelect
                   :model-value="selections[contract.order_id] ?? contract.classification_id ?? ''"
                   :options="[
                     { value: '', label: 'Selecione' },
-                    ...classifications
-                      .filter((item) => item.is_active && item.operator_id === contract.operator_id)
+                    ...availableClassifications(contract.operator_id)
                       .map((item) => ({ value: item.id, label: item.name })),
                   ]"
                   @update:model-value="selections[contract.order_id] = Number($event) || null"
@@ -84,6 +88,7 @@ function date(value: string | null): string {
                   @click="emit('assign', contract.order_id, Number(selections[contract.order_id] ?? contract.classification_id))"
                 >Salvar</button>
               </div>
+              <p v-else class="max-w-64 text-xs leading-relaxed text-amber-700">Nenhuma classificação ativa cadastrada para {{ contract.operator_name ?? 'esta operadora' }}. Configure as classificações da operadora para continuar.</p>
             </td>
           </tr>
         </tbody>
