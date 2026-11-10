@@ -78,7 +78,7 @@ function drop(stageId: string) {
         </div>
         <div class="min-h-64 max-h-[calc(100vh-310px)] space-y-3 overflow-y-auto overscroll-contain pr-1 pb-6 [scrollbar-width:thin]">
           <article v-for="item in stageItems(stage)" :key="item.id"
-
+            :draggable="canEdit && item.status === 'open' && !busyId && !/para correção/i.test(stage.name)"
             class="rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             :class="[dragging === item.id ? 'opacity-50' : '', isOverdue(item) ? 'border-rose-200 bg-rose-50/40' : '']"
             @dragstart="startDrag($event, item)" @dragend="dragging = null; hover = null">
