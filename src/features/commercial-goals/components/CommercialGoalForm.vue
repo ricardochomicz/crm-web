@@ -16,10 +16,10 @@ function removeTier(index: number) { change('tiers', props.modelValue.tiers.filt
 <template>
  <form class="w-full max-w-xl space-y-4 rounded-2xl bg-white p-6 shadow-xl" @submit.prevent="emit('submit')">
   <h2 class="text-xl font-semibold">{{ editing ? 'Editar meta comercial' : 'Nova meta comercial' }}</h2>
-  <label class="block text-sm">Operadora<SearchSelect :model-value="modelValue.operator_id" :options="operators.map(o => ({value:o.id,label:o.name}))" required @update:model-value="change('operator_id', Number($event))"/></label>
-  <label class="block text-sm">Tipo de pedido<SearchSelect :model-value="modelValue.order_type" :options="orderTypes" required @update:model-value="change('order_type', String($event))"/></label>
-  <label class="block text-sm">Perfil<SearchSelect :model-value="modelValue.commercial_role" :options="roles" required @update:model-value="change('commercial_role', String($event))"/></label>
-  <label class="block text-sm">Métrica<SearchSelect :model-value="modelValue.metric" :options="[{value:'QUANTITY',label:'Quantidade de linhas'},{value:'REVENUE',label:'Valor vendido (R$)'}]" @update:model-value="change('metric', String($event) as 'QUANTITY' | 'REVENUE')"/></label>
+  <label class="block text-sm">Operadora<SearchSelect :model-value="modelValue.operator_id" :options="operators.map(o => ({value:o.id,label:o.name}))" required placeholder="Selecione a operadora" @update:model-value="change('operator_id', Number($event))"/></label>
+  <label class="block text-sm">Tipo de pedido<SearchSelect :model-value="modelValue.order_type" :options="orderTypes" required placeholder="Selecione o tipo de pedido" @update:model-value="change('order_type', String($event))"/></label>
+  <label class="block text-sm">Perfil<SearchSelect :model-value="modelValue.commercial_role" :options="roles" required placeholder="Selecione o perfil" @update:model-value="change('commercial_role', String($event))"/></label>
+  <label class="block text-sm">Métrica<SearchSelect :model-value="modelValue.metric" :options="[{value:'QUANTITY',label:'Quantidade de linhas'},{value:'REVENUE',label:'Valor vendido (R$)'}]" required placeholder="Selecione a métrica" @update:model-value="change('metric', String($event) as 'QUANTITY' | 'REVENUE')"/></label>
   <div class="grid grid-cols-2 gap-3">
    <label class="block text-sm">Vigência inicial<input type="date" required class="mt-1 w-full rounded-xl border-0 bg-stone-100 px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-orange-400" :value="modelValue.starts_on" @input="change('starts_on', ($event.target as HTMLInputElement).value)"/></label>
    <label class="block text-sm">Vigência final<input type="date" class="mt-1 w-full rounded-xl border-0 bg-stone-100 px-4 py-3 outline-none focus:bg-white focus:ring-2 focus:ring-orange-400" :value="modelValue.ends_on ?? ''" @input="change('ends_on', ($event.target as HTMLInputElement).value || null)"/></label>
@@ -33,6 +33,6 @@ function removeTier(index: number) { change('tiers', props.modelValue.tiers.filt
   </div>
   <label class="flex items-center gap-2 text-sm"><input type="checkbox" :checked="modelValue.is_active" @change="change('is_active', ($event.target as HTMLInputElement).checked)"/>Ativa</label>
   <p class="text-xs text-slate-500">Ao alcançar uma faixa, seu percentual será aplicado retroativamente às vendas elegíveis do período na futura apuração.</p>
-  <div class="flex justify-end gap-2"><button type="button" class="rounded-lg border px-4 py-2" @click="emit('cancel')">Cancelar</button><button type="submit" class="primary-button w-auto" :disabled="busy">Salvar</button></div>
+  <div class="flex justify-end gap-2"><button type="button" class="rounded-lg border px-4 py-2" @click="emit('cancel')">Cancelar</button><button type="submit" class="primary-button w-auto" :disabled="busy || !modelValue.operator_id || !modelValue.order_type || !modelValue.commercial_role || !modelValue.metric">Salvar</button></div>
  </form>
 </template>
