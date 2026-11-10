@@ -152,7 +152,7 @@ const {
     </template>
     <div
       v-if="modalOpen && writable"
-      class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4"
+      class="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/50 p-4"
     >
       <CommercialGoalForm
         v-model="form"
