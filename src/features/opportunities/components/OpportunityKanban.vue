@@ -47,7 +47,7 @@ function startDrag(event: DragEvent, item: Opportunity) {
   }
 }
 function overStage(event: DragEvent, stageId: string) {
-  if (!dragging.value || !props.canEdit || props.busyId) return
+  if (!props.canEdit || props.busyId) return
   event.preventDefault()
   if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
   hover.value = stageId
@@ -57,10 +57,12 @@ function leaveStage(event: DragEvent, stageId: string) {
   const next = event.relatedTarget as Node | null
   if (hover.value === stageId && (!next || !current?.contains(next))) hover.value = null
 }
-function drop(stageId: string) {
+function drop(event: DragEvent, stageId: string) {
+  event.preventDefault()
+  const draggedId = event.dataTransfer?.getData('text/plain') || dragging.value
   hover.value = null
-  const item = props.items.find(item => item.id === dragging.value)
   dragging.value = null
+  const item = props.items.find(candidate => candidate.id === draggedId)
   if (item && stageId && item.funnel_stage_id !== stageId && props.canEdit && !props.busyId) emit('move', item.id, stageId)
 }
 </script>
@@ -69,9 +71,9 @@ function drop(stageId: string) {
     <div class="overflow-x-auto pb-4">
     <div class="flex min-w-max items-start gap-4">
       <section v-for="stage in columns" :key="stage.id || 'unassigned'"
-        class="flex w-80 shrink-0 flex-col rounded-2xl border p-3 transition-all"
+        class="flex w-80 min-h-80 shrink-0 flex-col rounded-2xl border p-3 transition-colors"
         :class="[palette(stage.name).background, palette(stage.name).border, hover === stage.id && stage.id ? 'ring-4 ring-inset ' + palette(stage.name).hover + ' border-current' : '']"
-        @dragover="overStage($event, stage.id)" @dragleave="leaveStage($event, stage.id)" @drop.prevent.stop="drop(stage.id)">
+        @dragover="overStage($event, stage.id)" @dragleave="leaveStage($event, stage.id)" @drop.stop="drop($event, stage.id)">
         <div class="mb-3 flex items-center justify-between gap-2 px-1">
           <h3 class="flex items-center gap-2 text-sm font-bold" :class="palette(stage.name).text"><span class="h-5 w-1 rounded-full" :class="palette(stage.name).accent"></span>{{ stage.name }}</h3>
           <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="palette(stage.name).badge">{{ items.filter(i => matchesStage(i, stage)).length }}</span>
