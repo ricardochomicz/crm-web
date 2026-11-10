@@ -262,6 +262,21 @@ async function save() {
     busy.value = false
   }
 }
+async function saveOperatorClassification(operatorId: number, classificationId: number) {
+  if (!selected.value || busy.value) return
+  busy.value = true
+  try {
+    const clientId = selected.value.id
+    await clientsApi.setOperatorClassification(tenantId.value, clientId, operatorId, classificationId)
+    selected.value = (await clientsApi.show(tenantId.value, clientId)).data
+    toast.success('Classificação da operadora atualizada.')
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : 'Erro ao atualizar classificação.')
+  } finally {
+    busy.value = false
+  }
+}
+
 async function openHistory(id: string) {
   await details(id)
   if (selected.value?.id === id) detailsInitialTab.value = 'history'
@@ -425,8 +440,10 @@ watch(
         :writable="writable"
         :busy="busy"
         :sellers="sellers"
+        :classes="classes"
         :initial-tab="detailsInitialTab"
         @close="selected = null"
+        @save-operator-classification="saveOperatorClassification"
         @edit-contact="editContact"
       />
     </template>
