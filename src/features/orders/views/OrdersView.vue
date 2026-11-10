@@ -16,6 +16,10 @@ const selectedOrderId = ref<string | null>(null)
 const tenantId = computed(() => String(route.params.tenantId))
 const { tenant, paginated, total, page, lastPage, perPage, loading, error, search, status, month, dateField, consultant, team, quickView, summary, consultants, teams, statuses, setQuickView, applyFilters, clearFilters, changePage, load } = useOrdersPage(tenantId)
 const canMoveOrders = computed(() => tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER')
+const isCompletedOrder = (order: { administratively_completed_at?: string | null; status?: string }) =>
+    !!order.administratively_completed_at || ['COMPLETED', 'CONCLUDED'].includes(order.status?.toUpperCase() ?? '')
+const selectedOrder = computed(() => paginated.value.find(order => order.id === selectedOrderId.value))
+const canMoveSelectedOrder = computed(() => canMoveOrders.value && !!selectedOrder.value && !isCompletedOrder(selectedOrder.value))
 const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/') || '—'
 </script>
@@ -41,8 +45,8 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
             <div><label class="mb-1 block text-xs font-semibold text-slate-600">Mês considerado pela</label><SearchSelect v-model="dateField" :options="[{ value: 'created_at', label: 'Data de criação' }, { value: 'activated_at', label: 'Data de ativação' }, { value: 'administratively_completed_at', label: 'Data de conclusão' }]" /></div>
             <template #actions><button type="button" class="secondary-button w-auto" @click="setQuickView('all')">Todos os pedidos</button></template>
         </ListFilters>
-        <AppDialog :open="!!selectedOrderId"  :title="canMoveOrders ? 'Movimentar pedido' : 'Detalhes do pedido'" size="full" @close="selectedOrderId = null">
-            <OrderDetailsPanel v-if="selectedOrderId" :tenant-id="tenantId" :order-id="selectedOrderId" :can-manage="canMoveOrders" @close="selectedOrderId = null" @saved="load" />
+        <AppDialog :open="!!selectedOrderId"  :title="canMoveSelectedOrder ? 'Movimentar pedido' : 'Detalhes do pedido'" size="full" @close="selectedOrderId = null">
+            <OrderDetailsPanel v-if="selectedOrderId" :tenant-id="tenantId" :order-id="selectedOrderId" :can-manage="canMoveSelectedOrder" @close="selectedOrderId = null" @saved="load" />
         </AppDialog>
         <AsyncNotice :loading="loading" :error="error" @retry="load" />
         <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
@@ -58,7 +62,7 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
                         <td class="p-4">{{ order.line_quantity }}</td>
                         <td class="p-4 font-semibold">{{ money(order.monthly_amount) }}</td>
                         <td class="p-4"><span class="rounded-lg bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">{{ order.order_status || order.status }}</span></td>
-                        <td class="p-4 text-right"><button type="button"  :class="canMoveOrders ? 'primary-button' : 'secondary-button'" class="w-auto whitespace-nowrap" @click="selectedOrderId = order.id">{{ canMoveOrders ? 'Movimentar Pedido' : 'Detalhes do pedido' }}</button></td>
+                        <td class="p-4 text-right"><button type="button"  :class="canMoveOrders && !isCompletedOrder(order) ? 'primary-button' : 'secondary-button'" class="w-auto whitespace-nowrap" @click="selectedOrderId = order.id">{{ canMoveOrders && !isCompletedOrder(order) ? 'Movimentar Pedido' : 'Detalhes' }}</button></td>
                     </tr>
                 </tbody>
             </ListTable>
