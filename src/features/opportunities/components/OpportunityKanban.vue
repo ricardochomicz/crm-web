@@ -6,6 +6,19 @@ const props = defineProps<{ stages: FunnelStage[]; items: Opportunity[]; canEdit
 const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; schedule: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity]; resend: [item: Opportunity] }>()
 const dragging = ref<string | null>(null)
 const hover = ref<string | null>(null)
+const highlightedIds = ref<Set<string>>(new Set())
+const showHighlightsOnly = ref(false)
+function toggleHighlight(id: string) {
+  const next = new Set(highlightedIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  highlightedIds.value = next
+}
+function stageItems(stage: FunnelStage) {
+  return props.items.filter(item => matchesStage(item, stage))
+    .filter(item => !showHighlightsOnly.value || highlightedIds.value.has(item.id))
+    .sort((a, b) => Number(highlightedIds.value.has(b.id)) - Number(highlightedIds.value.has(a.id)))
+}
 const columns = computed(() => [
   ...props.stages.filter(s => s.is_active || props.items.some(item => item.funnel_stage_id === s.id)).sort((a, b) => {
     const aCorrection = /para correção/i.test(a.name)
@@ -40,22 +53,31 @@ function drop(stageId: string) {
 }
 </script>
 <template>
-  <div class="overflow-x-auto pb-4">
+  <div>
+    <div class="mb-3 flex justify-end">
+      <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-stone-50" :aria-pressed="showHighlightsOnly" @click="showHighlightsOnly = !showHighlightsOnly">
+        <AppIcon name="star" /> {{ showHighlightsOnly ? 'Mostrar todas' : 'Somente destaques' }}
+      </button>
+    </div>
+    <div class="overflow-x-auto pb-4">
     <div class="flex min-w-max items-start gap-4">
       <section v-for="stage in columns" :key="stage.id || 'unassigned'"
-        class="w-72 shrink-0 rounded-2xl border p-3 transition-colors"
+        class="flex w-72 shrink-0 flex-col rounded-2xl border p-3 transition-colors"
         :class="[palette(stage.name).background, palette(stage.name).border, hover === stage.id && stage.id ? 'ring-2 ' + palette(stage.name).hover : '']"
         @dragover.prevent="hover = stage.id" @dragleave.self="hover = null" @drop.prevent="drop(stage.id)">
         <div class="mb-3 flex items-center justify-between gap-2 px-1">
           <h3 class="flex items-center gap-2 text-sm font-bold" :class="palette(stage.name).text"><span class="h-5 w-1 rounded-full" :class="palette(stage.name).accent"></span>{{ stage.name }}</h3>
           <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="palette(stage.name).badge">{{ items.filter(i => matchesStage(i, stage)).length }}</span>
         </div>
-        <div class="min-h-24 space-y-3">
-          <article v-for="item in items.filter(i => matchesStage(i, stage))" :key="item.id"
+        <div class="min-h-24 max-h-[calc(100vh-310px)] space-y-3 overflow-y-auto overscroll-contain pr-1 [scrollbar-width:thin]">
+          <article v-for="item in stageItems(stage)" :key="item.id"
             :draggable="canEdit && item.status === 'open' && !busyId && !/para correção/i.test(stage.name)"
             class="rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             :class="[dragging === item.id ? 'opacity-50' : '', isOverdue(item) ? 'border-rose-200 bg-rose-50/40' : '']"
             @dragstart="dragging = item.id" @dragend="dragging = null; hover = null">
+            <div class="mb-2 flex justify-end">
+              <button type="button" class="rounded-md p-1 hover:bg-amber-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500" :class="highlightedIds.has(item.id) ? 'text-amber-600' : 'text-slate-400'" :aria-label="highlightedIds.has(item.id) ? 'Remover destaque' : 'Destacar oportunidade'" :aria-pressed="highlightedIds.has(item.id)" @click="toggleHighlight(item.id)"><AppIcon name="star" /></button>
+            </div>
             <button type="button" class="w-full text-left" @click="emit('edit', item)">
               <span v-if="/para correção/i.test(stage.name)" class="mb-2 inline-block rounded-md bg-rose-100 px-2 py-1 text-xs font-bold text-rose-800">Devolvida pelo Backoffice</span>
               <p class="text-sm font-semibold text-slate-800">{{ item.title }}</p>
@@ -81,9 +103,10 @@ function drop(stageId: string) {
               </button>
             </div>
           </article>
-          <p v-if="!items.some(i => matchesStage(i, stage))" class="rounded-xl border border-dashed border-stone-300 p-5 text-center text-xs text-slate-400">Arraste oportunidades para esta etapa</p>
+          <p v-if="!stageItems(stage).length" class="rounded-xl border border-dashed border-stone-300 p-5 text-center text-xs text-slate-400">{{ showHighlightsOnly ? 'Nenhum destaque nesta etapa' : 'Arraste oportunidades para esta etapa' }}</p>
         </div>
       </section>
+    </div>
     </div>
   </div>
 </template>
