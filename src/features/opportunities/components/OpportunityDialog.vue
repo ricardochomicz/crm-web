@@ -241,7 +241,7 @@ async function save() {
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'comparison' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'comparison'">Comparativo de operadoras</button>
         <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'proposal' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'proposal'">Proposta comercial</button>
     </div>
-    <OpportunityProposalPanel v-if="open && opportunity && activeTab === 'proposal'" :opportunity="opportunity" :company-name="viewerTenant?.name ?? 'Empresa'" />
+    <OpportunityProposalPanel v-if="open && opportunity && activeTab === 'proposal'" :opportunity="opportunity" :tenant-id="tenantId" :company-name="viewerTenant?.name ?? 'Empresa'" />
     <ClientDocumentsPanel v-if="open && opportunity && activeTab === 'documents'" :tenant-id="tenantId" :client-id="opportunity.client_id" :can-upload="!!viewerTenant?.access?.permissions.includes('clients.update')" />
     <OpportunityAppointmentsPanel v-if="open && opportunity && activeTab === 'appointments'" :tenant-id="tenantId" :opportunity-id="opportunity.id" :client-id="opportunity.client_id" :title="opportunity.title" />
     <OpportunityComparisonPanel v-if="open && opportunity && activeTab === 'comparison'" :tenant-id="tenantId" :opportunity-id="opportunity.id" :products="products" :operators="operators" />
