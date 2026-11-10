@@ -336,10 +336,18 @@ async function saveContact() {
       toast.error('Cadastre um contato principal ativo com nome, cargo e telefone ou e-mail.')
       return
     }
+    const wasRequiredContact = !!pendingContactClientId.value
     pendingContactClientId.value = null
     contactModal.value = false
-    toast.success('Pessoa de contato salva. Cadastro do cliente concluído.')
-    await details(clientId)
+    if (wasRequiredContact) {
+      selected.value = null
+      detailsInitialTab.value = 'data'
+      toast.success('Pessoa de contato salva. Cadastro do cliente concluído.')
+      await load()
+    } else {
+      toast.success('Contato salvo.')
+      await details(clientId)
+    }
   } catch (e) {
     toast.error(e instanceof Error ? e.message : 'Erro ao salvar contato.')
   } finally {
