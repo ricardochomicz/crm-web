@@ -32,7 +32,7 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
                 <p class="text-sm text-slate-500">{{ item.label }}</p><p class="mt-2 text-2xl font-semibold text-slate-800">{{ item.count }}</p>
             </button>
         </div>
-        <ListFilters :count-label="total + ' pedido(s) encontrado(s)'" :columns="3" collapsible @search="applyFilters" @clear="clearFilters">
+        <ListFilters :count-label="total + ' pedido(s) encontrado(s)'" :columns="3" collapsible :initially-collapsed="true" @search="applyFilters" @clear="clearFilters">
             <div><label class="mb-1 block text-xs font-semibold text-slate-600">Empresa, CPF ou CNPJ</label><input v-model="search" class="field w-full" placeholder="Nome, razão social ou documento" /></div>
             <div><label class="mb-1 block text-xs font-semibold text-slate-600">Status do pedido</label><SearchSelect v-model="status" :options="[{ value: '', label: 'Todos os status' }, ...statuses.map(value => ({ value, label: value }))]" /></div>
             <div><label class="mb-1 block text-xs font-semibold text-slate-600">Mês de referência</label><input v-model="month" type="month" class="field w-full" /></div>
@@ -48,13 +48,13 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
         <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
             <ListTable min-width="750px">
                 <thead class="bg-stone-50 text-xs font-semibold uppercase text-slate-500">
-                    <tr><th class="p-4">Cliente</th><th class="p-4">Consultor</th><th class="p-4">Criado em</th><th class="p-4">Venda</th><th class="p-4">Linhas</th><th class="p-4">Mensalidade</th><th class="p-4">Status</th><th class="p-4 text-right">Ações</th></tr>
+                    <tr><th class="p-4">Cliente</th><th class="p-4">Consultor</th><th class="p-4">Criado em</th><th class="p-4">Ativação</th><th class="p-4">Tipo negociação</th><th class="p-4">Linhas</th><th class="p-4">Mensalidade</th><th class="p-4">Status</th><th class="p-4 text-right">Ações</th></tr>
                 </thead>
                 <tbody>
                     <tr v-for="order in paginated" :key="order.id" class="border-t border-stone-100">
                         <td class="p-4">{{ order.customer_name }}</td>
                         <td class="p-4">{{ order.consultant_name || '—' }}</td>
-                        <td class="p-4">{{ date(order.created_at || '') }}</td><td class="p-4">{{ date(order.sold_on) }}</td>
+                        <td class="p-4">{{ date(order.created_at || '') }}</td><td class="p-4">{{ date(order.activated_at || '') }}</td><td class="p-4">{{ order.order_type || '—' }}</td>
                         <td class="p-4">{{ order.line_quantity }}</td>
                         <td class="p-4 font-semibold">{{ money(order.monthly_amount) }}</td>
                         <td class="p-4"><span class="rounded-lg bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">{{ order.order_status || order.status }}</span></td>
