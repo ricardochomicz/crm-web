@@ -23,14 +23,14 @@ const { applied, apply: applyFilters, clear: clearFilters } = useListFilters({ f
 const filtered=computed(()=>rows.value.filter(c=>!applied.value.filter||String(c.operator_id)===applied.value.filter))
 const blank=():ClassificationInput=>({operator_id:0,code:'',name:'',description:null,is_active:true,sort_order:0})
 const form=ref<ClassificationInput>(blank()),editing=ref<number|null>(null),modal=ref(false)
-const months=ref<number>(18)
+const months=ref<number | null>(null)
 const currentRuleId=ref<string|null>(null)
 const rule=ref<RuleInput>({minimum_months:null as unknown as number,valid_from:new Date().toISOString().slice(0,10),valid_until:null,is_active:true,notes:null})
 const ruleFor=ref<Classification|null>(null),ruleEditing=ref<string|null>(null)
 async function load(){const id=tenantId.value;loading.value=true;error.value='';try{const [t,o,c]=await Promise.all([tenantApi.show(id),operatorsApi.tenantList(id),clientsApi.classifications(id)]);if(id!==tenantId.value)return;tenant.value=t.data;operators.value=o.data.filter(x=>x.selected);rows.value=c.data;canManage.value=c.meta.can_manage}catch(e){error.value=e instanceof Error?e.message:'Erro ao carregar classificações.'}finally{if(id===tenantId.value)loading.value=false}}
-function edit(c?:Classification){editing.value=c?.id??null;form.value=c?{operator_id:c.operator_id,code:c.code,name:c.name,description:c.description,is_active:c.is_active,sort_order:c.sort_order}:{...blank(),operator_id:operators.value[0]?.id??0};months.value=c?.rules.find(r=>r.tenant_id===tenantId.value&&r.is_active)?.minimum_months??c?.rules.find(r=>r.is_active)?.minimum_months??18;currentRuleId.value=c?.rules.find(r=>r.tenant_id===tenantId.value&&r.is_active)?.id??null;modal.value=true}
+function edit(c?:Classification){editing.value=c?.id??null;form.value=c?{operator_id:c.operator_id,code:c.code,name:c.name,description:c.description,is_active:c.is_active,sort_order:c.sort_order}:{...blank(),operator_id:0};months.value=c?.rules.find(r=>r.tenant_id===tenantId.value&&r.is_active)?.minimum_months??c?.rules.find(r=>r.is_active)?.minimum_months??null;currentRuleId.value=c?.rules.find(r=>r.tenant_id===tenantId.value&&r.is_active)?.id??null;modal.value=true}
 async function save(){
-  if(!form.value.operator_id||!form.value.name.trim()||!Number.isInteger(months.value)||months.value<1){toast.error('Informe operadora, classificação e tempo em meses válido.');return}
+  if(!form.value.operator_id||!form.value.name.trim()||months.value===null||!Number.isInteger(months.value)||months.value<1){toast.error('Informe operadora, classificação e tempo em meses válido.');return}
   busy.value=true
   try{
     const payload={...form.value,code:form.value.name.trim(),name:form.value.name.trim()}
