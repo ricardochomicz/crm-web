@@ -8,6 +8,7 @@ import ListFilters from '@/components/ui/ListFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import PortfolioDetailsDialog from '../components/PortfolioDetailsDialog.vue'
 import { tenantApi } from '@/features/tenants/api'
 import { operatorsApi } from '@/features/operators/api'
 import type { Tenant } from '@/features/tenants/types'
@@ -16,6 +17,7 @@ import { clientsApi, type PortfolioContract } from '../api'
 const route = useRoute()
 const router = useRouter()
 const renewing = ref<PortfolioContract | null>(null)
+const selectedDetails = ref<PortfolioContract | null>(null)
 const savingRenewal = ref(false)
 const visibleRows = computed(() => rows.value)
 function openRenewal(contract: PortfolioContract) {
@@ -44,8 +46,12 @@ const ungroupedCount = ref(0)
 const hasCheckedLegacy = ref(false)
 const search = ref('')
 const operatorFilter = ref('')
+const renewalMonth = ref('')
+const renewalYear = ref('')
 const appliedSearch = ref('')
 const appliedOperator = ref('')
+const appliedRenewalMonth = ref('')
+const appliedRenewalYear = ref('')
 const page = ref(1)
 const lastPage = ref(1)
 const total = ref(0)
@@ -82,6 +88,8 @@ async function load() {
     const params = {
       search: appliedSearch.value || undefined,
       operator_id: appliedOperator.value ? Number(appliedOperator.value) : undefined,
+      renewal_month: appliedRenewalMonth.value ? Number(appliedRenewalMonth.value) : undefined,
+      renewal_year: appliedRenewalYear.value ? Number(appliedRenewalYear.value) : undefined,
       page: page.value,
       per_page: perPage,
       ...(viewMode.value !== 'contracts' ? { renewal_state: viewMode.value === 'renewing' ? 'in_progress' as const : 'available' as const } : {}),
@@ -120,6 +128,10 @@ async function initialize() {
   lastPage.value = 1
   search.value = ''
   operatorFilter.value = ''
+  renewalMonth.value = ''
+  renewalYear.value = ''
+  appliedRenewalMonth.value = ''
+  appliedRenewalYear.value = ''
   appliedSearch.value = ''
   appliedOperator.value = ''
   viewMode.value = 'contracts'
@@ -147,6 +159,8 @@ async function initialize() {
 function applyFilters() {
   appliedSearch.value = search.value.trim()
   appliedOperator.value = operatorFilter.value
+  appliedRenewalMonth.value = renewalMonth.value
+  appliedRenewalYear.value = renewalYear.value
   page.value = 1
   void load()
 }
@@ -154,6 +168,8 @@ function applyFilters() {
 function clearFilters() {
   search.value = ''
   operatorFilter.value = ''
+  renewalMonth.value = ''
+  renewalYear.value = ''
   applyFilters()
 }
 
@@ -183,14 +199,17 @@ watch(tenantId, () => void initialize(), { immediate: true })
     </header>
 
     <ListFilters
-      :columns="2"
+      :columns="4"
+      collapsible
+      initially-collapsed
+      :active-count="[appliedSearch, appliedOperator, appliedRenewalMonth, appliedRenewalYear].filter(Boolean).length"
       :count-label="`${total} contrato(s) encontrado(s)`"
       @search="applyFilters"
       @clear="clearFilters"
     >
       <label class="text-xs font-semibold text-slate-600">
         Buscar cliente
-        <input v-model="search" class="field" type="search" placeholder="Nome ou documento" />
+        <input v-model="search" class="field" type="search" placeholder="Nome, CPF ou CNPJ" />
       </label>
       <label class="text-xs font-semibold text-slate-600">
         Operadora
@@ -201,6 +220,14 @@ watch(tenantId, () => void initialize(), { immediate: true })
             ...operators.map((operator) => ({ value: String(operator.id), label: operator.name })),
           ]"
         />
+      </label>
+      <label class="text-xs font-semibold text-slate-600">
+        Mês da renovação
+        <SearchSelect v-model="renewalMonth" :options="[{ value: '', label: 'Todos os meses' }, ...['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((name, index) => ({ value: String(index + 1), label: name }))]" />
+      </label>
+      <label class="text-xs font-semibold text-slate-600">
+        Ano da renovação
+        <input v-model="renewalYear" class="field" type="number" min="2000" max="2200" placeholder="Ex.: 2028" />
       </label>
     </ListFilters>
 
@@ -232,7 +259,7 @@ watch(tenantId, () => void initialize(), { immediate: true })
             <tr v-for="contract in visibleRows" :key="contract.contract_id ?? contract.order_id" class="hover:bg-stone-50/70">
               <td class="p-4">
                 <span class="font-semibold text-slate-800">{{ contract.client_name }}</span>
-                <p class="mt-1 text-xs text-slate-400">{{ viewMode === 'orders' ? (contract.order_code ?? 'Pedido sem código') : `${contract.order_count ?? 0} pedido(s) vinculados` }}</p>
+
               </td>
               <td class="p-4">{{ contract.operator_name ?? '—' }}</td>
               <td class="p-4 text-right">{{ contract.line_count }}</td>
@@ -242,10 +269,12 @@ watch(tenantId, () => void initialize(), { immediate: true })
               <td class="p-4">{{ formatDate(contract.renewal_date) }}</td>
               <td class="p-4 text-sm">{{ viewMode === 'renewing' ? 'Em renovação' : statuses[contract.status] }}</td>
               <td class="p-4">
+                <div class="flex flex-wrap items-center gap-2">
+                <button type="button" class="rounded-lg border border-stone-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-stone-50" @click="selectedDetails = contract">Ver detalhes</button>
                 <button v-if="viewMode === 'orders' && contract.status === 'overdue' && contract.order_id && !contract.renewal_opportunity_id"
                   type="button" class="primary-button w-auto whitespace-nowrap" @click="openRenewal(contract)">Renovar</button>
                 <button v-else-if="viewMode === 'renewing' && contract.renewal_opportunity_id" type="button" class="rounded-lg border border-stone-200 px-3 py-2 text-xs font-semibold" @click="router.push('/empresas/' + tenantId + '/oportunidades')">Ver oportunidade</button>
-                <span v-else class="text-xs text-slate-400">—</span>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -263,6 +292,7 @@ watch(tenantId, () => void initialize(), { immediate: true })
         @change="changePage"
       />
     </template>
+    <PortfolioDetailsDialog :open="!!selectedDetails" :record="selectedDetails" :mode="viewMode" @close="selectedDetails = null" />
     <div v-if="renewing" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <section role="dialog" aria-modal="true" aria-labelledby="renewal-title" class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
         <h2 id="renewal-title" class="text-xl font-semibold">Renovar contrato</h2>
