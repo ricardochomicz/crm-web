@@ -16,6 +16,7 @@ const tenantId = computed(() => String(route.params.tenantId))
 const {
   tenant,
   operators,
+  members,
   orderTypes,
   roles,
   loading,
@@ -89,6 +90,8 @@ const {
           <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <tr>
               <th class="p-4">Operadora</th>
+              <th class="p-4">Categoria</th>
+              <th class="p-4">Responsável</th>
               <th class="p-4">Pedido</th>
               <th class="p-4">Perfil</th>
               <th class="p-4">Métrica</th>
@@ -101,7 +104,9 @@ const {
           <tbody class="divide-y divide-stone-100">
             <tr v-for="r in pageRows" :key="r.id" class="hover:bg-stone-50/70">
               <td class="p-4">{{ r.operator?.name }}</td>
-              <td class="p-4">{{ label(orderTypes, r.order_type) }}</td>
+              <td class="p-4">{{ r.category?.replaceAll("_", " ") ?? "—" }}</td>
+              <td class="p-4">{{ r.target_scope === "COMPANY" || !r.target_scope ? "Empresa" : members.find(m => m.id === r.responsible_membership_id)?.name ?? "Membro não encontrado" }}</td>
+              <td class="p-4">{{ (r.negotiation_type_ids?.length ? r.negotiation_type_ids : [r.order_type]).map(id => label(orderTypes, id)).join(", ") }}</td>
               <td class="p-4">{{ label(roles, r.commercial_role) }}</td>
               <td class="p-4">{{ metricLabel(r.metric) }}</td>
               <td class="p-4">
@@ -157,6 +162,7 @@ const {
       <CommercialGoalForm
         v-model="form"
         :operators="operators"
+        :members="members"
         :order-types="orderTypes"
         :roles="roles"
         :busy="busy"
