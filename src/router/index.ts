@@ -149,6 +149,11 @@ const router = createRouter({
       meta: { requiresAuth: true, admin: true, title: 'Classificações globais' },
     },
     {
+      path: '/admin/tipos-pedidos',
+      component: () => import('@/features/admin/views/PlatformOrderTypesView.vue'),
+      meta: { requiresAuth: true, admin: true, title: 'Tipos de pedido' },
+    },
+    {
       path: '/admin/status-pedidos',
       component: () => import('@/features/admin/views/PlatformOrderStatusesView.vue'),
       meta: { requiresAuth: true, admin: true, title: 'Status dos pedidos' },
