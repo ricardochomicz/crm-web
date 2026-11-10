@@ -9,7 +9,22 @@ import type {
   Tenant,
 } from './types'
 export const tenantApi = {
-  list: (page = 1) => request<Page<Tenant>>(`/api/v1/tenants?page=${page}`),
+  list: async (page = 1): Promise<Page<Tenant>> => {
+    // Laravel ResourceCollection pagina os registros em meta, não no nível raiz.
+    const response = await request<{
+      data: Tenant[]
+      meta?: { current_page: number; last_page: number; total: number }
+      current_page?: number
+      last_page?: number
+      total?: number
+    }>(`/api/v1/tenants?page=${page}`)
+    return {
+      data: response.data,
+      current_page: response.meta?.current_page ?? response.current_page ?? 1,
+      last_page: response.meta?.last_page ?? response.last_page ?? 1,
+      total: response.meta?.total ?? response.total ?? response.data.length,
+    }
+  },
   show: (id: string) => request<{ data: Tenant }>(`/api/v1/tenants/${encodeURIComponent(id)}`),
   details: (id: string) =>
     request<{ data: CompanyDetails }>(`/api/v1/tenants/${encodeURIComponent(id)}`),
