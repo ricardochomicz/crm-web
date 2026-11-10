@@ -21,7 +21,6 @@ import type { Product } from '@/features/products/api'
 import type { TenantOperator } from '@/features/operators/api'
 import { clientsApi, type Client } from '@/features/clients/api'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
-import ClientPrimaryContactCard from '@/features/clients/components/ClientPrimaryContactCard.vue'
 import type { Contact } from '@/features/clients/api'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
@@ -246,8 +245,7 @@ async function save() {
     <form id="opportunity-details-form" v-show="activeTab === 'details'" class="flex flex-col gap-5" @submit.prevent="save">
       <div class="grid flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
         <fieldset :disabled="busy" class="min-w-0 space-y-6">
-          <OpportunityDetailsForm v-model="form" :clients="availableClients" :can-create-client="canCreateClient" :order-types="orderTypes" :operators="operatorOptions" @change-operator="changeOperator" @create-client="quickClientOpen = true" />
-          <ClientPrimaryContactCard v-if="form.client_id" :contacts="clientContacts" :loading="loadingClientContacts" />
+          <OpportunityDetailsForm v-model="form" :clients="availableClients" :can-create-client="canCreateClient" :client-contacts="clientContacts" :loading-client-contacts="loadingClientContacts" :order-types="orderTypes" :operators="operatorOptions" @change-operator="changeOperator" @create-client="quickClientOpen = true" />
           <section class="space-y-4 rounded-2xl border border-stone-200 bg-stone-50/60 p-4 sm:p-5">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div><h3 class="text-lg font-semibold">Linhas e serviços</h3><p class="text-xs text-slate-500">Cole números do Excel em lotes, cada lote com seu plano.</p></div>
