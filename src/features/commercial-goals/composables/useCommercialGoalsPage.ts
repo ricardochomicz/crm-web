@@ -26,7 +26,7 @@ const initial = (): GoalInput => ({
  operator_id: 0,
  order_type: '',
  commercial_role: '',
- metric: 'QUANTITY', starts_on: new Date().toISOString().slice(0,10),
+ metric: '' as GoalInput['metric'], starts_on: new Date().toISOString().slice(0,10),
  ends_on: null, is_active: true, tiers: [{minimum:0, percentage:50}],
 })
 const form = ref<GoalInput>(initial())
@@ -68,8 +68,8 @@ function edit(goal?: CommercialGoal) {
  modalOpen.value = true
 }
 async function save() {
- if (!form.value.operator_id || !form.value.order_type || !form.value.commercial_role) {
-  toast.error('Selecione operadora, tipo de pedido e perfil antes de salvar.')
+ if (!form.value.operator_id || !form.value.order_type || !form.value.commercial_role || !form.value.metric) {
+  toast.error('Selecione operadora, tipo de pedido, perfil e métrica antes de salvar.')
   return
  }
  busy.value = true
