@@ -156,7 +156,7 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
           <label class="block text-sm font-medium">Descrição<textarea v-model="form.description" class="field mt-1 w-full" rows="4" /></label>
         </template>
         <p v-if="error" class="text-sm text-red-700">{{ error }}</p>
-        <div class="flex flex-wrap justify-end gap-2 border-t border-stone-100 pt-4"><button type="button" class="secondary-button w-auto" :disabled="saving" @click="dialogOpen = false">Cancelar</button><button type="button" class="primary-button w-auto" :disabled="saving" @click="save">{{ saving ? 'Salvando…' : editing ? 'Salvar movimentação' : 'Salvar protocolo' }}</button></div>
+        <div class="flex flex-wrap justify-end gap-2 border-t border-stone-100 pt-4"><button type="button" class="secondary-button w-auto" :disabled="saving" @click="dialogOpen = false">Cancelar</button><button v-if="editing ? canUpdate : canCreate" type="button" class="primary-button w-auto" :disabled="saving" @click="save">{{ saving ? 'Salvando…' : editing ? 'Salvar movimentação' : 'Salvar protocolo' }}</button></div>
       </div>
     </AppDialog>
   </AppShell>
