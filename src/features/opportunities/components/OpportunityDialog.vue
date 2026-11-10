@@ -35,21 +35,7 @@ watch(() => [props.open, props.tenantId], async () => {
 const clientContacts = ref<Contact[]>([])
 const loadingClientContacts = ref(false)
 let contactRequestVersion = 0
-watch(() => [props.open, props.tenantId, form.value.client_id] as const, async ([isOpen, tenantId, clientId]) => {
-  const current = ++contactRequestVersion
-  clientContacts.value = []
-  loadingClientContacts.value = false
-  if (!isOpen || !clientId) return
-  loadingClientContacts.value = true
-  try {
-    const result = await clientsApi.show(tenantId, clientId)
-    if (current === contactRequestVersion) clientContacts.value = result.data.contacts ?? []
-  } catch {
-    if (current === contactRequestVersion) clientContacts.value = []
-  } finally {
-    if (current === contactRequestVersion) loadingClientContacts.value = false
-  }
-})
+
 const busy = ref(false)
 const quickClientOpen = ref(false)
 const canCreateClient = ref(false)
@@ -122,6 +108,21 @@ const blank = (): OpportunityInput => ({
   estimated_monthly_amount: 0, estimated_one_time_amount: 0, items: [],
 })
 const form = ref<OpportunityInput>(blank())
+watch(() => [props.open, props.tenantId, form.value.client_id] as const, async ([isOpen, tenantId, clientId]) => {
+  const current = ++contactRequestVersion
+  clientContacts.value = []
+  loadingClientContacts.value = false
+  if (!isOpen || !clientId) return
+  loadingClientContacts.value = true
+  try {
+    const result = await clientsApi.show(tenantId, clientId)
+    if (current === contactRequestVersion) clientContacts.value = result.data.contacts ?? []
+  } catch {
+    if (current === contactRequestVersion) clientContacts.value = []
+  } finally {
+    if (current === contactRequestVersion) loadingClientContacts.value = false
+  }
+})
 const totalMonthly = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.monthly_unit_amount || 0) * Number(item.quantity || 0), 0))
 const totalOnce = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.one_time_unit_amount || 0) * Number(item.quantity || 0), 0))
 function generateCode(): string {
