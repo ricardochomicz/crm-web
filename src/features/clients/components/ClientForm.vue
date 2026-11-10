@@ -156,16 +156,8 @@ const { form, editing, busy, operators, classesForOperator, sellers, showSellerS
                 { value: '', label: 'Sem operadora' },
                 ...operators.map((o) => ({ value: o.id, label: o.name })),
               ]"
-              @update:model-value="form.classification_id = null" /><FormError
+ /><FormError
               :message="validationState.errors.operator_id"
-          /></label>
-          <label class="text-sm"
-            >Classificação<SearchSelect
-              v-model="form.classification_id"
-              :options="[
-                { value: '', label: 'Sem classificação' },
-                ...classesForOperator.map((c) => ({ value: c.id, label: c.code + ' · ' + c.name })),
-              ]" /><FormError :message="validationState.errors.classification_id"
           /></label>
           <label v-if="showSellerSelect" class="text-sm"
             >Vendedor responsável<SearchSelect
