@@ -10,4 +10,5 @@ const base = (tenantId: string) => `/api/v1/tenants/${encodeURIComponent(tenantI
 export const commercialGoalsApi = {
  list: (tenantId: string) => request<{data: CommercialGoal[]; meta: {can_manage: boolean}}>(base(tenantId)),
  save: (tenantId: string, data: GoalInput, id?: string) => mutate(base(tenantId) + (id ? '/' + id : ''), data, id ? 'PATCH' : 'POST'),
+ bulkSave: (tenantId: string, data: GoalInput & { responsible_membership_ids: string[] }) => mutate<{data: {created_count: number; skipped_count: number; skipped: {responsible_membership_id: string; reason: string}[]}}>(base(tenantId) + '/bulk', data, 'POST'),
 }
