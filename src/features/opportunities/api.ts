@@ -86,3 +86,25 @@ export const comparisonsApi = {
   publicShow: (token: string) =>
     request<{ data: Pick<OpportunityComparison, 'title' | 'created_at' | 'expires_at' | 'options'> }>('/api/v1/public/comparisons/' + encodeURIComponent(token)),
 }
+
+export type ProposalSnapshot = {
+  title: string; company_name: string; client_name: string; consultant_name: string
+  opportunity_code: string; conditions: string; notes: string
+  items: { description: string; quantity: number; monthly_unit_amount: string; one_time_unit_amount: string }[]
+}
+export type OpportunityProposal = {
+  id: string; version: number; created_at: string; expires_at: string
+  revoked_at: string | null; public_token: string; snapshot: ProposalSnapshot
+}
+const proposalBase = (tenantId: string, opportunityId: string) =>
+  base(tenantId) + '/' + encodeURIComponent(opportunityId) + '/proposals'
+export const proposalsApi = {
+  list: (tenantId: string, opportunityId: string) =>
+    request<{ data: OpportunityProposal[] }>(proposalBase(tenantId, opportunityId)),
+  publish: (tenantId: string, opportunityId: string, data: { validity_days: number; conditions: string; notes: string }) =>
+    mutate<{ data: OpportunityProposal }>(proposalBase(tenantId, opportunityId), data, 'POST'),
+  revoke: (tenantId: string, opportunityId: string, proposalId: string) =>
+    mutate<{ data: OpportunityProposal }>(proposalBase(tenantId, opportunityId) + '/' + encodeURIComponent(proposalId) + '/revoke', {}, 'POST'),
+  publicShow: (token: string) =>
+    request<{ data: { version: number; expires_at: string; snapshot: ProposalSnapshot } }>('/api/v1/public/proposals/' + encodeURIComponent(token)),
+}
