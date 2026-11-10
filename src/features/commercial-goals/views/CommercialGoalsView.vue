@@ -25,6 +25,9 @@ const {
   writable,
   modalOpen,
   editingId,
+  bulkMode,
+  selectedMemberIds,
+  bulkResult,
   form,
   label,
   metricLabel,
@@ -161,6 +164,9 @@ const {
     >
       <CommercialGoalForm
         v-model="form"
+        v-model:bulk-mode="bulkMode"
+        v-model:selected-member-ids="selectedMemberIds"
+        :bulk-result="bulkResult"
         :operators="operators"
         :members="members"
         :order-types="orderTypes"
