@@ -117,6 +117,13 @@ async function save() {
  } catch(e) { toast.error(e instanceof Error ? e.message : 'Erro ao salvar meta.') }
  finally { busy.value = false }
 }
+watch(bulkMode, enabled => {
+ selectedMemberIds.value = []
+ bulkResult.value = null
+ if (enabled && form.value.target_scope === 'COMPANY') {
+  form.value = { ...form.value, target_scope: 'CONSULTANT', responsible_membership_id: null }
+ }
+})
 watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: true })
 const { page, total, lastPage, pageRows, changePage } = useListPagination(filtered)
 
