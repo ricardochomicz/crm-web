@@ -6,6 +6,7 @@ import { errorMessage } from '@/lib/feedback'
 import { operatorsApi, type Operator } from '@/features/operators/api'
 import { tenantApi } from '../api'
 import type { Plan } from '../types'
+import { maskBrazilianPhone } from '@/lib/phoneMask'
 
 export function useCreateTenant() {
 const auth = useAuthStore()
@@ -28,6 +29,10 @@ const form = reactive({
   email: auth.user?.email ?? '',
   trade_name: '',
   phone: '',
+})
+const maskedPhone = computed({
+  get: () => maskBrazilianPhone(form.phone),
+  set: (value: string) => { form.phone = maskBrazilianPhone(value) },
 })
 function resetDocument() {
   form.document = ''
@@ -124,7 +129,7 @@ async function submit() {
 onMounted(load)
 return {
   plans, operators, selectedOperators, loading, loadError, error, errors,
-  step, busy, selected, selectedPlan, form, resetDocument, load, next,
+  step, busy, selected, selectedPlan, form, maskedPhone, resetDocument, load, next,
   nextOperators, toggleOperator, submit,
 }
 }
