@@ -33,7 +33,7 @@ export function useOrdersPage(tenantId: Ref<string>) {
     const summary = computed(() => ({
         progress: orders.value.filter(o => !isCompleted(o) && !isCancelled(o)).length,
         activated: orders.value.filter(o => monthOf(o.activated_at) === month.value).length,
-        completed: orders.value.filter(o => monthOf(o.administratively_completed_at) === month.value).length,
+        completed: orders.value.filter(o => isCompleted(o) && monthOf(o.activated_at) === month.value).length,
     }))
     const filtered = computed(() => orders.value.filter(order => {
         const f = applied.value
@@ -44,7 +44,9 @@ export function useOrdersPage(tenantId: Ref<string>) {
         if (f.team && order.consultant_team_id !== f.team) return false
         if (f.quickView === 'progress') return !isCompleted(order) && !isCancelled(order)
         if (f.quickView === 'activated') return monthOf(order.activated_at) === f.month
-        if (f.quickView === 'completed') return monthOf(order.administratively_completed_at) === f.month
+        if (f.quickView === 'completed') return isCompleted(order) && monthOf(order.activated_at) === f.month
+        // A visão inicial combina tramitação com ativações do mês, sem misturar pedidos antigos apenas por terem sido criados agora.
+        if (f.quickView === 'all' && f.dateField === 'created_at' && !f.search && !f.status && !f.consultant && !f.team) return !isCompleted(order) && !isCancelled(order) || monthOf(order.activated_at) === f.month
         return !f.month || monthOf(order[f.dateField]) === f.month
     }))
     const total = computed(() => filtered.value.length)
