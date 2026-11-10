@@ -2,12 +2,11 @@
 import { computed, ref } from 'vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import type { FunnelStage, Opportunity } from '../api'
-const props = defineProps<{ stages: FunnelStage[]; items: Opportunity[]; canEdit: boolean; busyId: string | null }>()
+const props = defineProps<{ stages: FunnelStage[]; items: Opportunity[]; canEdit: boolean; busyId: string | null; highlightsOnly?: boolean }>()
 const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; schedule: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity]; resend: [item: Opportunity] }>()
 const dragging = ref<string | null>(null)
 const hover = ref<string | null>(null)
 const highlightedIds = ref<Set<string>>(new Set())
-const showHighlightsOnly = ref(false)
 function toggleHighlight(id: string) {
   const next = new Set(highlightedIds.value)
   if (next.has(id)) next.delete(id)
@@ -16,7 +15,7 @@ function toggleHighlight(id: string) {
 }
 function stageItems(stage: FunnelStage) {
   return props.items.filter(item => matchesStage(item, stage))
-    .filter(item => !showHighlightsOnly.value || highlightedIds.value.has(item.id))
+    .filter(item => !props.highlightsOnly || highlightedIds.value.has(item.id))
     .sort((a, b) => Number(highlightedIds.value.has(b.id)) - Number(highlightedIds.value.has(a.id)))
 }
 const columns = computed(() => [
@@ -54,11 +53,6 @@ function drop(stageId: string) {
 </script>
 <template>
   <div>
-    <div class="mb-3 flex justify-end">
-      <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-stone-50" :aria-pressed="showHighlightsOnly" @click="showHighlightsOnly = !showHighlightsOnly">
-        <AppIcon name="star" /> {{ showHighlightsOnly ? 'Mostrar todas' : 'Somente destaques' }}
-      </button>
-    </div>
     <div class="overflow-x-auto pb-4">
     <div class="flex min-w-max items-start gap-4">
       <section v-for="stage in columns" :key="stage.id || 'unassigned'"
