@@ -11,6 +11,7 @@ const version = ref(0)
 const expiresAt = ref('')
 const monthly = computed(() => (snapshot.value?.items ?? []).reduce((sum, item) => sum + Number(item.monthly_unit_amount) * item.quantity, 0))
 const once = computed(() => (snapshot.value?.items ?? []).reduce((sum, item) => sum + Number(item.one_time_unit_amount) * item.quantity, 0))
+const printPage = () => window.print()
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 onMounted(async () => {
   try {
@@ -33,7 +34,7 @@ onMounted(async () => {
     <article v-else class="mx-auto max-w-4xl rounded-2xl bg-white p-6 shadow-sm sm:p-10 print:max-w-none print:rounded-none print:p-0 print:shadow-none">
       <div class="mb-8 flex flex-wrap items-start justify-between gap-4 border-b-2 border-orange-600 pb-6">
         <div><p class="text-xs font-semibold uppercase tracking-widest text-slate-500">{{ snapshot.company_name }}</p><h1 class="mt-2 text-2xl font-bold sm:text-3xl">{{ snapshot.title }}</h1><p class="mt-2 text-sm text-slate-500">Versão {{ version }} · Válida até {{ new Date(expiresAt).toLocaleDateString('pt-BR') }}</p></div>
-        <button type="button" class="secondary-button w-auto print:hidden" @click="window.print()">Imprimir / salvar PDF</button>
+        <button type="button" class="secondary-button w-auto print:hidden" @click="printPage">Imprimir / salvar PDF</button>
       </div>
       <div class="mb-7 grid gap-5 sm:grid-cols-2"><div><p class="text-xs font-semibold uppercase text-slate-500">Cliente</p><p class="mt-1 font-semibold">{{ snapshot.client_name }}</p></div><div><p class="text-xs font-semibold uppercase text-slate-500">Consultor responsável</p><p class="mt-1 font-semibold">{{ snapshot.consultant_name }}</p></div></div>
       <div class="overflow-x-auto rounded-xl border border-stone-200"><table class="w-full min-w-[400px] text-left text-sm"><thead class="bg-stone-50 text-xs uppercase text-slate-500"><tr><th class="p-3">Plano / serviço</th><th class="p-3">Qtd.</th><th class="p-3 text-right">Unitário</th><th class="p-3 text-right">Total mensal</th></tr></thead><tbody><tr v-for="(item, index) in snapshot.items" :key="index" class="border-t border-stone-100"><td class="p-3">{{ item.description }}</td><td class="p-3">{{ item.quantity }}</td><td class="p-3 text-right">{{ money(Number(item.monthly_unit_amount)) }}</td><td class="p-3 text-right">{{ money(Number(item.monthly_unit_amount) * item.quantity) }}</td></tr></tbody></table></div>
