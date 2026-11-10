@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { opportunitiesApi, type CommercialOverview } from '@/features/opportunities/api'
+import { opportunitiesApi, type FunnelOverview, type CommercialOverview } from '@/features/opportunities/api'
 import { errorMessage } from '@/lib/feedback'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
@@ -13,6 +13,10 @@ const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
 const { tenant, loading, error, load } = useTenantDashboard(tenantId)
 const overview = ref<CommercialOverview | null>(null)
+const funnel = ref<FunnelOverview | null>(null)
+const funnelLoading = ref(false)
+const funnelError = ref('')
+let funnelRequest = 0
 const overviewLoading = ref(false)
 const overviewError = ref('')
 const period = ref<'month' | 'quarter'>('month')
@@ -43,6 +47,25 @@ async function loadOverview() {
     if (request === overviewRequest) overviewLoading.value = false
   }
 }
+async function loadFunnel() {
+  const id = tenantId.value
+  const request = ++funnelRequest
+  funnel.value = null
+  funnelError.value = ''
+  if (!tenant.value || !canViewOpportunities.value) return
+  funnelLoading.value = true
+  try {
+    const response = await opportunitiesApi.funnelOverview(id)
+    if (request === funnelRequest) funnel.value = response.data
+  } catch (failure) {
+    if (request === funnelRequest) funnelError.value = errorMessage(failure)
+  } finally {
+    if (request === funnelRequest) funnelLoading.value = false
+  }
+}
+watch([tenantId, tenant], () => { void loadFunnel() }, { immediate: true })
+const funnelMax = computed(() => Math.max(1, ...(funnel.value?.stages.map(stage => stage.count) ?? [])))
+const funnelTotal = computed(() => (funnel.value?.stages.reduce((sum, stage) => sum + stage.count, 0) ?? 0) + (funnel.value?.unassigned.count ?? 0))
 watch([tenantId, period, tenant], () => { void loadOverview() }, { immediate: true })
 const currency = (value: string | number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value))
 const base = computed(() => `/empresas/${tenantId.value}`)
@@ -120,21 +143,36 @@ const shortcuts = computed(() => [
         </section>
         <div class="grid gap-4 xl:grid-cols-5">
           <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm xl:col-span-3">
-            <h2 class="text-sm font-semibold text-slate-900">Distribuição das oportunidades abertas</h2>
-            <p class="mt-1 text-xs text-slate-500">Quantidade por situação de previsão de fechamento</p>
-            <div v-if="overviewLoading" class="mt-6 h-44 animate-pulse rounded-xl bg-stone-100" />
-            <div v-else-if="overview" class="mt-7 space-y-5">
-              <div v-for="item in pipeline" :key="item.label">
-                <div class="mb-2 flex justify-between gap-3 text-xs">
-                  <span class="font-medium text-slate-700">{{ item.label }}</span>
-                  <span class="text-slate-500">{{ item.count }} · {{ currency(item.amount) }}/mês</span>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 class="text-base font-semibold text-slate-900">Funil de vendas</h2>
+                <p class="mt-1 text-xs text-slate-500">Oportunidades abertas por etapa · posição atual, sem filtro de período</p>
+              </div>
+              <RouterLink :to="`${base}/oportunidades`" class="text-xs font-semibold text-orange-700 hover:underline">Abrir negociações →</RouterLink>
+            </div>
+            <div v-if="funnelLoading" class="mt-6 h-56 animate-pulse rounded-xl bg-stone-100" />
+            <div v-else-if="funnelError" class="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700" role="alert">
+              {{ funnelError }} <button class="ml-2 font-semibold underline" @click="loadFunnel">Tentar novamente</button>
+            </div>
+            <div v-else-if="funnel" class="mt-6 space-y-4">
+              <div class="flex items-baseline gap-2 border-b border-stone-100 pb-5">
+                <strong class="text-3xl font-semibold tracking-tight text-slate-900 tabular-nums">{{ funnelTotal }}</strong>
+                <span class="text-xs text-slate-500">negociações abertas no funil</span>
+              </div>
+              <div v-for="(stage, index) in funnel.stages" :key="stage.id" class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2">
+                <div class="flex items-center gap-2 text-xs">
+                  <span class="flex size-6 shrink-0 items-center justify-center rounded-lg bg-orange-50 font-semibold text-orange-700">{{ index + 1 }}</span>
+                  <span class="truncate font-medium text-slate-700">{{ stage.name }}</span>
                 </div>
-                <div class="h-2.5 overflow-hidden rounded-full bg-stone-100">
-                  <div class="h-full rounded-full bg-orange-500 transition-all" :style="{ width: `${item.count / maxPipeline * 100}%` }" />
+                <span class="text-right text-xs font-semibold tabular-nums text-slate-800">{{ stage.count }} <span class="font-normal text-slate-400">· {{ currency(stage.monthly) }}/mês</span></span>
+                <div class="col-span-2 h-2.5 overflow-hidden rounded-full bg-stone-100">
+                  <div class="h-full rounded-full bg-orange-500 transition-all" :style="{ width: `${stage.count / funnelMax * 100}%`, opacity: Math.max(.45, 1 - index * .1) }" />
                 </div>
               </div>
+              <p v-if="!funnel.stages.length" class="text-sm text-slate-500">Nenhuma etapa configurada.</p>
+              <p v-if="funnel.unassigned.count" class="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">{{ funnel.unassigned.count }} oportunidades sem etapa definida.</p>
             </div>
-            <p v-else class="mt-8 text-sm text-slate-500">Não foi possível carregar a distribuição.</p>
+            <p v-else class="mt-6 text-sm text-slate-500">Funil indisponível.</p>
           </section>
           <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm xl:col-span-2">
             <h2 class="text-sm font-semibold text-slate-900">Pontos de atenção</h2>
@@ -158,6 +196,23 @@ const shortcuts = computed(() => [
         </div>
       </template>
 
+      <section v-if="canViewOpportunities && overview" class="grid gap-4 md:grid-cols-3">
+        <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+          <p class="text-xs font-medium text-slate-500">Potencial de fechamento no período</p>
+          <p class="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{{ currency(overview.open_period.monthly) }}</p>
+          <p class="mt-1 text-xs text-slate-400">Mensalidade estimada · não é receita realizada</p>
+        </div>
+        <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+          <p class="text-xs font-medium text-slate-500">Valor mensal em atraso</p>
+          <p class="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{{ currency(overview.overdue.monthly) }}</p>
+          <p class="mt-1 text-xs text-slate-400">Negociações com previsão vencida</p>
+        </div>
+        <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+          <p class="text-xs font-medium text-slate-500">Negociações perdidas</p>
+          <p class="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{{ overview.lost.count }}</p>
+          <p class="mt-1 text-xs text-slate-400">{{ currency(overview.lost.monthly) }}/mês em valor estimado</p>
+        </div>
+      </section>
       <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
         <div>
           <h2 class="text-sm font-semibold text-slate-900">Acesso rápido</h2>
