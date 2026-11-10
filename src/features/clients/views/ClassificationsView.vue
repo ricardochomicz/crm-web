@@ -25,7 +25,7 @@ const blank=():ClassificationInput=>({operator_id:0,code:'',name:'',description:
 const form=ref<ClassificationInput>(blank()),editing=ref<number|null>(null),modal=ref(false)
 const months=ref<number>(18)
 const currentRuleId=ref<string|null>(null)
-const rule=ref<RuleInput>({minimum_months:18,valid_from:new Date().toISOString().slice(0,10),valid_until:null,is_active:true,notes:null})
+const rule=ref<RuleInput>({minimum_months:null as unknown as number,valid_from:new Date().toISOString().slice(0,10),valid_until:null,is_active:true,notes:null})
 const ruleFor=ref<Classification|null>(null),ruleEditing=ref<string|null>(null)
 async function load(){const id=tenantId.value;loading.value=true;error.value='';try{const [t,o,c]=await Promise.all([tenantApi.show(id),operatorsApi.tenantList(id),clientsApi.classifications(id)]);if(id!==tenantId.value)return;tenant.value=t.data;operators.value=o.data.filter(x=>x.selected);rows.value=c.data;canManage.value=c.meta.can_manage}catch(e){error.value=e instanceof Error?e.message:'Erro ao carregar classificações.'}finally{if(id===tenantId.value)loading.value=false}}
 function edit(c?:Classification){editing.value=c?.id??null;form.value=c?{operator_id:c.operator_id,code:c.code,name:c.name,description:c.description,is_active:c.is_active,sort_order:c.sort_order}:{...blank(),operator_id:operators.value[0]?.id??0};months.value=c?.rules.find(r=>r.tenant_id===tenantId.value&&r.is_active)?.minimum_months??c?.rules.find(r=>r.is_active)?.minimum_months??18;currentRuleId.value=c?.rules.find(r=>r.tenant_id===tenantId.value&&r.is_active)?.id??null;modal.value=true}
@@ -48,9 +48,9 @@ async function save(){
     modal.value=false;toast.success('Classificação e prazo salvos.');await load()
   }catch(e){toast.error(e instanceof Error?e.message:'Erro ao salvar classificação e prazo.')}finally{busy.value=false}
 }
-function addRule(c:Classification){ruleEditing.value=null;ruleFor.value=c;rule.value={minimum_months:18,valid_from:new Date().toISOString().slice(0,10),valid_until:null,is_active:true,notes:null}}
+function addRule(c:Classification){ruleEditing.value=null;ruleFor.value=c;rule.value={minimum_months:null as unknown as number,valid_from:new Date().toISOString().slice(0,10),valid_until:null,is_active:true,notes:null}}
 function editRule(c:Classification,r:Classification['rules'][number]){ruleFor.value=c;ruleEditing.value=r.id;rule.value={minimum_months:r.minimum_months,valid_from:r.valid_from,valid_until:r.valid_until,is_active:r.is_active,notes:r.notes}}
-async function saveRule(){if(!ruleFor.value)return;busy.value=true;try{await clientsApi.addRule(tenantId.value,ruleFor.value.id,rule.value,ruleEditing.value??undefined);ruleFor.value=null;toast.success('Regra de renovação cadastrada.');await load()}catch(e){toast.error(e instanceof Error?e.message:'Erro ao salvar regra.')}finally{busy.value=false}}
+async function saveRule(){if(!ruleFor.value)return;if(rule.value.minimum_months===null||rule.value.minimum_months===undefined||rule.value.minimum_months==='' as unknown as number||!Number.isInteger(Number(rule.value.minimum_months))||Number(rule.value.minimum_months)<0){toast.error('Informe um número válido de meses mínimos.');return}busy.value=true;try{await clientsApi.addRule(tenantId.value,ruleFor.value.id,rule.value,ruleEditing.value??undefined);ruleFor.value=null;toast.success('Regra de renovação cadastrada.');await load()}catch(e){toast.error(e instanceof Error?e.message:'Erro ao salvar regra.')}finally{busy.value=false}}
 watch(tenantId,load,{immediate:true})
 const { page, total, lastPage, pageRows, changePage } = useListPagination(filtered)
 </script>
