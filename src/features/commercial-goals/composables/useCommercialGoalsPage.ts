@@ -4,6 +4,8 @@ import { useListFilters } from '@/composables/useListFilters'
 import { toast } from '@/services/toast'
 import { tenantApi } from '@/features/tenants/api'
 import { operatorsApi, type TenantOperator } from '@/features/operators/api'
+import { teamApi } from '@/features/members/api'
+import type { Member } from '@/features/members/types'
 import { orderTypesApi } from '@/features/order-types/api'
 import { teamCommissionsApi, type CommissionOption } from '@/features/team-commissions/api'
 import type { Tenant } from '@/features/tenants/types'
@@ -15,6 +17,7 @@ const rows = ref<CommercialGoal[]>([])
 const operators = ref<TenantOperator[]>([])
 const orderTypes = ref<CommissionOption[]>([])
 const roles = ref<CommissionOption[]>([])
+const members = ref<Member[]>([])
 const loading = ref(true)
 const busy = ref(false)
 const error = ref('')
@@ -24,7 +27,7 @@ const modalOpen = ref(false)
 const editingId = ref<string | null>(null)
 const initial = (): GoalInput => ({
  operator_id: 0,
- order_type: '', category: null, negotiation_type_ids: [],
+ order_type: '', category: null, negotiation_type_ids: [], target_scope: 'COMPANY', responsible_membership_id: null,
  commercial_role: '',
  metric: '' as GoalInput['metric'], starts_on: new Date().toISOString().slice(0,10),
  ends_on: null, is_active: true, tiers: [{minimum:0, percentage:50}],
@@ -44,12 +47,13 @@ async function load() {
  const id = tenantId.value
  loading.value = true; error.value = ''
  try {
-  const [t, g, o, options, catalog] = await Promise.all([
+  const [t, g, o, options, catalog, memberPage] = await Promise.all([
    tenantApi.show(id),
    commercialGoalsApi.list(id),
    operatorsApi.tenantList(id),
    teamCommissionsApi.options(id),
    orderTypesApi.active(),
+   teamApi.members(id),
   ])
   if (id !== tenantId.value) return
   tenant.value = t.data; rows.value = g.data; canManage.value = g.meta.can_manage
@@ -66,15 +70,17 @@ async function load() {
     }
   }
   roles.value = options.data.roles
+  members.value = memberPage.data.filter(member => member.status === 'ACTIVE')
  } catch (e) { if (id === tenantId.value) error.value = e instanceof Error ? e.message : 'Não foi possível carregar as metas.' }
  finally { if (id === tenantId.value) loading.value = false }
 }
 function edit(goal?: CommercialGoal) {
  editingId.value = goal?.id ?? null
- form.value = goal ? {operator_id:goal.operator_id,order_type:goal.order_type,category:goal.category ?? null,negotiation_type_ids:goal.negotiation_type_ids?.length ? goal.negotiation_type_ids : (orderTypes.value.some(t => t.value === goal.order_type && /^[0-9a-f-]{36}$/i.test(goal.order_type)) ? [goal.order_type] : []),commercial_role:goal.commercial_role,metric:goal.metric,starts_on:goal.starts_on,ends_on:goal.ends_on,is_active:goal.is_active,tiers:goal.tiers.map(t=>({minimum:Number(t.minimum),percentage:Number(t.percentage)}))} : initial()
+ form.value = goal ? {operator_id:goal.operator_id,order_type:goal.order_type,category:goal.category ?? null,target_scope:goal.target_scope ?? 'COMPANY',responsible_membership_id:goal.responsible_membership_id ?? null,negotiation_type_ids:goal.negotiation_type_ids?.length ? goal.negotiation_type_ids : (orderTypes.value.some(t => t.value === goal.order_type && /^[0-9a-f-]{36}$/i.test(goal.order_type)) ? [goal.order_type] : []),commercial_role:goal.commercial_role,metric:goal.metric,starts_on:goal.starts_on,ends_on:goal.ends_on,is_active:goal.is_active,tiers:goal.tiers.map(t=>({minimum:Number(t.minimum),percentage:Number(t.percentage)}))} : initial()
  modalOpen.value = true
 }
 async function save() {
+ if (form.value.target_scope !== 'COMPANY' && !form.value.responsible_membership_id) { toast.error('Selecione o responsável pela meta.'); return }
  if (!form.value.operator_id || !form.value.negotiation_type_ids.length || !form.value.category || !form.value.commercial_role || !form.value.metric) {
   toast.error('Selecione operadora, categoria, tipos de negociação, perfil e métrica antes de salvar.')
   return
@@ -93,5 +99,5 @@ async function save() {
 watch(tenantId, () => { modalOpen.value = false; void load() }, { immediate: true })
 const { page, total, lastPage, pageRows, changePage } = useListPagination(filtered)
 
-return { tenant, rows, operators, orderTypes, roles, loading, busy, error, canManage, writable, modalOpen, editingId, form, label, metricLabel, filterOperator, filterType, filterRole, applyFilters, clearFilters, filtered, load, edit, save, page, total, lastPage, pageRows, changePage }
+return { tenant, rows, members, operators, orderTypes, roles, loading, busy, error, canManage, writable, modalOpen, editingId, form, label, metricLabel, filterOperator, filterType, filterRole, applyFilters, clearFilters, filtered, load, edit, save, page, total, lastPage, pageRows, changePage }
 }
