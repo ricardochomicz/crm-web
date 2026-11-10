@@ -143,7 +143,8 @@ const contactBlank = (): ContactInput => ({
 })
 const contact = ref<ContactInput>(contactBlank()),
   contactEditing = ref(''),
-  contactModal = ref(false)
+  contactModal = ref(false),
+  pendingContactClientId = ref<string | null>(null)
 
 const { documentModel, phoneModel, contactPhoneModel } = useClientMasks(form, contact)
 const { cepModel, cepBusy, cepMessage, lookupCep, cancelLookup } = useClientAddress(form)
@@ -202,6 +203,13 @@ async function load() {
     if (id !== tenantId.value) return
     tenant.value = t.data
     rows.value = list.data
+    const pending = list.data.find((client) => client.contact_pending)
+    if (pending && !pendingContactClientId.value && !contactModal.value && list.meta.can_create) {
+      pendingContactClientId.value = pending.id
+      selected.value = (await clientsApi.show(id, pending.id)).data
+      editContact()
+      contact.value.is_primary = true
+    }
     canManage.value = list.meta.can_manage
     canCreate.value = list.meta.can_create
     operators.value = op.data.map((o) => ({ ...o, selected: true }))
@@ -249,7 +257,15 @@ async function save() {
     }
     const r = await clientsApi.save(tenantId.value, data, editing.value || undefined)
     modal.value = false
-    toast.success('Cliente salvo.')
+    if (!editing.value && r.data.contact_pending) {
+      pendingContactClientId.value = r.data.id
+      selected.value = r.data
+      editContact()
+      contact.value.is_primary = true
+      toast.success('Cliente cadastrado. Informe agora a pessoa responsável.')
+    } else {
+      toast.success('Cliente salvo.')
+    }
     await load()
     if (selected.value?.id === r.data.id) await details(r.data.id)
   } catch (e) {
@@ -314,9 +330,16 @@ async function saveContact() {
       { ...contact.value, phone: digits(contact.value.phone, 11) || null },
       contactEditing.value || undefined,
     )
+    const clientId = selected.value.id
+    const updated = (await clientsApi.show(tenantId.value, clientId)).data
+    if (pendingContactClientId.value && updated.contact_pending) {
+      toast.error('Cadastre um contato principal ativo com nome, cargo e telefone ou e-mail.')
+      return
+    }
+    pendingContactClientId.value = null
     contactModal.value = false
-    toast.success('Contato salvo.')
-    await details(selected.value.id)
+    toast.success('Pessoa de contato salva. Cadastro do cliente concluído.')
+    await details(clientId)
   } catch (e) {
     toast.error(e instanceof Error ? e.message : 'Erro ao salvar contato.')
   } finally {
@@ -328,6 +351,8 @@ watch(
   () => {
     selected.value = null
     modal.value = false
+    pendingContactClientId.value = null
+    contactModal.value = false
     cancelLookup()
     void load()
   },
@@ -479,10 +504,11 @@ watch(
         class="w-full max-w-2xl max-h-[94dvh] overflow-y-auto space-y-3 rounded-2xl bg-white p-6"
         @submit.prevent="saveContact"
       >
-        <h2 class="text-xl font-semibold">Pessoa de contato</h2>
+        <h2 class="text-xl font-semibold">{{ pendingContactClientId ? 'Responsável pela empresa (obrigatório)' : 'Pessoa de contato' }}</h2>
+        <p v-if="pendingContactClientId" class="text-sm text-amber-800">Para concluir o cadastro do cliente, informe o responsável principal.</p>
         <label class="block text-sm"
           >Nome<input v-model="contact.name" required class="field" /></label
-        ><label class="block text-sm">Cargo<input v-model="contact.position" class="field" /></label
+        ><label class="block text-sm">Cargo<input v-model="contact.position" :required="!!pendingContactClientId" class="field" /></label
         ><label class="block text-sm"
           >Telefone<input
             v-model="contactPhoneModel"
@@ -497,7 +523,7 @@ watch(
           ><input v-model="contact.is_active" type="checkbox" />Ativo</label
         >
         <div class="flex justify-end gap-2">
-          <button type="button" class="rounded-lg border px-4 py-2" @click="contactModal = false">
+          <button v-if="!pendingContactClientId" type="button" class="rounded-lg border px-4 py-2" @click="contactModal = false">
             Cancelar</button
           ><button type="submit" class="primary-button w-auto" :disabled="busy">Salvar</button>
         </div>
