@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
+import { maskDocument, maskBrazilianPhone, onlyDigits } from '@/lib/masks'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import { clientsApi, type Client, type ClientInput, type ContactInput } from '../api'
 import { errorMessage } from '@/lib/feedback'
@@ -20,7 +21,19 @@ const busy = ref(false)
 const error = ref('')
 const checking = ref(false)
 const duplicate = ref(false)
-const onlyDigits = (value: string | null) => (value ?? '').replace(/\D/g, '')
+const documentModel = computed({
+  get: () => maskDocument(form.document, form.person_type),
+  set: value => { form.document = onlyDigits(value).slice(0, form.person_type === 'PF' ? 11 : 14); duplicate.value = false; error.value = '' },
+})
+const phoneModel = computed({
+  get: () => maskBrazilianPhone(form.phone),
+  set: value => { form.phone = onlyDigits(value).slice(0, 11) || null },
+})
+const contactPhoneModel = computed({
+  get: () => maskBrazilianPhone(contact.phone),
+  set: value => { contact.phone = onlyDigits(value).slice(0, 11) || null },
+})
+watch(() => form.person_type, () => { form.document = ''; duplicate.value = false; error.value = '' })
 watch(() => props.open, open => {
   if (!open) return
   Object.assign(form, blank())
@@ -82,14 +95,14 @@ async function saveContact() {
           <select v-model="form.person_type" class="field"><option value="PJ">Pessoa jurídica</option><option value="PF">Pessoa física</option></select>
         </label>
         <label class="block text-sm font-medium">CPF/CNPJ *
-          <input v-model="form.document" class="field" required inputmode="numeric" maxlength="18"
+          <input v-model="documentModel" class="field" required inputmode="numeric" :maxlength="form.person_type === 'PF' ? 14 : 18"
             @input="duplicate = false" @blur="checkDuplicate" />
         </label>
         <label class="block text-sm font-medium">Razão social / Nome *
           <input v-model="form.company_name" class="field" required maxlength="255" />
         </label>
         <label class="block text-sm font-medium">Telefone
-          <input v-model="form.phone" class="field" inputmode="tel" />
+          <input v-model="phoneModel" class="field" inputmode="tel" maxlength="15" />
         </label>
         <label class="block text-sm font-medium">E-mail
           <input v-model="form.email" class="field" type="email" />
@@ -104,7 +117,7 @@ async function saveContact() {
           <input v-model="contact.position" class="field" required />
         </label>
         <label class="block text-sm font-medium">Telefone
-          <input v-model="contact.phone" class="field" inputmode="tel" />
+          <input v-model="contactPhoneModel" class="field" inputmode="tel" maxlength="15" />
         </label>
         <label class="block text-sm font-medium">E-mail
           <input v-model="contact.email" class="field" type="email" />
