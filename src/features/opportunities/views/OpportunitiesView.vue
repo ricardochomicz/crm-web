@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import { toast } from '@/services/toast'
+import { opportunitiesApi } from '../api'
+import { errorMessage } from '@/lib/feedback'
 const showHighlightsOnly = ref(false)
 const scheduling = ref<{ id: string; client_id?: string | null; title: string } | null>(null)
 import AppShell from '@/components/layout/AppShell.vue'
@@ -18,6 +20,40 @@ import OpportunityCommercialOverview from '../components/OpportunityCommercialOv
 import { useOpportunitiesPage } from '../composables/useOpportunitiesPage'
 
 const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages, viewMode, section, recoveringId, recover, switchSection, kanbanRows, movingId, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, kanbanLimitReached, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
+const highlightedIds = ref<string[]>([])
+const highlightingId = ref<string | null>(null)
+let highlightRequestVersion = 0
+
+watch(tenantId, async id => {
+  const current = ++highlightRequestVersion
+  highlightedIds.value = []
+  showHighlightsOnly.value = false
+  if (!id) return
+  try {
+    const result = await opportunitiesApi.highlights(id)
+    if (current === highlightRequestVersion) highlightedIds.value = result.data
+  } catch (error) {
+    if (current === highlightRequestVersion) toast.error('Não foi possível carregar os destaques: ' + errorMessage(error))
+  }
+}, { immediate: true })
+
+async function toggleHighlight(id: string, highlighted: boolean) {
+  if (highlightingId.value) return
+  highlightingId.value = id
+  const tenant = tenantId.value
+  try {
+    await opportunitiesApi.setHighlight(tenant, id, highlighted)
+    if (tenant === tenantId.value) {
+      highlightedIds.value = highlighted
+        ? [...new Set([...highlightedIds.value, id])]
+        : highlightedIds.value.filter(value => value !== id)
+    }
+  } catch (error) {
+    toast.error('Não foi possível salvar o destaque: ' + errorMessage(error))
+  } finally {
+    highlightingId.value = null
+  }
+}
 </script>
 <template>
   <AppShell :tenant="tenant" title="Oportunidades" subtitle="Negociações comerciais e acompanhamento">
@@ -42,7 +78,7 @@ const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages
     <AsyncNotice :loading="loading" :error="error" @retry="reload" />
     <div v-if="section === 'open' && viewMode === 'kanban' && !loading && !error">
       <p v-if="kanbanLimitReached" class="mb-3 text-sm text-amber-700">Há mais oportunidades do que o limite de carregamento do quadro. Refine os filtros para visualizar todas.</p>
-      <OpportunityKanban :highlights-only="showHighlightsOnly" :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @schedule="item => scheduling = item" @won="askConfirmSale" @lost="askMarkLost" @resend="askResendToBackoffice" />
+      <OpportunityKanban :highlights-only="showHighlightsOnly" :highlighted-ids="highlightedIds" :highlighting-id="highlightingId" @highlight="toggleHighlight" :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @schedule="item => scheduling = item" @won="askConfirmSale" @lost="askMarkLost" @resend="askResendToBackoffice" />
     </div>
     <section v-if="(section === 'closed' || viewMode === 'list') && !loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <ListTable min-width="750px">
