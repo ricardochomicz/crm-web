@@ -9,7 +9,7 @@ import ListTable from '@/components/ui/ListTable.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { tenantApi } from '@/features/tenants/api'
-import type { Tenant } from '@/features/tenants/types'
+import { can, type Tenant } from '@/features/tenants/types'
 import { protocolApi, type Protocol, type ProtocolDetail, type ProtocolInput, type ProtocolStatus } from '../api'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
@@ -41,6 +41,8 @@ const categories: Record<string, string> = { activation: 'Ativação', portabili
 const priorities: Record<string, string> = { low: 'Baixa', normal: 'Normal', high: 'Alta', urgent: 'Urgente' }
 const overdue = (p: Protocol) => !!p.due_at && new Date(p.due_at).getTime() < Date.now() && !['resolved', 'cancelled'].includes(p.status)
 const editing = computed(() => !!detail.value)
+const canCreate = computed(() => can(tenant.value, 'after-sales.create'))
+const canUpdate = computed(() => can(tenant.value, 'after-sales.update'))
 const statusOptions = computed(() => [{ value: '', label: 'Todas as situações' }, ...Object.entries(statuses).map(([value, label]) => ({ value, label }))])
 const memberOptions = computed(() => [{ value: '', label: 'Não atribuído' }, ...members.value.map(m => ({ value: m.id, label: m.name }))])
 const categoryOptions = computed(() => Object.entries(categories).map(([value, label]) => ({ value, label })))
@@ -95,7 +97,7 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
         <h1 class="mt-3 text-3xl font-semibold text-slate-900">Protocolos</h1>
         <p class="mt-2 text-sm text-slate-500">Acompanhe os atendimentos e protocolos registrados junto às operadoras.</p>
       </div>
-      <button type="button" class="primary-button inline-flex w-auto items-center gap-2" @click="newProtocol">
+      <button type="button" v-if="canCreate" class="primary-button inline-flex w-auto items-center gap-2" @click="newProtocol">
         <span class="text-lg leading-none">+</span> Novo protocolo
       </button>
     </header>
@@ -125,7 +127,7 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
               <td class="p-4 text-slate-600">{{ p.assignee_name || 'Não atribuído' }}</td>
               <td class="p-4"><span class="inline-flex rounded-lg px-3 py-1 text-xs font-semibold" :class="p.status === 'resolved' ? 'bg-emerald-50 text-emerald-700' : p.status === 'cancelled' ? 'bg-stone-100 text-slate-600' : p.status === 'waiting' ? 'bg-amber-50 text-amber-700' : 'bg-orange-50 text-orange-700'">{{ statuses[p.status] }}</span></td>
               <td class="p-4" :class="overdue(p) ? 'font-semibold text-rose-700' : 'text-slate-600'">{{ p.due_at ? new Date(p.due_at).toLocaleDateString('pt-BR') : '—' }}<span v-if="overdue(p)" class="ml-1 inline-flex items-center gap-1"><AppIcon name="alertTriangle" class="size-4" /> Atrasado</span></td>
-              <td class="p-4 text-right"><button type="button" class="secondary-button w-auto whitespace-nowrap" @click="openProtocol(p)">Movimentar protocolo</button></td>
+              <td class="p-4 text-right"><button type="button" class="secondary-button w-auto whitespace-nowrap" @click="openProtocol(p)">{{ canUpdate ? 'Movimentar protocolo' : 'Visualizar protocolo' }}</button></td>
             </tr>
           </tbody>
         </ListTable>
@@ -137,10 +139,10 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
       <div class="space-y-4 p-1">
         <template v-if="detail">
           <div class="rounded-xl bg-stone-50 p-3"><div class="text-xs text-slate-500">{{ detail.data.code }}</div><div class="font-semibold">{{ detail.data.title }}</div><p class="mt-1 text-sm text-slate-600">{{ detail.data.description }}</p></div>
-          <label class="block text-sm font-medium">Situação<SearchSelect v-model="updateStatus" :options="workflowStatusOptions" /></label>
-          <label v-if="updateStatus === 'resolved'" class="block text-sm font-medium">Data da resolução<input v-model="resolutionDate" type="datetime-local" class="field mt-1 w-full" :max="localDateTime(new Date())" /></label>
-          <label class="block text-sm font-medium">Responsável pelo atendimento<SearchSelect v-model="updateAssignee" :options="memberOptions" /></label>
-          <label class="block text-sm font-medium">Observação / resolução<textarea v-model="note" class="field mt-1 w-full" rows="3" placeholder="Registre a movimentação…" /></label>
+          <label v-if="canUpdate" class="block text-sm font-medium">Situação<SearchSelect v-model="updateStatus" :options="workflowStatusOptions" /></label>
+          <label v-if="canUpdate && updateStatus === 'resolved'" class="block text-sm font-medium">Data da resolução<input v-model="resolutionDate" type="datetime-local" class="field mt-1 w-full" :max="localDateTime(new Date())" /></label>
+          <label v-if="canUpdate" class="block text-sm font-medium">Responsável pelo atendimento<SearchSelect v-model="updateAssignee" :options="memberOptions" /></label>
+          <label v-if="canUpdate" class="block text-sm font-medium">Observação / resolução<textarea v-model="note" class="field mt-1 w-full" rows="3" placeholder="Registre a movimentação…" /></label>
           <p v-if="detail.data.status === 'resolved' && detail.data.resolved_at" class="text-sm text-emerald-700">Resolvido em {{ new Date(detail.data.resolved_at).toLocaleString('pt-BR') }}</p>
           <div class="max-h-56 space-y-2 overflow-auto border-t pt-3"><h3 class="font-semibold">Histórico</h3><div v-for="h in detail.history" :key="h.id" class="rounded-lg bg-stone-50 p-3 text-sm"><div class="text-xs text-slate-500">{{ h.actor_name }} · {{ new Date(h.created_at).toLocaleString('pt-BR') }}</div><p>{{ h.from_status ? statuses[h.from_status as ProtocolStatus] : 'Abertura' }} → {{ statuses[h.to_status as ProtocolStatus] }}</p><p v-if="h.note">{{ h.note }}</p></div></div>
         </template>
