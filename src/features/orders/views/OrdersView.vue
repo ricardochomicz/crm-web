@@ -9,13 +9,14 @@ import SearchSelect from '@/components/ui/SearchSelect.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import OrderDetailsPanel from '../components/OrderDetailsPanel.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
+import { can } from '@/features/tenants/types'
 import { useOrdersPage } from '../composables/useOrdersPage'
 
 const route = useRoute()
 const selectedOrderId = ref<string | null>(null)
 const tenantId = computed(() => String(route.params.tenantId))
 const { tenant, paginated, total, page, lastPage, perPage, loading, error, search, status, month, dateField, consultant, team, quickView, summary, consultants, teams, statuses, setQuickView, applyFilters, clearFilters, changePage, load } = useOrdersPage(tenantId)
-const canMoveOrders = computed(() => tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER')
+const canMoveOrders = computed(() => can(tenant.value, 'orders.manage') && (tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER'))
 const isCompletedOrder = (order: { administratively_completed_at?: string | null; status?: string }) =>
     !!order.administratively_completed_at || ['COMPLETED', 'CONCLUDED'].includes(order.status?.toUpperCase() ?? '')
 const selectedOrder = computed(() => paginated.value.find(order => order.id === selectedOrderId.value))
