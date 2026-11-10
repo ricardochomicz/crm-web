@@ -190,16 +190,31 @@ async function moveStage(id: string, stageId: string) {
   if (!canEdit.value || movingId.value || !stageId) return
   const item = kanbanRows.value.find(i => i.id === id)
   if (!item || item.funnel_stage_id === stageId) return
+
+  const tenant = tenantId.value
+  const previousStageId = item.funnel_stage_id
+  // Replace the array entry so the Kanban recomputes its columns immediately.
+  const setStage = (nextStageId: string | null) => {
+    kanbanRows.value = kanbanRows.value.map(row =>
+      row.id === id ? { ...row, funnel_stage_id: nextStageId } : row,
+    )
+  }
   movingId.value = id
-  const previous = item.funnel_stage_id
-  item.funnel_stage_id = stageId
+  setStage(stageId)
   try {
-    await opportunitiesApi.moveStage(tenantId.value, id, stageId)
+    const result = await opportunitiesApi.moveStage(tenant, id, stageId)
+    if (tenant !== tenantId.value) return
+    // Use the persisted stage, not a stale object captured before the request.
+    setStage(result.data.funnel_stage_id)
     toast.success('Etapa atualizada.')
   } catch (e) {
-    item.funnel_stage_id = previous
-    toast.error(errorMessage(e))
-  } finally { movingId.value = null }
+    if (tenant === tenantId.value) {
+      setStage(previousStageId)
+      toast.error(errorMessage(e))
+    }
+  } finally {
+    movingId.value = null
+  }
 }
 async function setup() {
   const id = tenantId.value
