@@ -5,6 +5,7 @@ import FormField from '@/components/ui/FormField.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import { currency } from '@/lib/feedback'
+import { maskBrazilianPhone } from '@/lib/phoneMask'
 import { useCreateTenant } from '../composables/useCreateTenant'
 
 const {
