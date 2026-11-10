@@ -138,7 +138,7 @@ watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, p
             Nenhum contato cadastrado.
           </p>
         </div>
-        <div v-if="activeTab === 'history' && selected" class="space-y-4">
+        <div v-if="activeTab === 'history' && client" class="space-y-4">
           <div class="flex flex-wrap gap-2 border-b border-stone-200 pb-3" aria-label="Filtrar histórico por origem">
             <button
               v-for="category in [
