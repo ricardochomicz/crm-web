@@ -10,17 +10,44 @@ export function useOrdersPage(tenantId: Ref<string>) {
     const orders = ref<CommercialOrder[]>([])
     const loading = ref(true)
     const error = ref('')
+    const currentMonth = () => new Date().toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit' }).slice(0, 7)
     const search = ref('')
-    const appliedSearch = ref('')
+    const status = ref('')
+    const month = ref(currentMonth())
+    const dateField = ref<'created_at' | 'activated_at' | 'administratively_completed_at'>('created_at')
+    const consultant = ref('')
+    const team = ref('')
+    const quickView = ref<'all' | 'progress' | 'activated' | 'completed'>('all')
+    const applied = ref({ search: '', status: '', month: currentMonth(), dateField: 'created_at' as typeof dateField.value, consultant: '', team: '', quickView: 'all' as typeof quickView.value })
     const page = ref(1)
     const perPage = 15
-    const applyFilters = () => { appliedSearch.value = search.value; page.value = 1 }
-    const clearFilters = () => { search.value = ''; appliedSearch.value = ''; page.value = 1 }
-    const filtered = computed(() => orders.value.filter(order =>
-        [order.code, order.customer_name, order.order_status].some(value =>
-            String(value ?? '').toLocaleLowerCase('pt-BR').includes(appliedSearch.value.trim().toLocaleLowerCase('pt-BR'))
-        )
-    ))
+    const isCompleted = (order: CommercialOrder) => !!order.administratively_completed_at || ['COMPLETED', 'CONCLUDED'].includes(order.status?.toUpperCase() ?? '')
+    const isCancelled = (order: CommercialOrder) => ['CANCELLED', 'CANCELED'].includes(order.status?.toUpperCase() ?? '')
+    const isActivated = (order: CommercialOrder) => !!order.activated_at
+    const monthOf = (value?: string | null) => value?.slice(0, 7) ?? ''
+    const consultants = computed(() => Array.from(new Map(orders.value.filter(o => o.consultant_name).map(o => [o.consultant_name!, o.consultant_name!])).values()).sort((a,b) => a.localeCompare(b, 'pt-BR')))
+    const teams = computed(() => Array.from(new Map(orders.value.filter(o => o.consultant_team_id).map(o => [o.consultant_team_id!, { id: o.consultant_team_id!, name: o.consultant_team_name || 'Equipe sem nome' }])).values()).sort((a,b) => a.name.localeCompare(b.name, 'pt-BR')))
+    const statuses = computed(() => Array.from(new Set(orders.value.map(o => o.order_status || o.status).filter((v): v is string => !!v))).sort((a,b) => a.localeCompare(b, 'pt-BR')))
+    const applyFilters = () => { applied.value = { search: search.value, status: status.value, month: month.value, dateField: dateField.value, consultant: consultant.value, team: team.value, quickView: quickView.value }; page.value = 1 }
+    const clearFilters = () => { search.value = ''; status.value = ''; month.value = currentMonth(); dateField.value = 'created_at'; consultant.value = ''; team.value = ''; quickView.value = 'all'; applyFilters() }
+    const setQuickView = (view: typeof quickView.value) => { quickView.value = view; applyFilters() }
+    const summary = computed(() => ({
+        progress: orders.value.filter(o => !isCompleted(o) && !isCancelled(o)).length,
+        activated: orders.value.filter(o => monthOf(o.activated_at) === month.value).length,
+        completed: orders.value.filter(o => monthOf(o.administratively_completed_at) === month.value).length,
+    }))
+    const filtered = computed(() => orders.value.filter(order => {
+        const f = applied.value
+        const term = f.search.trim().toLocaleLowerCase('pt-BR')
+        if (term && ![order.code, order.customer_name, order.customer_document].some(v => String(v ?? '').toLocaleLowerCase('pt-BR').includes(term))) return false
+        if (f.status && (order.order_status || order.status) !== f.status) return false
+        if (f.consultant && order.consultant_name !== f.consultant) return false
+        if (f.team && order.consultant_team_id !== f.team) return false
+        if (f.quickView === 'progress') return !isCompleted(order) && !isCancelled(order)
+        if (f.quickView === 'activated') return monthOf(order.activated_at) === f.month
+        if (f.quickView === 'completed') return monthOf(order.administratively_completed_at) === f.month
+        return !f.month || monthOf(order[f.dateField]) === f.month
+    }))
     const total = computed(() => filtered.value.length)
     const lastPage = computed(() => Math.max(1, Math.ceil(total.value / perPage)))
     const paginated = computed(() => filtered.value.slice((page.value - 1) * perPage, page.value * perPage))
@@ -84,10 +111,10 @@ export function useOrdersPage(tenantId: Ref<string>) {
         tenant.value = undefined
         orders.value = []
         search.value = ''
-        appliedSearch.value = ''
+        clearFilters()
         page.value = 1
         void load()
     }, { immediate: true })
 
-    return { tenant, orders, filtered, paginated, total, page, lastPage, perPage, loading, error, search, applyFilters, clearFilters, changePage, load }
+    return { tenant, orders, filtered, paginated, total, page, lastPage, perPage, loading, error, search, status, month, dateField, consultant, team, quickView, summary, consultants, teams, statuses, applyFilters, clearFilters, setQuickView, changePage, load }
 }
