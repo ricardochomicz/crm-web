@@ -10,7 +10,7 @@ export function useOrdersPage(tenantId: Ref<string>) {
     const orders = ref<CommercialOrder[]>([])
     const loading = ref(true)
     const error = ref('')
-    const currentMonth = () => new Date().toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit' }).slice(0, 7)
+    const currentMonth = () => { const now = new Date(); return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') }
     const search = ref('')
     const status = ref('')
     const month = ref(currentMonth())
@@ -23,7 +23,6 @@ export function useOrdersPage(tenantId: Ref<string>) {
     const perPage = 15
     const isCompleted = (order: CommercialOrder) => !!order.administratively_completed_at || ['COMPLETED', 'CONCLUDED'].includes(order.status?.toUpperCase() ?? '')
     const isCancelled = (order: CommercialOrder) => ['CANCELLED', 'CANCELED'].includes(order.status?.toUpperCase() ?? '')
-    const isActivated = (order: CommercialOrder) => !!order.activated_at
     const monthOf = (value?: string | null) => value?.slice(0, 7) ?? ''
     const consultants = computed(() => Array.from(new Map(orders.value.filter(o => o.consultant_name).map(o => [o.consultant_name!, o.consultant_name!])).values()).sort((a,b) => a.localeCompare(b, 'pt-BR')))
     const teams = computed(() => Array.from(new Map(orders.value.filter(o => o.consultant_team_id).map(o => [o.consultant_team_id!, { id: o.consultant_team_id!, name: o.consultant_team_name || 'Equipe sem nome' }])).values()).sort((a,b) => a.name.localeCompare(b.name, 'pt-BR')))
