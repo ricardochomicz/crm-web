@@ -250,6 +250,7 @@ const {
             >Categoria<SearchSelect
               v-model="form.category" :aria-invalid="!!productErrors.category" :aria-describedby="productErrors.category ? 'form-category-error' : undefined"
               :options="categories.map((c) => ({ value: c[0]!, label: c[1]! }))"
+              placeholder="Selecione uma categoria" required
           /><span v-if="productErrors.category" id="form-category-error" class="mt-1 block text-xs text-red-600" role="alert">{{ productErrors.category }}</span></label>
           <label class="text-sm"
             >Preço (R$)<input
