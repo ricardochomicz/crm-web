@@ -16,19 +16,17 @@ import { clientsApi, type PortfolioContract } from '../api'
 const route = useRoute()
 const router = useRouter()
 const renewing = ref<PortfolioContract | null>(null)
-const selectedLineIds = ref<string[]>([])
 const savingRenewal = ref(false)
 const visibleRows = computed(() => rows.value.filter(row => !row.renewal_opportunity_id))
 function openRenewal(contract: PortfolioContract) {
   renewing.value = contract
-  selectedLineIds.value = (contract.lines ?? []).map(line => line.id)
 }
 async function confirmRenewal() {
   const contract = renewing.value
-  if (!contract?.order_id || savingRenewal.value || !selectedLineIds.value.length) return
+  if (!contract?.order_id || savingRenewal.value || !(contract.lines?.length)) return
   savingRenewal.value = true
   try {
-    await clientsApi.renewHistoricalOrder(tenantId.value, contract.order_id, selectedLineIds.value)
+    await clientsApi.renewHistoricalOrder(tenantId.value, contract.order_id, (contract.lines ?? []).map(line => line.id))
     renewing.value = null
     toast.success('Oportunidade de renovação criada com sucesso.')
     await load()
@@ -265,17 +263,17 @@ watch(tenantId, () => void initialize(), { immediate: true })
     <div v-if="renewing" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <section role="dialog" aria-modal="true" aria-labelledby="renewal-title" class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
         <h2 id="renewal-title" class="text-xl font-semibold">Renovar contrato</h2>
-        <p class="mt-2 text-sm text-slate-600">Será criada uma oportunidade de renovação para {{ renewing.client_name }}. Selecione as linhas desejadas.</p>
-        <div class="mt-4 max-h-72 space-y-2 overflow-y-auto">
-          <label v-for="line in renewing.lines ?? []" :key="line.id" class="flex items-center gap-3 rounded-lg border border-stone-200 p-3 text-sm">
-            <input v-model="selectedLineIds" type="checkbox" :value="line.id" :disabled="savingRenewal" />
-            <span>{{ line.line_number || line.description }} · {{ line.quantity }} linha(s)</span>
-          </label>
-        </div>
-        <p class="mt-3 text-xs text-slate-500">A nova oportunidade terá os dados comerciais das linhas selecionadas. As datas de ativação não serão copiadas.</p>
+        <p class="mt-3 text-sm text-slate-600">
+          Deseja iniciar a renovação do contrato de <strong>{{ renewing.client_name }}</strong>
+          com <strong>{{ renewing.line_count }} {{ renewing.line_count === 1 ? 'linha' : 'linhas' }}</strong>?
+        </p>
+        <p class="mt-3 text-sm text-slate-500">
+          Uma nova oportunidade será criada com todas as linhas e os dados comerciais do pedido original.
+          As datas de ativação não serão copiadas.
+        </p>
         <div class="mt-5 flex justify-end gap-2">
           <button type="button" class="secondary-button w-auto" :disabled="savingRenewal" @click="renewing = null">Cancelar</button>
-          <button type="button" class="primary-button w-auto" :disabled="savingRenewal || !selectedLineIds.length" @click="confirmRenewal">{{ savingRenewal ? 'Criando...' : 'Criar oportunidade' }}</button>
+          <button type="button" class="primary-button w-auto" :disabled="savingRenewal || !renewing.lines?.length" @click="confirmRenewal">{{ savingRenewal ? 'Criando...' : 'Criar oportunidade' }}</button>
         </div>
       </section>
     </div>
