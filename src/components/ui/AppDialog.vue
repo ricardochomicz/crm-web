@@ -72,6 +72,7 @@ function requestClose() {
           ×
         </button>
       </header>
-      <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-5 sm:px-8"><slot /></div></dialog
+      <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-5 sm:px-8"><slot /></div>
+      <div v-if="$slots.footer" class="shrink-0 border-t border-stone-200 bg-white px-6 py-4 sm:px-8"><slot name="footer" /></div></dialog
   ></Teleport>
 </template>
