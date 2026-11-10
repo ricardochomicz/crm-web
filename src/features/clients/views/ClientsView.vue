@@ -7,6 +7,7 @@ import ListTable from '@/components/ui/ListTable.vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
+import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
@@ -459,12 +460,9 @@ watch(
         :busy="loading || busy"
         @change="changePage"
       />
-      <section v-if="selected" class="mt-5 rounded-2xl border border-stone-200 bg-white p-5">
-        <div class="mb-4 flex items-center justify-between">
-          <h2 class="text-xl font-semibold">{{ selected.company_name }}</h2>
-          <button class="rounded-lg border px-3 py-2" @click="selected = null">Fechar</button>
-        </div>
-        <div class="mb-5 flex gap-2">
+      <AppDialog :open="!!selected" :title="selected?.company_name ?? 'Detalhes do cliente'" description="Dados cadastrais, contratos, contatos e histórico do cliente." size="wide" @close="selected = null">
+        <div v-if="selected" class="space-y-4">
+        <div class="flex flex-wrap gap-2">
           <button
             v-for="item in [
               { id: 'data', label: 'Dados' },
@@ -600,7 +598,8 @@ watch(
             Nenhuma atribuição registrada.
           </p>
         </div>
-      </section>
+        </div>
+      </AppDialog>
     </template>
     <ClientForm
       v-if="modal"
