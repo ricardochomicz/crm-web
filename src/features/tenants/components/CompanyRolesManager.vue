@@ -26,6 +26,23 @@ const creating = ref(false)
 const search = ref('')
 const expanded = ref<string[]>([])
 const selected = computed(() => roles.value.find((role) => role.id === selectedId.value))
+const duplicateNames = computed(() => {
+  const counts = new Map<string, number>()
+  roles.value.forEach((role) => {
+    const key = role.name.trim().replace(/\\s+/g, ' ').toLocaleLowerCase('pt-BR')
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  })
+  return counts
+})
+const duplicateName = computed(() => {
+  const value = name.value.trim().replace(/\\s+/g, ' ').toLocaleLowerCase('pt-BR')
+  return !!value && roles.value.some((role) =>
+    role.id !== selectedId.value && role.name.trim().replace(/\\s+/g, ' ').toLocaleLowerCase('pt-BR') === value
+  )
+})
+function isDuplicate(role: CompanyRole) {
+  return (duplicateNames.value.get(role.name.trim().replace(/\\s+/g, ' ').toLocaleLowerCase('pt-BR')) ?? 0) > 1
+}
 const protectedRole = computed(() => !creating.value && selected.value?.code === 'OWNER')
 const original = computed(() => selected.value?.permissions ?? [])
 const dirty = computed(
@@ -155,6 +172,7 @@ function toggleExpanded(group: string) {
 async function save() {
   if (
     !name.value.trim() ||
+    duplicateName.value ||
     busy.value ||
     !props.canEdit ||
     protectedRole.value ||
@@ -251,6 +269,7 @@ onMounted(load)
         >
           <span class="block">{{ role.name }}</span>
           <span v-if="role.code === 'OWNER'" class="block text-xs opacity-70">Acesso total</span>
+          <span v-else-if="isDuplicate(role)" class="block text-xs opacity-70">{{ role.is_system ? 'Cargo padrão · nome repetido' : 'Cargo personalizado · nome repetido' }}</span>
           <span v-else-if="!role.is_active" class="block text-xs opacity-70">Inativo</span>
         </button>
       </nav>
@@ -280,6 +299,7 @@ onMounted(load)
             placeholder="Ex.: Supervisor de Equipe"
             :disabled="!canEdit || protectedRole || busy"
           />
+          <p v-if="duplicateName" role="alert" class="mt-2 text-xs text-red-700">Já existe outro cargo com este nome nesta empresa. Escolha um nome diferente.</p>
           <p v-if="protectedRole" class="mt-2 text-xs text-slate-500">
             O proprietário sempre tem acesso total. Suas permissões não podem ser alteradas.
           </p>
@@ -393,7 +413,7 @@ onMounted(load)
           <button
             type="submit"
             class="primary-button w-auto"
-            :disabled="!canEdit || busy || conflicted || !dirty || !name.trim()"
+            :disabled="!canEdit || busy || conflicted || !dirty || !name.trim() || duplicateName"
           >
             {{ busy ? 'Salvando…' : creating ? 'Criar cargo' : 'Salvar permissões' }}
           </button>
