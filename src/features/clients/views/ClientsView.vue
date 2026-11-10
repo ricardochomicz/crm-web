@@ -447,6 +447,7 @@ watch(
         @assign-classification="assignContractClassification"
         @edit-contact="editContact"
       />
+    </template>
     <ClientForm
       v-if="modal"
       :form="form"
