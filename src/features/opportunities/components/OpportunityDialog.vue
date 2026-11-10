@@ -223,7 +223,7 @@ async function save() {
     <OpportunityAppointmentsPanel v-if="open && opportunity && activeTab === 'appointments'" :tenant-id="tenantId" :opportunity-id="opportunity.id" :client-id="opportunity.client_id" :title="opportunity.title" />
     <OpportunityComparisonPanel v-if="open && opportunity && activeTab === 'comparison'" :tenant-id="tenantId" :opportunity-id="opportunity.id" :products="products" :operators="operators" />
     <TimelinePanel v-if="open && opportunity && activeTab === 'history'" :tenant-id="tenantId" type="opportunity" :subject-id="opportunity.id" :can-write="true" />
-    <form v-show="activeTab === 'details'" class="flex min-h-full flex-col gap-5" @submit.prevent="save">
+    <form id="opportunity-details-form" v-show="activeTab === 'details'" class="flex flex-col gap-5" @submit.prevent="save">
       <div class="grid flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
         <fieldset :disabled="busy" class="min-w-0 space-y-6">
           <OpportunityDetailsForm v-model="form" :clients="availableClients" :can-create-client="canCreateClient" :order-types="orderTypes" :operators="operatorOptions" @change-operator="changeOperator" @create-client="quickClientOpen = true" />
@@ -262,14 +262,16 @@ async function save() {
         <OpportunityReceipt :form="form" :order-types="orderTypes" />
       </div>
       <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ error }}</p>
-      <footer class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-stone-200 bg-white pt-4 pb-1">
+    </form>
+    <template v-if="activeTab === 'details'" #footer>
+      <div class="flex flex-wrap items-center justify-between gap-3">
         <span class="hidden text-sm font-semibold text-slate-600 sm:block">{{ lineCount }} itens · {{ money(totalMonthly) }}/mês</span>
         <div class="ml-auto flex gap-2">
           <button type="button" class="secondary-button w-auto" :disabled="busy" @click="emit('close')">Cancelar</button>
-          <button type="submit" class="primary-button w-auto" :disabled="busy">{{ busy ? 'Salvando…' : 'Salvar oportunidade' }}</button>
+          <button type="submit" form="opportunity-details-form" class="primary-button w-auto" :disabled="busy">{{ busy ? 'Salvando…' : 'Salvar oportunidade' }}</button>
         </div>
-      </footer>
-    </form>
+      </div>
+    </template>
   </AppDialog>
   <QuickClientOnboardingDialog :open="open && quickClientOpen" :tenant-id="tenantId"
     @close="quickClientOpen = false" @created="onClientCreated" />
