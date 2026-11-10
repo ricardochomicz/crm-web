@@ -7,9 +7,10 @@ import BrandLogo from '@/components/ui/BrandLogo.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { useAuthStore } from '@/features/auth/store'
 import { errorMessage } from '@/lib/feedback'
-withDefaults(defineProps<{ title?: string; subtitle?: string; tenant?: Tenant }>(), {
+withDefaults(defineProps<{ title?: string; subtitle?: string; tenant?: Tenant; dashboardDark?: boolean }>(), {
   title: 'Seu espaço de trabalho',
   subtitle: 'TelecomHub',
+  dashboardDark: false,
 })
 const auth = useAuthStore()
 const route = useRoute()
@@ -55,9 +56,9 @@ async function logout() {
 }
 </script>
 <template>
-  <div class="min-h-dvh bg-[#f7f8fa] lg:pl-64">
+  <div class="min-h-dvh lg:pl-64" :class="dashboardDark ? 'dashboard-dark bg-[#080f22] text-slate-100' : 'bg-[#f7f8fa]'">
     <aside
-      class="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col overflow-y-auto border-r border-stone-200 bg-white px-5 py-7 lg:flex"
+      class="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col overflow-y-auto border-r px-5 py-7 lg:flex" :class="dashboardDark ? 'border-indigo-400/15 bg-[#10152f]' : 'border-stone-200 bg-white'"
     >
       <RouterLink to="/app" aria-label="TelecomHub, início" class="px-2"><BrandLogo /></RouterLink>
       <AppNavigation :tenant="tenant" class="mb-8 mt-9" />
@@ -76,13 +77,13 @@ async function logout() {
     </button>
       </div>
     </aside>
-    <header class="border-b border-stone-200 bg-white px-5 py-4 sm:px-9">
+    <header class="border-b px-5 py-4 sm:px-9" :class="dashboardDark ? 'border-indigo-400/15 bg-[#0c1429]' : 'border-stone-200 bg-white'">
       <div class="flex items-center justify-between gap-4">
         <div>
           <p class="text-[10px] font-semibold uppercase tracking-[.15em] text-slate-400">
             {{ subtitle }}
           </p>
-          <p class="mt-1 text-sm font-semibold text-slate-700">{{ title }}</p>
+          <p class="mt-1 text-sm font-semibold" :class="dashboardDark ? 'text-white' : 'text-slate-700'">{{ title }}</p>
         </div>
         <div class="flex items-center gap-3">
           <RouterLink v-if="tenant?.role !== 'CONSULTANT'" to="/empresas" class="hidden min-w-0 items-center gap-3 rounded-xl border border-stone-200 px-3 py-2 text-left transition hover:border-orange-300 hover:bg-orange-50 sm:flex" aria-label="Selecionar ou trocar empresa">
@@ -137,3 +138,10 @@ async function logout() {
 
   </div>
 </template>
+
+<style scoped>
+.dashboard-dark :deep(.nav-item) { color: #cbd5e1; }
+.dashboard-dark :deep(.nav-item:hover) { background: rgba(99,102,241,.14); color: #fff; }
+.dashboard-dark :deep(.nav-active) { background: linear-gradient(90deg,rgba(109,40,217,.45),rgba(67,56,202,.25)); color: #fff; }
+.dashboard-dark :deep(nav button) { color: #a5b4fc; }
+</style>
