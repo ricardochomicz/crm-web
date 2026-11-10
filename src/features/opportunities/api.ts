@@ -43,11 +43,16 @@ export type CommercialOverview = {
     conversion_rate: number | null
     period: { from: string; to: string }
 }
+export type FunnelOverview = {
+  stages: { id: string; name: string; count: number; monthly: string }[]
+  unassigned: { count: number; monthly: string }
+}
 export type OpportunityPage = { data: Opportunity[]; current_page: number; last_page: number; total: number; per_page: number }
 const base = (tenantId: string) => '/api/v1/tenants/' + encodeURIComponent(tenantId) + '/opportunities'
 export const opportunitiesApi = {
   list: (tenantId: string, filters: OpportunityFilters) =>
     request<OpportunityPage>(base(tenantId) + '?' + new URLSearchParams(Object.entries(filters).filter(([, value]) => value !== undefined && value !== '').map(([key, value]) => [key, String(value)])).toString()),
+  funnelOverview: (tenantId: string) => request<{ data: FunnelOverview }>(base(tenantId) + '/funnel-overview'),
   highlights: (tenantId: string) => request<{ data: string[] }>(base(tenantId) + '/highlights'),
   setHighlight: (tenantId: string, id: string, highlighted: boolean) =>
     mutate<{ data: { id: string; highlighted: boolean } }>(base(tenantId) + '/' + encodeURIComponent(id) + '/highlight', { highlighted }, 'PUT'),
