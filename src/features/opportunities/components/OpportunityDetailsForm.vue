@@ -5,8 +5,8 @@ import type { Client } from '@/features/clients/api'
 import type { OrderType } from '@/features/order-types/api'
 import type { OpportunityInput } from '../api'
 const model = defineModel<OpportunityInput>({ required: true })
-const props = defineProps<{ clients: Client[]; orderTypes: OrderType[]; operators: { id: number; name: string }[] }>()
-const emit = defineEmits<{ changeOperator: [id: number | null] }>()
+const props = defineProps<{ clients: Client[]; orderTypes: OrderType[]; operators: { id: number; name: string }[]; canCreateClient?: boolean }>()
+const emit = defineEmits<{ changeOperator: [id: number | null]; createClient: [] }>()
 const operatorValue = computed({ get: () => model.value.operator_id === null ? '' : String(model.value.operator_id), set: (value: string) => emit('changeOperator', value ? Number(value) : null) })
 const clientSearch = ref('')
 const clientMenuOpen = ref(false)
@@ -57,6 +57,8 @@ watch(() => [model.value.client_id, props.clients] as const, () => {
                     <span class="text-xs text-slate-500">{{ client.document }}</span>
                   </button>
                   <p v-if="!filteredClients.length" class="px-4 py-3 text-sm text-slate-500">Nenhum cliente encontrado.</p>
+                  <button v-if="canCreateClient" type="button" class="block w-full border-t border-stone-100 px-4 py-3 text-left text-sm font-semibold text-orange-700 hover:bg-orange-50"
+                    @mousedown.prevent="clientMenuOpen = false; emit('createClient')">+ Cadastrar novo cliente</button>
                 </div>
               </div>
             </div>
