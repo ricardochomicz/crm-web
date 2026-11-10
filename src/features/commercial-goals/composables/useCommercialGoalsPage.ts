@@ -71,7 +71,7 @@ async function load() {
 }
 function edit(goal?: CommercialGoal) {
  editingId.value = goal?.id ?? null
- form.value = goal ? {operator_id:goal.operator_id,order_type:goal.order_type,category:goal.category ?? null,negotiation_type_ids:goal.negotiation_type_ids?.length ? goal.negotiation_type_ids : (orderTypes.value.some(t => t.value === goal.order_type) ? [goal.order_type] : []),commercial_role:goal.commercial_role,metric:goal.metric,starts_on:goal.starts_on,ends_on:goal.ends_on,is_active:goal.is_active,tiers:goal.tiers.map(t=>({minimum:Number(t.minimum),percentage:Number(t.percentage)}))} : initial()
+ form.value = goal ? {operator_id:goal.operator_id,order_type:goal.order_type,category:goal.category ?? null,negotiation_type_ids:goal.negotiation_type_ids?.length ? goal.negotiation_type_ids : (orderTypes.value.some(t => t.value === goal.order_type && /^[0-9a-f-]{36}$/i.test(goal.order_type)) ? [goal.order_type] : []),commercial_role:goal.commercial_role,metric:goal.metric,starts_on:goal.starts_on,ends_on:goal.ends_on,is_active:goal.is_active,tiers:goal.tiers.map(t=>({minimum:Number(t.minimum),percentage:Number(t.percentage)}))} : initial()
  modalOpen.value = true
 }
 async function save() {
