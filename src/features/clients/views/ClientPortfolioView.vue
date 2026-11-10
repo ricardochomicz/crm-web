@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { toast } from '@/services/toast'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
@@ -13,6 +14,29 @@ import type { Tenant } from '@/features/tenants/types'
 import { clientsApi, type PortfolioContract } from '../api'
 
 const route = useRoute()
+const router = useRouter()
+const renewing = ref<PortfolioContract | null>(null)
+const selectedLineIds = ref<string[]>([])
+const savingRenewal = ref(false)
+const visibleRows = computed(() => rows.value.filter(row => !row.renewal_opportunity_id))
+function openRenewal(contract: PortfolioContract) {
+  renewing.value = contract
+  selectedLineIds.value = (contract.lines ?? []).map(line => line.id)
+}
+async function confirmRenewal() {
+  const contract = renewing.value
+  if (!contract?.order_id || savingRenewal.value || !selectedLineIds.value.length) return
+  savingRenewal.value = true
+  try {
+    await clientsApi.renewHistoricalOrder(tenantId.value, contract.order_id, selectedLineIds.value)
+    renewing.value = null
+    toast.success('Oportunidade de renovação criada com sucesso.')
+    await load()
+    await router.push('/empresas/' + tenantId.value + '/oportunidades')
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'Não foi possível iniciar a renovação.')
+  } finally { savingRenewal.value = false }
+}
 const tenantId = computed(() => String(route.params.tenantId))
 const tenant = ref<Tenant>()
 const operators = ref<{ id: number; name: string }[]>([])
@@ -201,10 +225,11 @@ watch(tenantId, () => void initialize(), { immediate: true })
               <th class="p-4">Prazo</th>
               <th class="p-4">Renovação</th>
               <th class="p-4">Situação</th>
+              <th class="p-4">Ações</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
-            <tr v-for="contract in rows" :key="contract.contract_id ?? contract.order_id" class="hover:bg-stone-50/70">
+            <tr v-for="contract in visibleRows" :key="contract.contract_id ?? contract.order_id" class="hover:bg-stone-50/70">
               <td class="p-4">
                 <span class="font-semibold text-slate-800">{{ contract.client_name }}</span>
                 <p class="mt-1 text-xs text-slate-400">{{ viewMode === 'orders' ? (contract.order_code ?? 'Pedido sem código') : `${contract.order_count ?? 0} pedido(s) vinculados` }}</p>
@@ -216,6 +241,11 @@ watch(tenantId, () => void initialize(), { immediate: true })
               <td class="p-4">{{ contract.renewal_months === null ? '—' : `${contract.renewal_months} meses` }}</td>
               <td class="p-4">{{ formatDate(contract.renewal_date) }}</td>
               <td class="p-4 text-sm">{{ statuses[contract.status] }}</td>
+              <td class="p-4">
+                <button v-if="viewMode === 'orders' && contract.status === 'overdue' && contract.order_id && !contract.renewal_opportunity_id"
+                  type="button" class="primary-button w-auto whitespace-nowrap" @click="openRenewal(contract)">Renovar</button>
+                <span v-else class="text-xs text-slate-400">—</span>
+              </td>
             </tr>
           </tbody>
         </ListTable>
@@ -232,5 +262,22 @@ watch(tenantId, () => void initialize(), { immediate: true })
         @change="changePage"
       />
     </template>
+    <div v-if="renewing" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <section role="dialog" aria-modal="true" aria-labelledby="renewal-title" class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
+        <h2 id="renewal-title" class="text-xl font-semibold">Renovar contrato</h2>
+        <p class="mt-2 text-sm text-slate-600">Será criada uma oportunidade de renovação para {{ renewing.client_name }}. Selecione as linhas desejadas.</p>
+        <div class="mt-4 max-h-72 space-y-2 overflow-y-auto">
+          <label v-for="line in renewing.lines ?? []" :key="line.id" class="flex items-center gap-3 rounded-lg border border-stone-200 p-3 text-sm">
+            <input v-model="selectedLineIds" type="checkbox" :value="line.id" :disabled="savingRenewal" />
+            <span>{{ line.line_number || line.description }} · {{ line.quantity }} linha(s)</span>
+          </label>
+        </div>
+        <p class="mt-3 text-xs text-slate-500">A nova oportunidade terá os dados comerciais das linhas selecionadas. As datas de ativação não serão copiadas.</p>
+        <div class="mt-5 flex justify-end gap-2">
+          <button type="button" class="secondary-button w-auto" :disabled="savingRenewal" @click="renewing = null">Cancelar</button>
+          <button type="button" class="primary-button w-auto" :disabled="savingRenewal || !selectedLineIds.length" @click="confirmRenewal">{{ savingRenewal ? 'Criando...' : 'Criar oportunidade' }}</button>
+        </div>
+      </section>
+    </div>
   </AppShell>
 </template>
