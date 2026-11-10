@@ -2,9 +2,10 @@
 import { ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import ClientContractRenewals from './ClientContractRenewals.vue'
+import ClientOperatorClassifications from './ClientOperatorClassifications.vue'
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
 import { protocolApi, type Protocol } from '@/features/after-sales/api'
-import type { Client, Contact, Seller } from '../api'
+import type { Client, Classification, Contact, Seller } from '../api'
 
 const props = defineProps<{
   client: Client | null
@@ -15,9 +16,10 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{
   close: []
+  'save-operator-classification': [operatorId: number, classificationId: number]
   'edit-contact': [contact?: Contact]
 }>()
-const activeTab = ref<'data' | 'contracts' | 'contacts' | 'sellers' | 'history'>('data')
+const activeTab = ref<'data' | 'operators' | 'contracts' | 'contacts' | 'sellers' | 'history'>('data')
 const historyOrigin = ref<'client' | 'opportunity' | 'commercial_order' | 'protocol'>('client')
 const clientProtocols = ref<Protocol[]>([])
 const protocolPage = ref(1)
@@ -61,6 +63,7 @@ watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, p
           <button
             v-for="item in [
               { id: 'data', label: 'Dados' },
+              { id: 'operators', label: 'Operadoras e classificações' },
               { id: 'contracts', label: 'Contratos e renovações' },
               { id: 'contacts', label: 'Pessoas de contato' },
               { id: 'sellers', label: 'Histórico de vendedores' },
@@ -99,6 +102,7 @@ watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, p
             {{ client.contract_ends_on ?? '—' }}
           </p>
         </div>
+        <ClientOperatorClassifications v-if="activeTab === 'operators'" :client="client" :classes="classes" :writable="writable" :busy="busy" @save="(operatorId, classificationId) => emit('save-operator-classification', operatorId, classificationId)" />
         <RouterLink
           v-if="activeTab === 'contracts' && writable"
           :to="`/empresas/${tenantId}/clientes/${client.id}/consolidar`"
