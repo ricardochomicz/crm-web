@@ -48,6 +48,9 @@ const base = (tenantId: string) => '/api/v1/tenants/' + encodeURIComponent(tenan
 export const opportunitiesApi = {
   list: (tenantId: string, filters: OpportunityFilters) =>
     request<OpportunityPage>(base(tenantId) + '?' + new URLSearchParams(Object.entries(filters).filter(([, value]) => value !== undefined && value !== '').map(([key, value]) => [key, String(value)])).toString()),
+  highlights: (tenantId: string) => request<{ data: string[] }>(base(tenantId) + '/highlights'),
+  setHighlight: (tenantId: string, id: string, highlighted: boolean) =>
+    mutate<{ data: { id: string; highlighted: boolean } }>(base(tenantId) + '/' + encodeURIComponent(id) + '/highlight', { highlighted }, 'PUT'),
   overview: (tenantId: string, from: string, to: string) =>
     request<{ data: CommercialOverview }>(base(tenantId) + '/overview?' + new URLSearchParams({ date_from: from, date_to: to }).toString()),
   stages: (tenantId: string) => request<{ data: FunnelStage[] }>('/api/v1/tenants/' + encodeURIComponent(tenantId) + '/opportunity-funnel-stages'),
