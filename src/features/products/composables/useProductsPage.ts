@@ -22,7 +22,7 @@ const categories = [
   ['LANDLINE','Telefonia fixa'], ['PAY_TV','TV por assinatura'], ['BUNDLE','Combos'],
   ['ADD_ON','Serviços adicionais'], ['OTHER','Outros'],
 ]
-const blank = () => ({ operator_id: 0, name: '', description: '', category: 'BROADBAND', price: '', is_active: true })
+const blank = () => ({ operator_id: 0, name: '', description: '', category: '', price: '', is_active: true })
 const form = ref(blank())
 const { productErrors, promotionErrors, validateProduct, validatePromotion, applyApiErrors } = useProductFormValidation()
 const editingId = ref('')
