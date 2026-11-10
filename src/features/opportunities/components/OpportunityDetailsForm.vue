@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
 import { computed, ref, watch } from 'vue'
-import type { Client } from '@/features/clients/api'
+import type { Client, Contact } from '@/features/clients/api'
+import ClientPrimaryContactCard from '@/features/clients/components/ClientPrimaryContactCard.vue'
 import type { OrderType } from '@/features/order-types/api'
 import type { OpportunityInput } from '../api'
 const model = defineModel<OpportunityInput>({ required: true })
-const props = defineProps<{ clients: Client[]; orderTypes: OrderType[]; operators: { id: number; name: string }[]; canCreateClient?: boolean }>()
+const props = defineProps<{ clients: Client[]; orderTypes: OrderType[]; operators: { id: number; name: string }[]; canCreateClient?: boolean; clientContacts?: Contact[]; loadingClientContacts?: boolean }>()
 const emit = defineEmits<{ changeOperator: [id: number | null]; createClient: [] }>()
 const operatorValue = computed({ get: () => model.value.operator_id === null ? '' : String(model.value.operator_id), set: (value: string) => emit('changeOperator', value ? Number(value) : null) })
 const clientSearch = ref('')
@@ -62,6 +63,7 @@ watch(() => [model.value.client_id, props.clients] as const, () => {
                 </div>
               </div>
             </div>
+            <ClientPrimaryContactCard v-if="model.client_id" :contacts="clientContacts" :loading="loadingClientContacts" />
             <div class="grid gap-4 sm:grid-cols-2">
               <AppAutocomplete v-model="model.order_type_id" label="Tipo de negociação" placeholder="Buscar tipo de negociação" :options="orderTypes" />
               <div class="space-y-2"><label for="opportunity-forecast" class="block text-sm font-semibold text-slate-700">Previsão de fechamento *</label><input id="opportunity-forecast" v-model="model.expected_close_at" type="date" class="field min-h-[44px]" required /></div>
