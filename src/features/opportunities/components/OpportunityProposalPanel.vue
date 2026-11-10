@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { proposalsApi, type OpportunityProposal } from '../api'
+import { errorMessage } from '@/lib/feedback'
 import type { Opportunity } from '../api'
 
-const props = defineProps<{ opportunity: Opportunity; companyName: string }>()
+const props = defineProps<{ opportunity: Opportunity; companyName: string; tenantId: string }>()
+const versions = ref<OpportunityProposal[]>([])
+const loading = ref(false)
+const publishing = ref(false)
+const message = ref('')
+const failure = ref('')
 const validityDays = ref(15)
 const notes = ref('')
 const conditions = ref('Valores sujeitos à confirmação de disponibilidade e condições comerciais.')
@@ -17,7 +24,49 @@ const expiry = computed(() => {
   date.setDate(date.getDate() + validityDays.value)
   return date.toLocaleDateString('pt-BR')
 })
-watch(() => props.opportunity.id, () => { validityDays.value = 15; notes.value = ''; conditions.value = 'Valores sujeitos à confirmação de disponibilidade e condições comerciais.' })
+async function loadVersions() {
+  loading.value = true
+  failure.value = ''
+  try { versions.value = (await proposalsApi.list(props.tenantId, props.opportunity.id)).data }
+  catch (e) { failure.value = errorMessage(e) }
+  finally { loading.value = false }
+}
+watch(() => [props.opportunity.id, props.tenantId], () => {
+  validityDays.value = 15
+  notes.value = ''
+  conditions.value = 'Valores sujeitos à confirmação de disponibilidade e condições comerciais.'
+  message.value = ''
+  void loadVersions()
+}, { immediate: true })
+async function publish() {
+  if (publishing.value) return
+  publishing.value = true
+  failure.value = ''
+  message.value = ''
+  try {
+    await proposalsApi.publish(props.tenantId, props.opportunity.id, {
+      validity_days: validityDays.value, conditions: conditions.value, notes: notes.value,
+    })
+    await loadVersions()
+    message.value = 'Nova versão publicada. O link pode ser enviado ao cliente.'
+  } catch (e) { failure.value = errorMessage(e) }
+  finally { publishing.value = false }
+}
+async function revoke(version: OpportunityProposal) {
+  if (!window.confirm('Revogar o link desta versão? O cliente perderá o acesso.')) return
+  failure.value = ''
+  try {
+    await proposalsApi.revoke(props.tenantId, props.opportunity.id, version.id)
+    await loadVersions()
+  } catch (e) { failure.value = errorMessage(e) }
+}
+function link(version: OpportunityProposal) {
+  return window.location.origin + '/proposta-comercial/' + encodeURIComponent(version.public_token)
+}
+async function copyLink(version: OpportunityProposal) {
+  try { await navigator.clipboard.writeText(link(version)); message.value = 'Link copiado.' }
+  catch { failure.value = 'Não foi possível copiar automaticamente. Abra o link e copie o endereço.' }
+}
 
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] ?? char)
@@ -46,7 +95,7 @@ function printProposal() {
   <section class="space-y-5">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div><h3 class="text-lg font-semibold">Proposta comercial</h3><p class="text-sm text-slate-500">Modelo único da empresa, com identificação automática da operadora.</p></div>
-      <button type="button" class="primary-button w-auto" @click="printProposal">Imprimir / salvar PDF</button>
+      <div class="flex flex-wrap gap-2"><button type="button" class="secondary-button w-auto" @click="printProposal">Imprimir / salvar PDF</button><button type="button" class="primary-button w-auto" :disabled="publishing || !items.length" @click="publish">{{ publishing ? 'Publicando…' : 'Publicar proposta' }}</button></div>
     </div>
     <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
       <article class="min-w-0 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
@@ -73,8 +122,23 @@ function printProposal() {
         <label class="block space-y-1 text-sm">Validade (dias)<input v-model.number="validityDays" type="number" min="1" max="365" class="field w-full" /></label>
         <label class="block space-y-1 text-sm">Condições comerciais<textarea v-model="conditions" rows="5" maxlength="2000" class="field w-full" /></label>
         <label class="block space-y-1 text-sm">Observações<textarea v-model="notes" rows="5" maxlength="2000" class="field w-full" /></label>
-        <p class="text-xs text-slate-500">A opção Imprimir / salvar PDF abre a impressão do navegador. As alterações deste rascunho ainda não são persistidas. O compartilhamento por link dependerá da publicação segura da proposta.</p>
+        <p class="text-xs text-slate-500">Publicar cria uma versão imutável com os valores atuais. Mudanças futuras exigem uma nova versão. A impressão acima usa o rascunho.</p>
       </aside>
     </div>
+    <p v-if="failure" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ failure }}</p>
+    <p v-if="message" role="status" class="rounded-xl bg-green-50 p-3 text-sm text-green-800">{{ message }}</p>
+    <section class="rounded-2xl border border-stone-200 bg-white p-5">
+      <h4 class="mb-3 font-semibold">Histórico de versões</h4>
+      <p v-if="loading" class="text-sm text-slate-500">Carregando propostas…</p>
+      <p v-else-if="!versions.length" class="text-sm text-slate-500">Nenhuma proposta publicada ainda.</p>
+      <div v-for="version in versions" :key="version.id" class="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 py-3">
+        <div><p class="font-semibold">Versão {{ version.version }}</p><p class="text-xs text-slate-500">Criada em {{ new Date(version.created_at).toLocaleString('pt-BR') }} · Expira em {{ new Date(version.expires_at).toLocaleDateString('pt-BR') }}</p><p v-if="version.revoked_at" class="text-xs font-semibold text-red-700">Revogada</p><p v-else-if="new Date(version.expires_at).getTime() <= Date.now()" class="text-xs font-semibold text-amber-700">Expirada</p></div>
+        <div v-if="!version.revoked_at && new Date(version.expires_at).getTime() > Date.now()" class="flex flex-wrap gap-2">
+          <a :href="link(version)" target="_blank" rel="noopener noreferrer" class="secondary-button w-auto">Visualizar</a>
+          <button type="button" class="secondary-button w-auto" @click="copyLink(version)">Copiar link</button>
+          <button type="button" class="secondary-button w-auto text-red-700" @click="revoke(version)">Revogar</button>
+        </div>
+      </div>
+    </section>
   </section>
 </template>
