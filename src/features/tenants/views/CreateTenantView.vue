@@ -10,7 +10,7 @@ import { useCreateTenant } from '../composables/useCreateTenant'
 
 const {
   plans, operators, selectedOperators, loading, loadError, error, errors,
-  step, busy, selected, selectedPlan, form, resetDocument, load, next,
+  step, busy, selected, selectedPlan, form, maskedPhone, resetDocument, load, next,
   nextOperators, toggleOperator, submit,
 } = useCreateTenant()
 </script>
@@ -110,11 +110,11 @@ const {
             :error="errors['tenant.email']"
           /><FormField
             id="company-phone"
-            v-model="form.phone"
+            v-model="maskedPhone"
             label="Telefone (opcional)"
             type="tel"
             autocomplete="tel"
-            maxlength="20"
+            maxlength="15"
             placeholder="(00) 00000-0000"
             :error="errors['tenant.phone']"
           />
