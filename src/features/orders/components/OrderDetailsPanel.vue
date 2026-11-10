@@ -14,6 +14,12 @@ import { orderStatusesApi, type OrderStatus } from '@/features/order-statuses/ap
 const props = defineProps<{ tenantId: string; orderId: string; canManage?: boolean }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const order = ref<CommercialOrder | null>(null)
+const formattedDocument = computed(() => {
+  const digits = (order.value?.customer_document ?? '').replace(/\D/g, '')
+  if (digits.length === 11) return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4')
+  if (digits.length === 14) return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+  return order.value?.customer_document || 'Não informado'
+})
 const activeTab = ref<'workflow' | 'documents'>('workflow')
 const statuses = ref<OrderStatus[]>([])
 const statusId = ref('')
@@ -242,6 +248,10 @@ watch(
       <div>
         <p class="eyebrow">PEDIDO COMERCIAL</p>
         <h2 class="mt-2 text-xl font-semibold text-slate-800">Detalhes do pedido</h2>
+        <div v-if="order && !loading" class="mt-3 space-y-1">
+          <p class="text-sm font-semibold text-slate-800">{{ order.customer_name }}</p>
+          <p class="text-xs text-slate-500">{{ (order.customer_document || '').replace(/\\D/g, '').length === 11 ? 'CPF' : 'CNPJ/CPF' }}: {{ formattedDocument }}</p>
+        </div>
       </div>
       <button type="button" class="secondary-button w-auto" @click="emit('close')">Fechar</button>
     </header>
