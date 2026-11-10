@@ -35,14 +35,8 @@ watch(
   (open) => {
     if (open) {
       email.value = ''
-      selectedRoleId.value =
-        selectableRoles.value.find((item) => item.code === 'TELEMARKETING')?.id ??
-        selectableRoles.value[0]?.id ??
-        ''
-      role.value = (selectableRoles.value.find((item) => item.id === selectedRoleId.value)
-        ?.legacy_role ??
-        props.allowedRoles[0] ??
-        'CONSULTANT') as AssignableRole
+      selectedRoleId.value = ''
+      role.value = 'CONSULTANT'
       error.value = ''
       emailError.value = ''
     }
@@ -130,7 +124,7 @@ async function submit() {
             :model-value="selectedRoleId"
             @update:model-value="selectedRoleId = String($event)"
             :options="selectableRoles.map((item) => ({ value: item.id, label: item.name }))"
-            placeholder="Selecione o cargo"
+            placeholder="Selecionar cargo"
           />
           <p class="mt-2 text-xs text-slate-500">
             As permissões são configuradas pelo proprietário.
