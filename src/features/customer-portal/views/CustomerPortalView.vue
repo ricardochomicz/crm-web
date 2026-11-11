@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { portalSession } from '../session'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import { customerPortalApi, type PortalOrder, type PortalOrderDetail } from '../api'
 import { errorMessage } from '@/lib/feedback'
 
 const route = useRoute()
-const tenantId = computed(() => String(route.params.tenantId))
+const router = useRouter()
+const tenantId = computed(() => String(route.params.tenantId || ''))
 const document = ref('')
 const code = ref('')
 const challenge = ref('')
-const token = ref('')
+const token = ref(portalSession.value?.tenantId === tenantId.value ? portalSession.value.token : '')
 const orders = ref<PortalOrder[]>([])
 const selectedOrder = ref<PortalOrderDetail | null>(null)
 const detailsOpen = ref(false)
@@ -19,7 +21,14 @@ const lastPage = ref(1)
 const loading = ref(false)
 const error = ref('')
 const notice = ref('')
-const step = computed(() => token.value ? 'orders' : challenge.value ? 'verify' : 'identify')
+const step = computed(() => tenantId.value && token.value ? 'orders' : challenge.value ? 'verify' : 'identify')
+onMounted(() => {
+  if (tenantId.value && (!portalSession.value || portalSession.value.tenantId !== tenantId.value)) {
+    void router.replace('/portal-do-cliente')
+  } else if (tenantId.value && token.value) {
+    void loadOrders()
+  }
+})
 const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const date = (value: string | null) => value ? new Date(value).toLocaleDateString('pt-BR') : '—'
 async function requestCode() {
@@ -27,7 +36,7 @@ async function requestCode() {
   loading.value = true
   error.value = ''
   try {
-    const result = await customerPortalApi.requestCode(tenantId.value, document.value.replace(/\D/g, ''))
+    const result = await customerPortalApi.requestCode(document.value.replace(/\D/g, ''))
     challenge.value = result.challenge
     notice.value = result.message
   } catch (e) { error.value = errorMessage(e) }
@@ -51,9 +60,11 @@ async function verify() {
   loading.value = true
   error.value = ''
   try {
-    const result = await customerPortalApi.verify(tenantId.value, challenge.value, code.value)
+    const result = await customerPortalApi.verify(challenge.value, code.value)
+    portalSession.value = { tenantId: result.data.tenant_id, token: result.data.token }
     token.value = result.data.token
     notice.value = ''
+    await router.replace('/portal-do-cliente/' + result.data.tenant_id)
     await loadOrders()
   } catch (e) { error.value = errorMessage(e) }
   finally { loading.value = false }
@@ -70,9 +81,11 @@ async function showOrder(id: string) {
 async function logout() {
   const current = token.value
   token.value = ''
+  portalSession.value = null
   challenge.value = ''
   code.value = ''
   orders.value = []
+  await router.replace('/portal-do-cliente')
   if (current) { try { await customerPortalApi.logout(tenantId.value, current) } catch { /* Session also expires on the server. */ } }
 }
 </script>
