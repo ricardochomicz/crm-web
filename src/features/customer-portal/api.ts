@@ -10,6 +10,8 @@ export interface PortalOrder {
   line_quantity: number
   monthly_amount: string
   activated_at: string | null
+  expected_activation_at: string | null
+  consultant_name: string | null
 }
 export interface PortalOrderDetail extends PortalOrder {
   items: { description: string | null; quantity: number; monthly_unit_amount: string; status: string | null; activated_at: string | null }[]
