@@ -8,7 +8,8 @@ export type Protocol = {
   due_at: string | null; created_at: string; resolved_at: string | null
 }
 export type ProtocolHistory = { id: string; action: string; actor_name: string; from_status: string | null; to_status: string | null; note: string | null; created_at: string }
-export type ProtocolDetail = { data: Protocol; history: ProtocolHistory[] }
+export type ProtocolActivity = { id: string; title: string; type: string; status: string; priority: string; ends_at: string; tenant_user_id: string }
+export type ProtocolDetail = { data: Protocol; history: ProtocolHistory[]; activities: ProtocolActivity[] }
 export type ProtocolInput = { code: string; client_id: string; title: string; category: string; priority: string; description: string; assigned_to_tenant_user_id: string | null; due_at: string | null }
 const base = (tenantId: string) => `/api/v1/tenants/${encodeURIComponent(tenantId)}/after-sales`
 export const protocolApi = {
