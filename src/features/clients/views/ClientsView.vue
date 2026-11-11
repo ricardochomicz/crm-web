@@ -524,7 +524,7 @@ watch(
         <label class="block text-sm"
           >Nome<input v-model="contact.name" required class="field" /></label
         ><div class="grid gap-3 sm:grid-cols-2">
-          <label class="block text-sm">CPF (opcional)<input :value="contact.cpf ?? ''" @input="contact.cpf = ($event.target as HTMLInputElement).value.replace(/\\D/g, '').slice(0, 11) || null" inputmode="numeric" maxlength="11" placeholder="Somente números" class="field" /></label>
+          <label class="block text-sm">CPF (opcional)<input :value="contact.cpf ?? ''" @input="contact.cpf = ($event.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 11) || null" inputmode="numeric" maxlength="11" placeholder="Somente números" class="field" /></label>
           <label class="block text-sm">Data de nascimento (opcional)<input v-model="contact.birth_date" type="date" class="field" /></label>
         </div><label class="block text-sm">Cargo<input v-model="contact.position" :required="!!pendingContactClientId" class="field" /></label
         ><label class="block text-sm"
