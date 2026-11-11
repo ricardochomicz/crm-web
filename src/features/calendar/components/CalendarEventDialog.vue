@@ -66,6 +66,7 @@ watch(() => [props.open, props.tenantId, form.value.client_id] as const, async (
 function changeClient(value: string | number) {
   form.value.client_id = String(value || '') || null
   form.value.opportunity_id = null
+  if (!props.protocolId) form.value.protocol_id = null
 }
 
 const types: { value: EventType; label: string }[] = [
@@ -101,7 +102,7 @@ watch(() => [props.open, props.event, props.date] as const, () => {
     ? { title: props.event.title, description: props.event.description, type: props.event.type,
         status: props.event.status, priority: props.event.priority, all_day: props.event.all_day,
         starts_at: localInput(props.event.starts_at), ends_at: localInput(props.event.ends_at),
-        opportunity_id: props.event.opportunity_id, client_id: props.event.client_id, tenant_user_id: props.event.tenant_user_id }
+        opportunity_id: props.event.opportunity_id, client_id: props.event.client_id, protocol_id: props.event.protocol_id ?? null, tenant_user_id: props.event.tenant_user_id }
     : { ...emptyForm(props.date), type: props.defaultType ?? ('' as EventType), opportunity_id: props.opportunityId ?? null,
         client_id: props.clientId ?? null,
         tenant_user_id: props.defaultAssigneeId ?? null,
