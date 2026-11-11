@@ -115,7 +115,7 @@ async function saveContact() {
         </label>
         <div class="grid gap-3 sm:grid-cols-2">
           <label class="block text-sm font-medium">CPF (opcional)
-            <input :value="contact.cpf ?? ''" @input="contact.cpf = ($event.target as HTMLInputElement).value.replace(/\\D/g, '').slice(0, 11) || null" class="field" inputmode="numeric" maxlength="11" placeholder="Somente números" />
+            <input :value="contact.cpf ?? ''" @input="contact.cpf = ($event.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 11) || null" class="field" inputmode="numeric" maxlength="11" placeholder="Somente números" />
           </label>
           <label class="block text-sm font-medium">Data de nascimento (opcional)
             <input v-model="contact.birth_date" class="field" type="date" />
