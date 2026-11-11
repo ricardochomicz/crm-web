@@ -161,7 +161,8 @@ function saved() {
       </div>
       <p v-if="!dayEvents.length" class="mt-5 rounded-xl bg-stone-50 px-4 py-6 text-center text-sm text-slate-500">Nenhum compromisso para este dia.</p>
       <div v-else class="mt-4 space-y-2">
-        <button v-for="event in dayEvents" :key="event.id" type="button" class="flex w-full items-start gap-3 rounded-xl border border-stone-100 p-3 text-left transition hover:border-stone-300" :class="{ 'border-l-2 border-l-orange-500': isOverdue(event) }" :disabled="scope === 'team' || !canEdit" @click="edit(event)">
+        <div v-for="event in dayEvents" :key="event.id" class="space-y-1">
+        <button type="button" class="flex w-full items-start gap-3 rounded-xl border border-stone-100 p-3 text-left transition hover:border-stone-300" :class="{ 'border-l-2 border-l-orange-500': isOverdue(event) }" :disabled="scope === 'team' || !canEdit" @click="edit(event)">
           <AppIcon v-if="event.status === 'completed'" name="checkCircle" class="mt-0.5 size-4 shrink-0 text-emerald-700" />
           <AppIcon v-else-if="isOverdue(event)" name="alertTriangle" class="mt-0.5 size-4 shrink-0 text-orange-700" />
           <AppIcon v-else-if="event.status === 'cancelled'" name="xCircle" class="mt-0.5 size-4 shrink-0 text-slate-500" />
@@ -171,8 +172,9 @@ function saved() {
             <span class="mt-1 block text-xs text-slate-500">{{ event.all_day ? 'Dia inteiro' : eventTime(event.starts_at) + ' – ' + eventTime(event.ends_at) }} · <span :class="{ 'font-semibold text-orange-700': isOverdue(event), 'font-medium text-emerald-700': event.status === 'completed' }">{{ statusLabel(event) }}</span><template v-if="event.client_name"> · {{ event.client_name }}</template></span>
           </span>
         </button>
-        <div v-for="event in dayEvents" :key="'history-' + event.id" class="flex justify-end">
-          <button v-if="scope === 'mine'" type="button" class="text-xs font-semibold text-orange-700 hover:underline" @click="historyEvent = event">Histórico: {{ event.title }}</button>
+        <div v-if="scope === 'mine'" class="flex justify-end">
+          <button type="button" class="text-xs font-semibold text-orange-700 hover:underline" @click="historyEvent = event">Ver histórico</button>
+        </div>
         </div>
       </div>
     </section>
