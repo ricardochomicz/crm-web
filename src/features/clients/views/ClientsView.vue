@@ -19,6 +19,8 @@ import { useClientAddress } from '../composables/useClientAddress'
 import { digits } from '@/lib/masks'
 import { useFormValidation } from '@/composables/useFormValidation'
 import ClientForm from '../components/ClientForm.vue'
+import ContextActivityDialog from '@/features/calendar/components/ContextActivityDialog.vue'
+import { can } from '@/features/tenants/types'
 import ClientDetailsDialog from '../components/ClientDetailsDialog.vue'
 import {
   clientsApi,
@@ -45,6 +47,8 @@ const loading = ref(true),
   error = ref(''),
   canManage = ref(false),
   canCreate = ref(false)
+const activityClient = ref<Client | null>(null)
+const canCreateActivity = computed(() => can(tenant.value, 'calendar.create') && !!tenant.value?.access?.allows_operational_writes)
 const showSellerSelect = computed(
   () => canAssignSeller.value || tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER',
 )
@@ -453,6 +457,11 @@ watch(
                     :label="`Histórico de ${c.company_name}`"
                     @click="openHistory(c.id)"
                   /><TableActionButton
+                    v-if="canCreateActivity"
+                    icon="calendar"
+                    :label="`Criar atividade para ${c.company_name}`"
+                    @click="activityClient = c"
+                  /><TableActionButton
                     v-if="writable"
                     icon="edit"
                     :label="`Editar ${c.company_name}`"
@@ -486,6 +495,15 @@ watch(
         @edit-contact="editContact"
       />
     </template>
+    <ContextActivityDialog
+      :open="!!activityClient"
+      :tenant-id="tenantId"
+      :client-id="activityClient?.id ?? ''"
+      :initial-title="activityClient ? 'Contato: ' + activityClient.company_name : ''"
+      :can-write="canCreateActivity"
+      @close="activityClient = null"
+      @saved="activityClient = null; toast.success('Atividade criada para o cliente.')"
+    />
     <ClientForm
       v-if="modal"
       :form="form"
