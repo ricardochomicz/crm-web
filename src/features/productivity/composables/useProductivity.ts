@@ -1,4 +1,4 @@
-import { computed, ref, watch, type Ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 import { productivityApi, type ProductivityResponse } from '../api'
 
 function localDate(date: Date) {
@@ -13,6 +13,7 @@ export function useProductivity(tenantId: Ref<string>) {
   const to = ref(localDate(today))
   const consultantId = ref('')
   const data = ref<ProductivityResponse | null>(null)
+  const consultants = ref<{ id: string; name: string }[]>([])
   const loading = ref(false)
   const error = ref('')
   let version = 0
@@ -31,7 +32,10 @@ export function useProductivity(tenantId: Ref<string>) {
       const result = await productivityApi.overview(tenantId.value, {
         from: from.value, to: to.value, ...(consultantId.value ? { consultant_id: consultantId.value } : {}),
       })
-      if (current === version) data.value = result
+      if (current === version) {
+        data.value = result
+        if (!consultantId.value) consultants.value = result.data.map(({ id, name }) => ({ id, name }))
+      }
     } catch {
       if (current === version) error.value = 'Não foi possível carregar o painel de produtividade.'
     } finally {
@@ -46,6 +50,6 @@ export function useProductivity(tenantId: Ref<string>) {
     void search()
   }
 
-  watch(tenantId, () => { consultantId.value = ''; void search() }, { immediate: true })
-  return { from, to, consultantId, data, loading, error, rows: computed(() => data.value?.data ?? []), search, clear }
+  watch(tenantId, () => { consultantId.value = ''; consultants.value = []; void search() }, { immediate: true })
+  return { from, to, consultantId, data, loading, error, consultants, search, clear }
 }
