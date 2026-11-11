@@ -15,7 +15,7 @@ const blank = (): ClientInput => ({
   is_active: true, seller_membership_id: null, seller_reason: null,
 })
 const form = reactive<ClientInput>(blank())
-const contact = reactive<ContactInput>({ name: '', position: '', phone: null, email: null, notes: null, is_primary: true, is_active: true })
+const contact = reactive<ContactInput>({ name: '', cpf: null, birth_date: null, position: '', phone: null, email: null, notes: null, is_primary: true, is_active: true })
 const createdClient = ref<Client | null>(null)
 const busy = ref(false)
 const error = ref('')
@@ -37,7 +37,7 @@ watch(() => form.person_type, () => { form.document = ''; duplicate.value = fals
 watch(() => props.open, open => {
   if (!open) return
   Object.assign(form, blank())
-  Object.assign(contact, { name: '', position: '', phone: null, email: null, notes: null, is_primary: true, is_active: true })
+  Object.assign(contact, { name: '', cpf: null, birth_date: null, position: '', phone: null, email: null, notes: null, is_primary: true, is_active: true })
   createdClient.value = null
   error.value = ''
   duplicate.value = false
@@ -113,6 +113,14 @@ async function saveContact() {
         <label class="block text-sm font-medium">Nome *
           <input v-model="contact.name" class="field" required />
         </label>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="block text-sm font-medium">CPF (opcional)
+            <input :value="contact.cpf ?? ''" @input="contact.cpf = ($event.target as HTMLInputElement).value.replace(/\\D/g, '').slice(0, 11) || null" class="field" inputmode="numeric" maxlength="11" placeholder="Somente números" />
+          </label>
+          <label class="block text-sm font-medium">Data de nascimento (opcional)
+            <input v-model="contact.birth_date" class="field" type="date" />
+          </label>
+        </div>
         <label class="block text-sm font-medium">Cargo / Função *
           <input v-model="contact.position" class="field" required />
         </label>
