@@ -22,6 +22,7 @@ export type OpportunityInput = {
 }
 export type FunnelStage = { id: string; name: string; position: number; is_active: boolean }
 export type OpportunityFilters = {
+    client_id?: string
     search?: string
     status?: string
     period?: string
