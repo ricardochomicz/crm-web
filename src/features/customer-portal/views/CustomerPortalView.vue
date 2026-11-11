@@ -141,8 +141,20 @@ async function logout() {
             <div><p class="text-xs text-slate-500">Consultor responsável</p><p class="font-medium">{{ selectedOrder.consultant_name || 'Não informado' }}</p></div>
             <div><p class="text-xs text-slate-500">Ativação efetiva</p><p class="font-medium">{{ selectedOrder.activated_at ? date(selectedOrder.activated_at) : 'Aguardando ativação' }}</p></div>
           </div>
-          <h3 class="font-semibold">Serviços contratados</h3>
-          <div v-for="(item, index) in selectedOrder.items" :key="index" class="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 py-3 text-sm"><div><p class="font-medium">{{ item.description || 'Serviço' }}</p><p v-if="item.line_number" class="text-xs text-slate-500">Número: {{ item.line_number }}</p><p class="text-xs text-slate-500">Quantidade: {{ item.quantity }} · {{ item.status || '—' }}</p></div><p class="font-semibold">{{ money(item.monthly_unit_amount) }}/mês</p></div>
+          <div class="flex items-center justify-between gap-3">
+            <h3 class="font-semibold">Serviços contratados</h3>
+            <span class="text-xs text-slate-500">{{ selectedOrder.items.length }} {{ selectedOrder.items.length === 1 ? 'item' : 'itens' }}</span>
+          </div>
+          <div class="max-h-[min(45dvh,420px)] overflow-y-auto overscroll-contain rounded-lg border border-stone-200 px-3" role="region" aria-label="Lista de serviços contratados" tabindex="0">
+            <div v-for="(item, index) in selectedOrder.items" :key="index" class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 py-3 text-sm last:border-b-0">
+              <div>
+                <p class="font-medium">{{ item.description || 'Serviço' }}</p>
+                <p v-if="item.line_number" class="text-xs text-slate-500">Número: {{ item.line_number }}</p>
+                <p class="text-xs text-slate-500">Quantidade: {{ item.quantity }} · {{ item.status || '—' }}</p>
+              </div>
+              <p class="font-semibold">{{ money(item.monthly_unit_amount) }}/mês</p>
+            </div>
+          </div>
         </div>
       </AppDialog>
       <p v-if="notice" role="status" class="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-900">{{ notice }}</p>
