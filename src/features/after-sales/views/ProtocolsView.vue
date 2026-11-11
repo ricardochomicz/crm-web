@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
+import ContextActivityDialog from '@/features/calendar/components/ContextActivityDialog.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
@@ -30,6 +31,8 @@ const error = ref('')
 const saving = ref(false)
 const dialogOpen = ref(false)
 const detail = ref<ProtocolDetail | null>(null)
+const activityProtocol = ref<Protocol | null>(null)
+const canCreateActivity = computed(() => can(tenant.value, 'calendar.create') && !!tenant.value?.access?.allows_operational_writes)
 const form = ref<ProtocolInput>({ code: '', client_id: '', title: '', category: '', priority: 'normal', description: '', assigned_to_tenant_user_id: currentMemberId.value || null, due_at: null })
 const slaPreset = ref('')
 const slaOptions = [{ value: '', label: 'Selecionar prazo SLA' }, { value: '24h', label: '24 horas corridas' }, { value: '48h', label: '48 horas corridas' }, { value: '5business', label: '5 dias úteis (sem feriados)' }, { value: 'custom', label: 'Prazo personalizado' }]
@@ -145,7 +148,7 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
               <td class="p-4 text-slate-600">{{ p.assignee_name || 'Não atribuído' }}</td>
               <td class="p-4"><span class="inline-flex rounded-lg px-3 py-1 text-xs font-semibold" :class="p.status === 'resolved' ? 'bg-emerald-50 text-emerald-700' : p.status === 'cancelled' ? 'bg-stone-100 text-slate-600' : p.status === 'waiting' ? 'bg-amber-50 text-amber-700' : 'bg-orange-50 text-orange-700'">{{ statuses[p.status] }}</span></td>
               <td class="p-4" :class="overdue(p) ? 'font-semibold text-rose-700' : 'text-slate-600'">{{ p.due_at ? new Date(p.due_at).toLocaleDateString('pt-BR') : '—' }}<span v-if="overdue(p)" class="ml-1 inline-flex items-center gap-1"><AppIcon name="alertTriangle" class="size-4" /> Atrasado</span></td>
-              <td class="p-4 text-right"><button type="button" class="secondary-button w-auto whitespace-nowrap" @click="openProtocol(p)">{{ ['resolved', 'cancelled'].includes(p.status) ? 'Ver detalhes' : canUpdate ? 'Movimentar protocolo' : 'Ver detalhes' }}</button></td>
+              <td class="p-4 text-right"><div class="flex flex-wrap justify-end gap-2"><button v-if="canCreateActivity" type="button" class="secondary-button w-auto whitespace-nowrap" @click="activityProtocol = p">Criar tarefa</button><button type="button" class="secondary-button w-auto whitespace-nowrap" @click="openProtocol(p)">{{ ['resolved', 'cancelled'].includes(p.status) ? 'Ver detalhes' : canUpdate ? 'Movimentar protocolo' : 'Ver detalhes' }}</button></div></td>
             </tr>
           </tbody>
         </ListTable>
@@ -153,6 +156,16 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
       </template>
     </section>
     <PagePagination v-if="!error" :page="page" :last-page="lastPage" :total="total" :busy="loading" @change="page = $event" />
+    <ContextActivityDialog
+      :open="!!activityProtocol"
+      :tenant-id="tenantId"
+      :client-id="activityProtocol?.client_id ?? ''"
+      :initial-title="activityProtocol ? 'Protocolo ' + activityProtocol.code + ': ' + activityProtocol.title : ''"
+      :default-assignee-id="activityProtocol?.assigned_to_tenant_user_id"
+      :can-write="canCreateActivity"
+      @close="activityProtocol = null"
+      @saved="activityProtocol = null; toast.success('Tarefa criada para acompanhamento do protocolo.')"
+    />
     <AppDialog :open="dialogOpen" :title="editing ? (detail && ['resolved', 'cancelled'].includes(detail.data.status) ? 'Detalhes do protocolo' : 'Movimentar protocolo') : 'Novo protocolo'" @close="dialogOpen = false">
       <div class="space-y-4 p-1">
         <template v-if="detail">
