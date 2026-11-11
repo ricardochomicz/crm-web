@@ -16,6 +16,13 @@ const token = ref(portalSession.value?.tenantId === tenantId.value ? portalSessi
 const orders = ref<PortalOrder[]>([])
 const selectedOrder = ref<PortalOrderDetail | null>(null)
 const detailsOpen = ref(false)
+const lineSearch = ref('')
+const normalizeLineNumber = (value: string) => value.replace(/\D/g, '')
+const filteredOrderItems = computed(() => {
+  const items = selectedOrder.value?.items ?? []
+  const search = normalizeLineNumber(lineSearch.value)
+  return search ? items.filter(item => normalizeLineNumber(item.line_number ?? '').includes(search)) : items
+})
 const page = ref(1)
 const lastPage = ref(1)
 const loading = ref(false)
@@ -75,6 +82,7 @@ async function verify() {
   finally { loading.value = false }
 }
 async function showOrder(id: string) {
+  lineSearch.value = ''
   error.value = ''
   loading.value = true
   try {
@@ -143,10 +151,16 @@ async function logout() {
           </div>
           <div class="flex items-center justify-between gap-3">
             <h3 class="font-semibold">Serviços contratados</h3>
-            <span class="text-xs text-slate-500">{{ selectedOrder.items.length }} {{ selectedOrder.items.length === 1 ? 'item' : 'itens' }}</span>
+            <span class="text-xs text-slate-500">{{ filteredOrderItems.length }} de {{ selectedOrder.items.length }} {{ selectedOrder.items.length === 1 ? 'item' : 'itens' }}</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <label for="portal-line-search" class="sr-only">Filtrar pelo número da linha</label>
+            <input id="portal-line-search" v-model="lineSearch" type="search" inputmode="tel" autocomplete="off" class="field min-w-0 flex-1" placeholder="Buscar pelo número da linha" />
+            <button v-if="lineSearch" type="button" class="secondary-button w-auto" @click="lineSearch = ''">Limpar</button>
           </div>
           <div class="max-h-[min(45dvh,420px)] overflow-y-auto overscroll-contain rounded-lg border border-stone-200 px-3" role="region" aria-label="Lista de serviços contratados" tabindex="0">
-            <div v-for="(item, index) in selectedOrder.items" :key="index" class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 py-3 text-sm last:border-b-0">
+            <p v-if="!filteredOrderItems.length" class="py-6 text-center text-sm text-slate-500">Nenhuma linha encontrada para o número informado.</p>
+            <div v-for="(item, index) in filteredOrderItems" :key="index" class="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 py-3 text-sm last:border-b-0">
               <div>
                 <p class="font-medium">{{ item.description || 'Serviço' }}</p>
                 <p v-if="item.line_number" class="text-xs text-slate-500">Número: {{ item.line_number }}</p>
