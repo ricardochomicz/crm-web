@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       watch: { usePolling: env.VITE_USE_POLLING === 'true' },
       proxy: Object.fromEntries(
-        ['/api', '/sanctum'].map((path) => [path, { target, changeOrigin: true }]),
+        ['/api', '/sanctum', '/broadcasting'].map((path) => [path, { target, changeOrigin: true }]),
       ),
     },
   }
