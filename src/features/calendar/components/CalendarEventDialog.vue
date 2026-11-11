@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
 import { calendarApi } from '../api'
 import { errorMessage } from '@/lib/feedback'
-import type { CalendarEvent, CalendarEventInput, EventType } from '../types'
+import type { CalendarEvent, CalendarEventInput, EventType, EventStatus, EventPriority } from '../types'
 
 const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean; canDelete: boolean; opportunityId?: string; clientId?: string; opportunityTitle?: string; defaultType?: EventType }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
@@ -16,6 +17,8 @@ const types: { value: EventType; label: string }[] = [
   { value: 'visit', label: 'Visita' }, { value: 'task', label: 'Tarefa' },
   { value: 'reminder', label: 'Lembrete' },
 ]
+const statuses = [{ value: 'pending', label: 'Pendente' }, { value: 'completed', label: 'Concluído' }, { value: 'cancelled', label: 'Cancelado' }]
+const priorities = [{ value: 'low', label: 'Baixa' }, { value: 'normal', label: 'Normal' }, { value: 'high', label: 'Alta' }]
 function nextAvailable(date: string): string {
   const now = new Date()
   const start = new Date(now.getTime() + 60000)
@@ -26,7 +29,7 @@ function nextAvailable(date: string): string {
 function emptyForm(date: string): CalendarEventInput {
   const start = nextAvailable(date)
   const end = localInput(new Date(new Date(start).getTime() + 3600000).toISOString())
-  return { title: '', description: null, type: 'meeting', status: 'pending', priority: 'normal', all_day: false,
+  return { title: '', description: null, type: '' as EventType, status: '' as EventStatus, priority: '' as EventPriority, all_day: false,
     starts_at: start, ends_at: end }
 }
 function localInput(value: string): string {
@@ -43,13 +46,17 @@ watch(() => [props.open, props.event, props.date] as const, () => {
         status: props.event.status, priority: props.event.priority, all_day: props.event.all_day,
         starts_at: localInput(props.event.starts_at), ends_at: localInput(props.event.ends_at),
         opportunity_id: props.event.opportunity_id, client_id: props.event.client_id }
-    : { ...emptyForm(props.date), type: props.defaultType ?? 'meeting', opportunity_id: props.opportunityId ?? null,
+    : { ...emptyForm(props.date), type: props.defaultType ?? ('' as EventType), opportunity_id: props.opportunityId ?? null,
         client_id: props.clientId ?? null,
         title: props.opportunityTitle ? `Contato: ${props.opportunityTitle}` : '' }
 }, { immediate: true })
 const title = computed(() => props.event ? 'Editar compromisso' : 'Novo compromisso')
 async function save() {
   if (busy.value || !props.canWrite) return
+  if (!form.value.type || !form.value.status || !form.value.priority) {
+    error.value = 'Selecione o tipo, a situação e a prioridade.'
+    return
+  }
   const start = new Date(form.value.starts_at)
   const end = new Date(form.value.ends_at)
   if (Number.isNaN(start.getTime()) || (!props.event && start <= new Date())) {
@@ -97,7 +104,7 @@ async function remove() {
         </div>
         <FormField id="calendar-title" v-model="form.title" label="Título" maxlength="200" required placeholder="Ex.: Reunião com cliente" />
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Tipo
-          <select v-model="form.type" class="field"><option v-for="type in types" :key="type.value" :value="type.value">{{ type.label }}</option></select>
+          <SearchSelect v-model="form.type" :options="types" placeholder="Selecione o tipo" required />
         </label>
         <div class="grid gap-4 sm:grid-cols-2">
           <FormField id="calendar-start" v-model="form.starts_at" label="Início" type="datetime-local" required />
@@ -106,10 +113,10 @@ async function remove() {
         <label class="flex items-center gap-2 text-sm text-slate-700"><input v-model="form.all_day" type="checkbox" /> Dia inteiro</label>
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block space-y-2 text-sm font-semibold text-slate-700">Situação
-            <select v-model="form.status" class="field"><option value="pending">Pendente</option><option value="completed">Concluído</option><option value="cancelled">Cancelado</option></select>
+            <SearchSelect v-model="form.status" :options="statuses" placeholder="Selecione a situação" required />
           </label>
           <label class="block space-y-2 text-sm font-semibold text-slate-700">Prioridade
-            <select v-model="form.priority" class="field"><option value="low">Baixa</option><option value="normal">Normal</option><option value="high">Alta</option></select>
+            <SearchSelect v-model="form.priority" :options="priorities" placeholder="Selecione a prioridade" required />
           </label>
         </div>
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Descrição
