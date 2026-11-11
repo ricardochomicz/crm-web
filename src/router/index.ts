@@ -6,6 +6,7 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
   routes: [
     { path: '/', redirect: '/app' },
+    { path: '/portal/:tenantId', component: () => import('@/features/customer-portal/views/CustomerPortalView.vue'), meta: { title: 'Portal do Cliente' } },
     { path: '/proposta-comercial/:token', component: () => import('@/features/opportunities/views/PublicProposalView.vue'), meta: { title: 'Proposta comercial' } },
     { path: '/propostas/:token', component: () => import('@/features/opportunities/views/PublicComparisonView.vue'), meta: { title: 'Proposta comparativa' } },
     ...[
