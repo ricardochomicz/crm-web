@@ -13,12 +13,28 @@ const commercialOpen = ref(false)
 const managementOpen = ref(false)
 const settingsOpen = ref(false)
 const futureAppointments = ref<number | null>(null)
+const taskAlerts = ref<{ overdue: number; due_soon: number } | null>(null)
 let requestVersion = 0
 let refreshTimer: ReturnType<typeof setInterval> | undefined
 function dateTime(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join('-') + 'T' + [pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds())].join(':')
 }
+async function refreshTaskAlerts() {
+  const tenantId = props.tenant?.id
+  const version = ++taskRequestVersion
+  if (!tenantId || !can(props.tenant, 'calendar.view')) { taskAlerts.value = null; return }
+  try {
+    const response = await calendarApi.activitiesOverview(tenantId, { scope: 'mine' })
+    if (version === taskRequestVersion) taskAlerts.value = {
+      overdue: response.data.overdue,
+      due_soon: response.data.due_soon,
+    }
+  } catch {
+    if (version === taskRequestVersion) taskAlerts.value = null
+  }
+}
+let taskRequestVersion = 0
 async function refreshAppointmentCount() {
   const tenantId = props.tenant?.id
   const version = ++requestVersion
@@ -34,9 +50,11 @@ async function refreshAppointmentCount() {
 watch(() => [props.tenant?.id, can(props.tenant, 'calendar.view'), route.path], () => {
   futureAppointments.value = null
   void refreshAppointmentCount()
+  taskAlerts.value = null
+  void refreshTaskAlerts()
 }, { immediate: true })
-onMounted(() => { refreshTimer = setInterval(() => { void refreshAppointmentCount() }, 60000) })
-onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer); requestVersion++ })
+onMounted(() => { refreshTimer = setInterval(() => { void refreshAppointmentCount(); void refreshTaskAlerts() }, 60000) })
+onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer); requestVersion++; taskRequestVersion++ })
 const hasPermission = (permission: string) => can(props.tenant, permission)
 const afterSalesOpen = ref(false)
 const isManager = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
@@ -64,7 +82,7 @@ watch(() => route.path, (path) => {
           :aria-current="route.path === `/empresas/${tenant.id}` ? 'page' : undefined"
           ><AppIcon name="grid" class="size-5" />Início</RouterLink
         >
-        <RouterLink v-if="can(tenant, 'calendar.view')" :to="`/empresas/${tenant.id}/atividades`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/atividades') }"><AppIcon name="checkCircle" class="size-5" />Atividades</RouterLink>
+        <RouterLink v-if="can(tenant, 'calendar.view')" :to="`/empresas/${tenant.id}/atividades`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/atividades') }"><AppIcon name="checkCircle" class="size-5" /><span class="flex-1">Atividades</span><span v-if="taskAlerts && taskAlerts.overdue + taskAlerts.due_soon > 0" class="ml-auto inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none" :class="taskAlerts.overdue ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'" :title="`${taskAlerts.overdue} atrasada(s), ${taskAlerts.due_soon} vencendo nas próximas 24 horas`" :aria-label="`${taskAlerts.overdue} atividades atrasadas e ${taskAlerts.due_soon} próximas do vencimento`">{{ taskAlerts.overdue + taskAlerts.due_soon > 99 ? '99+' : taskAlerts.overdue + taskAlerts.due_soon }}</span></RouterLink>
         <RouterLink v-if="can(tenant, 'calendar.view')" :to="`/empresas/${tenant.id}/agenda`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/agenda') }" :aria-current="route.path.endsWith('/agenda') ? 'page' : undefined"><AppIcon name="calendar" class="size-5" /><span class="flex-1">Agenda</span><span v-if="futureAppointments !== null && futureAppointments > 0" class="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold leading-none text-orange-800">{{ futureAppointments > 99 ? "99+" : futureAppointments }}</span></RouterLink>
         <div v-if="canViewTeam(tenant)" class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="teamOpen" @click="teamOpen = !teamOpen"><span class="inline-flex items-center gap-2"><AppIcon name="users" class="size-4" />Equipe</span> <span aria-hidden="true">{{ teamOpen ? '⌄' : '›' }}</span></button>
