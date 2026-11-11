@@ -2,9 +2,11 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
+import { useRouter } from 'vue-router'
 import { activityNotificationsApi, type ActivityNotification } from '../notificationsApi'
 import { request } from '@/lib/http'
 
+const router = useRouter()
 const props = defineProps<{ tenantId: string }>()
 const notifications = ref<ActivityNotification[]>([])
 const unread = ref(0)
@@ -45,6 +47,22 @@ async function markRead(item: ActivityNotification) {
   } catch {
     error.value = 'Não foi possível marcar a notificação como lida.'
   }
+}
+
+async function markAllRead() {
+  if (!unread.value) return
+  try {
+    await activityNotificationsApi.markAllRead(props.tenantId)
+    await refresh()
+  } catch {
+    error.value = 'Não foi possível marcar todas como lidas.'
+  }
+}
+
+async function openActivity(item: ActivityNotification) {
+  if (!item.read_at) await markRead(item)
+  open.value = false
+  await router.push({ path: `/empresas/${props.tenantId}/atividades`, query: { atividade: item.calendar_event_id } })
 }
 
 function disconnect() {
@@ -110,14 +128,14 @@ onUnmounted(disconnect)
       <span v-if="unread" class="absolute -right-1 -top-1 rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white">{{ unread > 99 ? '99+' : unread }}</span>
     </button>
     <section v-if="open" class="absolute right-0 z-50 mt-2 w-[min(22rem,90vw)] overflow-hidden rounded-xl border border-stone-200 bg-white shadow-xl" aria-label="Central de notificações">
-      <div class="flex items-center justify-between border-b px-4 py-3"><h2 class="font-semibold">Notificações</h2><button type="button" class="text-xs text-slate-500 underline" @click="refresh">Atualizar</button></div>
+      <div class="flex items-center justify-between border-b px-4 py-3"><h2 class="font-semibold">Notificações</h2><div class="flex gap-3"><button v-if="unread" type="button" class="text-xs text-orange-700 underline" @click="markAllRead">Marcar todas como lidas</button><button type="button" class="text-xs text-slate-500 underline" @click="refresh">Atualizar</button></div></div>
       <p v-if="error" role="alert" class="px-4 py-3 text-sm text-red-700">{{ error }}</p>
       <p v-if="loading && !notifications.length" class="p-4 text-sm text-slate-500">Carregando…</p>
       <p v-else-if="!notifications.length" class="p-4 text-sm text-slate-500">Nenhuma notificação.</p>
       <ul v-else class="max-h-80 divide-y overflow-y-auto">
         <li v-for="item in notifications" :key="item.id" class="p-3" :class="!item.read_at ? 'bg-orange-50/50' : ''">
           <div class="flex items-start justify-between gap-3">
-            <div><p class="text-sm font-semibold">{{ item.title }}</p><p class="mt-1 text-xs text-slate-600">{{ item.message }}</p><p class="mt-1 text-[11px] text-slate-400">{{ new Date(item.created_at).toLocaleString('pt-BR') }}</p></div>
+            <div><button type="button" class="text-left hover:underline focus-visible:outline-2 focus-visible:outline-orange-600" @click="openActivity(item)"><span class="text-sm font-semibold">{{ item.title }}</span><span class="mt-1 block text-xs text-slate-600">{{ item.message }}</span></button><p class="mt-1 text-[11px] text-slate-400">{{ new Date(item.created_at).toLocaleString('pt-BR') }}</p></div>
             <button v-if="!item.read_at" type="button" class="shrink-0 text-xs font-semibold text-orange-700 underline" @click="markRead(item)">Marcar lida</button>
           </div>
         </li>
