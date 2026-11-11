@@ -11,6 +11,9 @@ export interface PortalOrder {
   monthly_amount: string
   activated_at: string | null
 }
+export interface PortalOrderDetail extends PortalOrder {
+  items: { description: string | null; quantity: number; monthly_unit_amount: string; status: string | null; activated_at: string | null }[]
+}
 export interface PortalOrdersResponse {
   data: PortalOrder[]
   meta: { current_page: number; last_page: number; total: number }
@@ -27,6 +30,10 @@ export const customerPortalApi = {
     }),
   orders: (tenantId: string, token: string, page = 1) =>
     request<PortalOrdersResponse>(`${root(tenantId)}/orders?page=${page}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  order: (tenantId: string, token: string, orderId: string) =>
+    request<{ data: PortalOrderDetail }>(`${root(tenantId)}/orders/${encodeURIComponent(orderId)}`, {
       headers: { Authorization: `Bearer ${token}` },
     }),
   logout: (tenantId: string, token: string) =>
