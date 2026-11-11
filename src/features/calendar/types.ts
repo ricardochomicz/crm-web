@@ -18,6 +18,7 @@ export interface CalendarEvent {
   ends_at: string
 }
 export interface CalendarEventInput {
+  tenant_user_id?: string | null
   opportunity_id?: string | null
   client_id?: string | null
   title: string
