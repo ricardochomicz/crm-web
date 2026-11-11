@@ -176,6 +176,19 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
           <label v-if="canUpdate && detail && !['resolved', 'cancelled'].includes(detail.data.status)" class="block text-sm font-medium">Responsável pelo atendimento<SearchSelect v-model="updateAssignee" :options="memberOptions" /></label>
           <label v-if="canUpdate && detail && !['resolved', 'cancelled'].includes(detail.data.status)" class="block text-sm font-medium">Observação / resolução<textarea v-model="note" class="field mt-1 w-full" rows="3" placeholder="Registre a movimentação…" /></label>
           <p v-if="detail.data.status === 'resolved' && detail.data.resolved_at" class="text-sm text-emerald-700">Resolvido em {{ new Date(detail.data.resolved_at).toLocaleString('pt-BR') }}</p>
+          <section class="border-t border-stone-100 pt-4">
+            <div class="flex items-center justify-between gap-2">
+              <h3 class="font-semibold text-slate-800">Atividades vinculadas</h3>
+              <button v-if="canCreateActivity" type="button" class="secondary-button w-auto" @click="activityProtocol = detail.data; dialogOpen = false">Criar tarefa</button>
+            </div>
+            <p v-if="!detail.activities?.length" class="mt-2 text-sm text-slate-500">Nenhuma atividade vinculada visível para seu usuário.</p>
+            <ul v-else class="mt-3 max-h-56 space-y-2 overflow-auto">
+              <li v-for="activity in detail.activities" :key="activity.id" class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-stone-50 p-3 text-sm">
+                <div><p class="font-semibold text-slate-800">{{ activity.title }}</p><p class="mt-1 text-xs text-slate-500">Prazo: {{ new Date(activity.ends_at).toLocaleString('pt-BR') }}</p></div>
+                <span class="rounded-lg px-2 py-1 text-xs font-semibold" :class="activity.status === 'completed' ? 'bg-emerald-50 text-emerald-700' : activity.status === 'cancelled' ? 'bg-stone-200 text-slate-600' : new Date(activity.ends_at).getTime() < Date.now() ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700'">{{ activity.status === 'completed' ? 'Concluída' : activity.status === 'cancelled' ? 'Cancelada' : new Date(activity.ends_at).getTime() < Date.now() ? 'Atrasada' : 'Pendente' }}</span>
+              </li>
+            </ul>
+          </section>
           <div class="max-h-56 space-y-2 overflow-auto border-t pt-3"><h3 class="font-semibold">Histórico</h3><div v-for="h in detail.history" :key="h.id" class="rounded-lg bg-stone-50 p-3 text-sm"><div class="text-xs text-slate-500">{{ h.actor_name }} · {{ new Date(h.created_at).toLocaleString('pt-BR') }}</div><p>{{ h.from_status ? statuses[h.from_status as ProtocolStatus] : 'Abertura' }} → {{ statuses[h.to_status as ProtocolStatus] }}</p><p v-if="h.note">{{ h.note }}</p></div></div>
         </template>
         <template v-else>
