@@ -2,6 +2,8 @@ import type { TenantRole } from '@/features/tenants/types'
 export type AssignableRole = Exclude<TenantRole, 'OWNER'>
 export interface Member {
   can_manage: boolean
+  can_view_profile: boolean
+  can_edit_profile: boolean
   id: string
   user_id: number
   name: string
