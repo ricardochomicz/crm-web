@@ -30,7 +30,23 @@ const error = ref('')
 const saving = ref(false)
 const dialogOpen = ref(false)
 const detail = ref<ProtocolDetail | null>(null)
-const form = ref<ProtocolInput>({ code: '', client_id: '', title: '', category: 'support', priority: 'normal', description: '', assigned_to_tenant_user_id: currentMemberId.value || null, due_at: null })
+const form = ref<ProtocolInput>({ code: '', client_id: '', title: '', category: '', priority: 'normal', description: '', assigned_to_tenant_user_id: currentMemberId.value || null, due_at: null })
+const slaPreset = ref('')
+const slaOptions = [{ value: '', label: 'Selecionar prazo SLA' }, { value: '24h', label: '24 horas corridas' }, { value: '48h', label: '48 horas corridas' }, { value: '5business', label: '5 dias úteis (sem feriados)' }, { value: 'custom', label: 'Prazo personalizado' }]
+function applySla(value: string) {
+  slaPreset.value = value
+  if (!value || value === 'custom') { form.value.due_at = null; return }
+  const deadline = new Date()
+  if (value === '24h' || value === '48h') deadline.setHours(deadline.getHours() + (value === '24h' ? 24 : 48))
+  else {
+    let days = 0
+    while (days < 5) {
+      deadline.setDate(deadline.getDate() + 1)
+      if (deadline.getDay() !== 0 && deadline.getDay() !== 6) days++
+    }
+  }
+  form.value.due_at = localDateTime(deadline)
+}
 const updateStatus = ref<ProtocolStatus>('open')
 const updateAssignee = ref('')
 const note = ref('')
@@ -45,7 +61,7 @@ const canCreate = computed(() => can(tenant.value, 'after-sales.create'))
 const canUpdate = computed(() => can(tenant.value, 'after-sales.update'))
 const statusOptions = computed(() => [{ value: '', label: 'Todas as situações' }, ...Object.entries(statuses).map(([value, label]) => ({ value, label }))])
 const memberOptions = computed(() => [{ value: '', label: 'Não atribuído' }, ...members.value.map(m => ({ value: m.id, label: m.name }))])
-const categoryOptions = computed(() => Object.entries(categories).map(([value, label]) => ({ value, label })))
+const categoryOptions = computed(() => [{ value: '', label: 'Selecionar categoria' }, ...Object.entries(categories).map(([value, label]) => ({ value, label }))])
 const priorityOptions = computed(() => Object.entries(priorities).map(([value, label]) => ({ value, label })))
 const workflowStatusOptions = computed(() => Object.entries(statuses).map(([value, label]) => ({ value, label })))
 const clientOptions = computed(() => [{ value: '', label: 'Selecione o cliente' }, ...clients.value.map(c => ({ value: c.id, label: c.company_name }))])
@@ -61,6 +77,7 @@ void Promise.all([tenantApi.show(tenantId), protocolApi.options(tenantId)]).then
 void load()
 function newProtocol() {
   detail.value = null
+  slaPreset.value = ''
   form.value = { code: '', client_id: '', title: '', category: 'support', priority: 'normal', description: '', assigned_to_tenant_user_id: currentMemberId.value || null, due_at: null }
   dialogOpen.value = true
 }
@@ -76,6 +93,7 @@ async function openProtocol(p: Protocol) {
   } catch (e) { error.value = errorMessage(e) }
 }
 async function save() {
+  if (!detail.value && !form.value.category) { error.value = 'Selecione uma categoria para o protocolo.'; return }
   saving.value = true; error.value = ''
   try {
     if (detail.value) {
@@ -150,8 +168,10 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
           <label class="block text-sm font-medium">Número do protocolo da operadora<input v-model.trim="form.code" class="field mt-1 w-full" maxlength="40" placeholder="Informe o número fornecido pela operadora" /></label>
           <label class="block text-sm font-medium">Cliente<SearchSelect v-model="form.client_id" :options="clientOptions" placeholder="Selecione o cliente" /></label>
           <label class="block text-sm font-medium">Assunto<input v-model="form.title" class="field mt-1 w-full" maxlength="180" /></label>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-sm font-medium">Categoria<SearchSelect v-model="form.category" :options="categoryOptions" /></label><label class="text-sm font-medium">Prioridade<SearchSelect v-model="form.priority" :options="priorityOptions" /></label></div>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-sm font-medium">Categoria<SearchSelect v-model="form.category" :options="categoryOptions" placeholder="Selecionar categoria" /></label><label class="text-sm font-medium">Prioridade<SearchSelect v-model="form.priority" :options="priorityOptions" /></label></div>
           <label class="block text-sm font-medium">Responsável pelo atendimento (você por padrão)<SearchSelect v-model="form.assigned_to_tenant_user_id" :options="memberOptions" placeholder="Selecione o responsável" /></label>
+          <label class="block text-sm font-medium">SLA do protocolo<SearchSelect :model-value="slaPreset" :options="slaOptions" placeholder="Selecionar prazo SLA" @update:model-value="applySla" /></label>
+          <p v-if="slaPreset === '5business'" class="text-xs text-amber-700">Dias úteis consideram segunda a sexta-feira, sem descontar feriados. Ajuste o vencimento se necessário.</p>
           <label class="block text-sm font-medium">Prazo de tratamento <span class="font-normal text-slate-400">(opcional)</span><input v-model="form.due_at" type="datetime-local" class="field mt-1 w-full" /></label>
           <label class="block text-sm font-medium">Descrição<textarea v-model="form.description" class="field mt-1 w-full" rows="4" /></label>
         </template>
