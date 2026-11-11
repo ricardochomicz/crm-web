@@ -9,7 +9,10 @@ export const calendarApi = {
   },
   activities(tenantId: string, filters: { scope: 'mine' | 'team'; status: string; search?: string; page: number; per_page: number }) {
     const query = new URLSearchParams()
-    for (const [key, value] of Object.entries(filters)) query.set(key, String(value))
+    for (const [key, value] of Object.entries(filters)) {
+      if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) continue
+      query.set(key, String(value))
+    }
     return request<{ data: CalendarEvent[]; meta: { current_page: number; last_page: number; total: number; per_page: number } }>(
       `/api/v1/tenants/${encodeURIComponent(tenantId)}/activities?${query}`,
     )
