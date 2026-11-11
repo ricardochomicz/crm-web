@@ -6,7 +6,7 @@ import { calendarApi } from '../api'
 import { errorMessage } from '@/lib/feedback'
 import type { CalendarEvent, CalendarEventInput, EventType } from '../types'
 
-const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean; canDelete: boolean; opportunityId?: string; clientId?: string; opportunityTitle?: string }>()
+const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean; canDelete: boolean; opportunityId?: string; clientId?: string; opportunityTitle?: string; defaultType?: EventType }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const busy = ref(false)
 const error = ref('')
@@ -43,7 +43,7 @@ watch(() => [props.open, props.event, props.date] as const, () => {
         status: props.event.status, priority: props.event.priority, all_day: props.event.all_day,
         starts_at: localInput(props.event.starts_at), ends_at: localInput(props.event.ends_at),
         opportunity_id: props.event.opportunity_id, client_id: props.event.client_id }
-    : { ...emptyForm(props.date), opportunity_id: props.opportunityId ?? null,
+    : { ...emptyForm(props.date), type: props.defaultType ?? 'meeting', opportunity_id: props.opportunityId ?? null,
         client_id: props.clientId ?? null,
         title: props.opportunityTitle ? `Contato: ${props.opportunityTitle}` : '' }
 }, { immediate: true })
