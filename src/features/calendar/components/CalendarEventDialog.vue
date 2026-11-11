@@ -5,6 +5,7 @@ import SearchSelect from '@/components/ui/SearchSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
 import { calendarApi } from '../api'
 import { clientsApi, type Client } from '@/features/clients/api'
+import { opportunitiesApi, type Opportunity } from '@/features/opportunities/api'
 import { errorMessage } from '@/lib/feedback'
 import type { CalendarEvent, CalendarEventInput, EventType, EventStatus, EventPriority } from '../types'
 
@@ -14,6 +15,9 @@ const busy = ref(false)
 const error = ref('')
 const clients = ref<Client[]>([])
 const clientsLoading = ref(false)
+const opportunities = ref<Opportunity[]>([])
+const opportunitiesLoading = ref(false)
+const opportunityOptions = computed(() => opportunities.value.map(item => ({ value: item.id, label: item.code + ' · ' + item.title })))
 const clientOptions = computed(() => clients.value.map(client => ({ value: client.id, label: client.company_name })))
 const lockedLink = computed(() => !!props.opportunityId || !!props.clientId)
 watch(() => [props.open, props.tenantId] as const, async ([open, tenantId]) => {
@@ -24,6 +28,34 @@ watch(() => [props.open, props.tenantId] as const, async ([open, tenantId]) => {
   finally { clientsLoading.value = false }
 }, { immediate: true })
 const form = ref<CalendarEventInput>(emptyForm(''))
+
+let opportunitiesRequest = 0
+watch(() => [props.open, props.tenantId, form.value.client_id] as const, async ([open, tenantId, clientId]) => {
+  const version = ++opportunitiesRequest
+  opportunities.value = []
+  if (!open || !tenantId || !clientId) return
+  opportunitiesLoading.value = true
+  try {
+    const results: Opportunity[] = []
+    let page = 1
+    let lastPage = 1
+    do {
+      const response = await opportunitiesApi.list(tenantId, { client_id: clientId, page })
+      if (version !== opportunitiesRequest) return
+      results.push(...response.data)
+      lastPage = response.last_page
+      page++
+    } while (page <= lastPage && page <= 50)
+    if (version === opportunitiesRequest) opportunities.value = results
+    if (page <= lastPage && version === opportunitiesRequest) error.value = 'Limite de oportunidades exibidas. Utilize o cadastro da oportunidade para vincular diretamente.'
+  } catch (e) { if (version === opportunitiesRequest) error.value = 'Não foi possível carregar as oportunidades: ' + errorMessage(e) }
+  finally { if (version === opportunitiesRequest) opportunitiesLoading.value = false }
+}, { immediate: true })
+function changeClient(value: string | number) {
+  form.value.client_id = String(value || '') || null
+  form.value.opportunity_id = null
+}
+
 const types: { value: EventType; label: string }[] = [
   { value: 'meeting', label: 'Reunião' }, { value: 'call', label: 'Ligação' },
   { value: 'visit', label: 'Visita' }, { value: 'task', label: 'Tarefa' },
@@ -87,6 +119,7 @@ async function save() {
         title: form.value.title, description: form.value.description, type: form.value.type,
         status: form.value.status, priority: form.value.priority, all_day: form.value.all_day,
         client_id: form.value.client_id || null,
+        opportunity_id: form.value.opportunity_id || null,
       }
       if (form.value.starts_at !== localInput(props.event.starts_at)) changes.starts_at = form.value.starts_at
       if (form.value.ends_at !== localInput(props.event.ends_at)) changes.ends_at = form.value.ends_at
@@ -120,8 +153,12 @@ async function remove() {
           <p v-if="!event?.client_name && !opportunityTitle && !event?.opportunity_title" class="text-orange-700">Vinculado ao cadastro do cliente ou à oportunidade.</p>
         </div>
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Cliente (opcional)
-          <SearchSelect v-model="form.client_id" :options="clientOptions" placeholder="Selecione o cliente" :disabled="clientsLoading || lockedLink || !!form.opportunity_id" clearable />
+          <SearchSelect :model-value="form.client_id ?? ''" :options="clientOptions" placeholder="Selecione o cliente" :disabled="clientsLoading || lockedLink" @update:model-value="changeClient" />
           <span v-if="clientsLoading" class="text-xs font-normal text-slate-500">Carregando clientes…</span>
+        </label>
+        <label class="block space-y-2 text-sm font-semibold text-slate-700">Oportunidade (opcional)
+          <SearchSelect v-model="form.opportunity_id" :options="opportunityOptions" :placeholder="form.client_id ? 'Selecione a oportunidade' : 'Selecione primeiro um cliente'" :disabled="!form.client_id || opportunitiesLoading || lockedLink" />
+          <span v-if="opportunitiesLoading" class="text-xs font-normal text-slate-500">Carregando oportunidades…</span>
         </label>
         <FormField id="calendar-title" v-model="form.title" label="Título" maxlength="200" required placeholder="Ex.: Reunião com cliente" />
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Tipo
