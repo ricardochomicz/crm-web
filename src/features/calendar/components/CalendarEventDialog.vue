@@ -29,7 +29,7 @@ function nextAvailable(date: string): string {
 function emptyForm(date: string): CalendarEventInput {
   const start = nextAvailable(date)
   const end = localInput(new Date(new Date(start).getTime() + 3600000).toISOString())
-  return { title: '', description: null, type: '' as EventType, status: '' as EventStatus, priority: '' as EventPriority, all_day: false,
+  return { title: '', description: null, type: '' as EventType, status: 'pending', priority: 'normal', all_day: false,
     starts_at: start, ends_at: end }
 }
 function localInput(value: string): string {
