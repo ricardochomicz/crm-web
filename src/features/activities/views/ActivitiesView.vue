@@ -7,6 +7,7 @@ import ListFilters from '@/components/ui/ListFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import CalendarEventHistoryDialog from '@/features/calendar/components/CalendarEventHistoryDialog.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import { calendarApi } from '@/features/calendar/api'
 import type { CalendarEvent } from '@/features/calendar/types'
@@ -26,6 +27,7 @@ const search = ref('')
 const appliedSearch = ref('')
 const dialogOpen = ref(false)
 const selected = ref<CalendarEvent | null>(null)
+const historyEvent = ref<CalendarEvent | null>(null)
 const now = ref(Date.now())
 const page = ref(1)
 const pagination = ref({ current_page: 1, last_page: 1, total: 0, per_page: 20 })
@@ -107,13 +109,14 @@ function saved() { dialogOpen.value = false; toast.success('Atividade salva.'); 
             <td class="p-4 text-sm" :class="isOverdue(event) ? 'font-semibold text-red-700' : ''">{{ dateLabel(event.ends_at) }}</td>
             <td class="p-4 text-sm">{{ event.priority === 'high' ? 'Alta' : event.priority === 'low' ? 'Baixa' : 'Normal' }}</td>
             <td class="p-4"><span class="rounded-lg px-3 py-1 text-xs font-semibold" :class="isOverdue(event) ? 'bg-red-50 text-red-700' : event.status === 'completed' ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'">{{ isOverdue(event) ? 'Atrasada' : event.status === 'completed' ? 'Concluída' : event.status === 'cancelled' ? 'Cancelada' : 'Pendente' }}</span></td>
-            <td class="p-4 text-right"><div v-if="scope === 'mine'" class="flex justify-end gap-2"><button v-if="canEdit && event.status === 'pending'" class="secondary-button w-auto" @click="complete(event)">Concluir</button><button class="secondary-button w-auto" @click="edit(event)">{{ canEdit ? 'Editar' : 'Detalhes' }}</button></div></td>
+            <td class="p-4 text-right"><div v-if="scope === 'mine'" class="flex justify-end gap-2"><button v-if="canEdit && event.status === 'pending'" class="secondary-button w-auto" @click="complete(event)">Concluir</button><button class="secondary-button w-auto" @click="edit(event)">{{ canEdit ? 'Editar' : 'Detalhes' }}</button><button type="button" class="secondary-button w-auto" @click="historyEvent = event">Histórico</button></div></td>
           </tr>
         </tbody>
       </ListTable>
       <p v-if="!visible.length" class="p-6 text-center text-sm text-slate-500">Nenhuma atividade encontrada.</p>
     </section>
     <PagePagination v-if="!loading && !error" :page="page" :last-page="pagination.last_page" :total="pagination.total" :per-page="pagination.per_page" @change="changePage" />
+    <CalendarEventHistoryDialog :open="!!historyEvent" :tenant-id="tenantId" :event-id="historyEvent?.id ?? null" :title="historyEvent?.title" @close="historyEvent = null" />
     <CalendarEventDialog :open="dialogOpen" :tenant-id="tenantId" :event="selected" :date="''" :default-type="'task'" :can-write="(canEdit && !!selected) || (canCreate && !selected)" :can-delete="canDelete" @close="dialogOpen = false" @saved="saved" />
   </AppShell>
 </template>
