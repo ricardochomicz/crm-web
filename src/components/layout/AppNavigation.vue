@@ -53,8 +53,19 @@ watch(() => [props.tenant?.id, can(props.tenant, 'calendar.view'), route.path], 
   taskAlerts.value = null
   void refreshTaskAlerts()
 }, { immediate: true })
-onMounted(() => { refreshTimer = setInterval(() => { void refreshAppointmentCount(); void refreshTaskAlerts() }, 60000) })
-onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer); requestVersion++; taskRequestVersion++ })
+function onNotificationChange(event: Event) {
+  if ((event as CustomEvent<{ tenantId: string }>).detail?.tenantId === props.tenant?.id) void refreshTaskAlerts()
+}
+onMounted(() => {
+  window.addEventListener('activity-notifications:changed', onNotificationChange)
+  refreshTimer = setInterval(() => { void refreshAppointmentCount(); void refreshTaskAlerts() }, 60000)
+})
+onUnmounted(() => {
+  window.removeEventListener('activity-notifications:changed', onNotificationChange)
+  if (refreshTimer) clearInterval(refreshTimer)
+  requestVersion++
+  taskRequestVersion++
+})
 const hasPermission = (permission: string) => can(props.tenant, permission)
 const afterSalesOpen = ref(false)
 const isManager = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
