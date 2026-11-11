@@ -3,6 +3,10 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
+import ListFilters from '@/components/ui/ListFilters.vue'
+import ListTable from '@/components/ui/ListTable.vue'
+import PagePagination from '@/components/ui/PagePagination.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import { calendarApi } from '@/features/calendar/api'
 import type { CalendarEvent } from '@/features/calendar/types'
@@ -19,6 +23,7 @@ const error = ref('')
 const scope = ref<'mine' | 'team'>('mine')
 const filter = ref<'pending' | 'overdue' | 'completed' | 'all'>('pending')
 const search = ref('')
+const appliedSearch = ref('')
 const dialogOpen = ref(false)
 const selected = ref<CalendarEvent | null>(null)
 const now = ref(Date.now())
@@ -41,7 +46,7 @@ async function load() {
   error.value = ''
   try {
     // Reutiliza a agenda existente: nenhum segundo cadastro de tarefas é criado.
-    const response = await calendarApi.activities(tenantId, { scope: scope.value, status: filter.value, search: search.value.trim(), page: page.value, per_page: 20 })
+    const response = await calendarApi.activities(tenantId, { scope: scope.value, status: filter.value, search: appliedSearch.value, page: page.value, per_page: 20 })
     if (current === version) {
       events.value = response.data
       pagination.value = response.meta
@@ -52,7 +57,9 @@ async function load() {
 }
 watch([scope, filter], () => { page.value = 1; void load() }, { immediate: true })
 watch(page, () => { void load() })
-function submitSearch() { page.value = 1; void load() }
+function submitSearch() { appliedSearch.value = search.value.trim(); page.value = 1; void load() }
+function clearFilters() { search.value = ''; appliedSearch.value = ''; filter.value = 'all'; scope.value = 'mine'; page.value = 1; void load() }
+function changePage(value: number) { if (value >= 1 && value <= pagination.value.last_page) page.value = value }
 void tenantApi.show(tenantId).then(r => { tenant.value = r.data }).catch(e => { error.value = errorMessage(e) })
 function create() { selected.value = null; dialogOpen.value = true }
 function edit(event: CalendarEvent) { if (scope.value !== 'mine') return; selected.value = event; dialogOpen.value = true }
@@ -69,43 +76,44 @@ function saved() { dialogOpen.value = false; toast.success('Atividade salva.'); 
 
 <template>
   <AppShell :tenant="tenant" title="Central de atividades" subtitle="Produtividade e acompanhamento">
-    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-      <div><h1 class="text-2xl font-bold text-slate-800">Minhas atividades</h1><p class="mt-1 text-sm text-slate-500">Tarefas e lembretes vinculados à sua agenda comercial.</p></div>
+    <header class="mb-7 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <p class="eyebrow">PRODUTIVIDADE</p>
+        <h1 class="mt-3 text-3xl font-semibold">Central de atividades</h1>
+        <p class="mt-2 text-sm text-slate-500">Acompanhe tarefas e lembretes da operação comercial.</p>
+      </div>
       <button v-if="canCreate && scope === 'mine'" class="primary-button w-auto" @click="create">+ Nova tarefa</button>
-    </div>
+    </header>
     <div class="mb-5 grid gap-3 sm:grid-cols-3">
-      <button class="rounded-xl border border-stone-200 bg-white p-4 text-left shadow-sm" @click="filter = 'pending'"><span class="text-xs text-slate-500">Pendentes nesta página</span><strong class="mt-1 block text-2xl text-slate-800">{{ pending }}</strong></button>
-      <button class="rounded-xl border border-orange-200 bg-orange-50 p-4 text-left" @click="filter = 'overdue'"><span class="text-xs text-orange-800">Atrasadas nesta página</span><strong class="mt-1 block text-2xl text-orange-800">{{ overdue }}</strong></button>
-      <button class="rounded-xl border border-stone-200 bg-white p-4 text-left shadow-sm" @click="filter = 'completed'"><span class="text-xs text-slate-500">Concluídas nesta página</span><strong class="mt-1 block text-2xl text-slate-800">{{ completed }}</strong></button>
+      <button v-for="item in [{ key: 'pending', label: 'Pendentes nesta página', count: pending }, { key: 'overdue', label: 'Atrasadas nesta página', count: overdue }, { key: 'completed', label: 'Concluídas nesta página', count: completed }]" :key="item.key" type="button" class="rounded-2xl border bg-white p-4 text-left shadow-sm transition hover:border-orange-300" :class="filter === item.key ? 'border-orange-500 ring-1 ring-orange-200' : 'border-stone-200'" @click="filter = item.key as typeof filter">
+        <p class="text-sm text-slate-500">{{ item.label }}</p><p class="mt-2 text-2xl font-semibold text-slate-800">{{ item.count }}</p>
+      </button>
     </div>
-    <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-stone-200 bg-white p-3">
-      <input v-model="search" @keyup.enter="submitSearch" class="field min-w-48 flex-1" aria-label="Buscar atividades" placeholder="Buscar por título, cliente ou oportunidade" />
-      <select v-model="filter" class="field w-auto" aria-label="Filtrar situação"><option value="pending">Pendentes</option><option value="overdue">Atrasadas</option><option value="completed">Concluídas</option><option value="all">Todas</option></select>
-      <select v-if="canTeam" v-model="scope" class="field w-auto" aria-label="Visualização"><option value="mine">Minhas</option><option value="team">Equipe</option></select>
-      <button class="secondary-button" :disabled="loading" @click="submitSearch">Buscar</button>
-    </div>
+    <ListFilters :count-label="pagination.total + ' atividade(s) encontrada(s)'" :columns="3" collapsible :initially-collapsed="true" @search="submitSearch" @clear="clearFilters">
+      <div><label class="mb-1 block text-xs font-semibold text-slate-600">Título, cliente ou oportunidade</label><input v-model="search" class="field w-full" placeholder="Pesquisar atividades" @keyup.enter="submitSearch" /></div>
+      <div><label class="mb-1 block text-xs font-semibold text-slate-600">Situação</label><SearchSelect v-model="filter" :options="[{ value: 'all', label: 'Todas as situações' }, { value: 'pending', label: 'Pendentes' }, { value: 'overdue', label: 'Atrasadas' }, { value: 'completed', label: 'Concluídas' }, { value: 'cancelled', label: 'Canceladas' }]" /></div>
+      <div v-if="canTeam"><label class="mb-1 block text-xs font-semibold text-slate-600">Visualização</label><SearchSelect v-model="scope" :options="[{ value: 'mine', label: 'Minhas atividades' }, { value: 'team', label: 'Atividades da equipe' }]" /></div>
+    </ListFilters>
     <AsyncNotice :loading="loading" :error="error" label="Carregando atividades…" @retry="load" />
-    <div v-if="!loading && !error" class="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
-      <p v-if="!visible.length" class="p-8 text-center text-sm text-slate-500">Nenhuma atividade encontrada para os filtros selecionados.</p>
-      <div v-for="event in visible" :key="event.id" class="flex flex-wrap items-center justify-between gap-4 border-b border-stone-100 p-4 last:border-0">
-        <div class="min-w-0 flex-1">
-          <div class="flex flex-wrap items-center gap-2"><strong class="text-sm text-slate-800">{{ event.title }}</strong><span class="rounded-full px-2 py-0.5 text-xs" :class="isOverdue(event) ? 'bg-red-50 text-red-700' : event.status === 'completed' ? 'bg-green-50 text-green-700' : 'bg-stone-100 text-slate-600'">{{ isOverdue(event) ? 'Atrasada' : event.status === 'completed' ? 'Concluída' : event.status === 'cancelled' ? 'Cancelada' : 'Pendente' }}</span><span v-if="event.priority === 'high'" class="text-xs font-semibold text-orange-700">Alta prioridade</span></div>
-          <p class="mt-1 text-xs text-slate-500">Prazo: {{ dateLabel(event.ends_at) }}<span v-if="event.client_name"> · {{ event.client_name }}</span><span v-if="event.opportunity_title"> · {{ event.opportunity_title }}</span></p>
-          <p v-if="event.description" class="mt-1 line-clamp-2 text-sm text-slate-600">{{ event.description }}</p>
-        </div>
-        <div v-if="scope === 'mine'" class="flex gap-2">
-          <button v-if="canEdit && event.status === 'pending'" class="secondary-button" @click="complete(event)">Concluir</button>
-          <button class="secondary-button" @click="edit(event)">{{ canEdit ? 'Editar' : 'Ver detalhes' }}</button>
-        </div>
-      </div>
-    </div>
-    <div v-if="!loading && !error" class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
-      <span>{{ pagination.total }} atividade(s) · Página {{ pagination.current_page }} de {{ pagination.last_page }}</span>
-      <div class="flex gap-2">
-        <button class="secondary-button" :disabled="page <= 1" @click="page--">Anterior</button>
-        <button class="secondary-button" :disabled="page >= pagination.last_page" @click="page++">Próxima</button>
-      </div>
-    </div>
-    <CalendarEventDialog :open="dialogOpen" :tenant-id="tenantId" :event="selected" :date="''" :default-type="'task'" :can-write="canEdit && !!selected || canCreate && !selected" :can-delete="canDelete" @close="dialogOpen = false" @saved="saved" />
+    <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+      <ListTable min-width="750px">
+        <thead class="bg-stone-50 text-xs font-semibold uppercase text-slate-500">
+          <tr><th class="p-4">Atividade</th><th class="p-4">Cliente / Oportunidade</th><th class="p-4">Prazo</th><th class="p-4">Prioridade</th><th class="p-4">Situação</th><th class="p-4 text-right">Ações</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="event in visible" :key="event.id" class="border-t border-stone-100">
+            <td class="p-4"><p class="font-semibold text-slate-800">{{ event.title }}</p><p v-if="event.description" class="mt-1 line-clamp-2 text-xs text-slate-500">{{ event.description }}</p></td>
+            <td class="p-4 text-sm">{{ event.client_name || '—' }}<p v-if="event.opportunity_title" class="text-xs text-slate-500">{{ event.opportunity_title }}</p></td>
+            <td class="p-4 text-sm" :class="isOverdue(event) ? 'font-semibold text-red-700' : ''">{{ dateLabel(event.ends_at) }}</td>
+            <td class="p-4 text-sm">{{ event.priority === 'high' ? 'Alta' : event.priority === 'low' ? 'Baixa' : 'Normal' }}</td>
+            <td class="p-4"><span class="rounded-lg px-3 py-1 text-xs font-semibold" :class="isOverdue(event) ? 'bg-red-50 text-red-700' : event.status === 'completed' ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'">{{ isOverdue(event) ? 'Atrasada' : event.status === 'completed' ? 'Concluída' : event.status === 'cancelled' ? 'Cancelada' : 'Pendente' }}</span></td>
+            <td class="p-4 text-right"><div v-if="scope === 'mine'" class="flex justify-end gap-2"><button v-if="canEdit && event.status === 'pending'" class="secondary-button w-auto" @click="complete(event)">Concluir</button><button class="secondary-button w-auto" @click="edit(event)">{{ canEdit ? 'Editar' : 'Detalhes' }}</button></div></td>
+          </tr>
+        </tbody>
+      </ListTable>
+      <p v-if="!visible.length" class="p-6 text-center text-sm text-slate-500">Nenhuma atividade encontrada.</p>
+    </section>
+    <PagePagination v-if="!loading && !error" :page="page" :last-page="pagination.last_page" :total="pagination.total" :per-page="pagination.per_page" @change="changePage" />
+    <CalendarEventDialog :open="dialogOpen" :tenant-id="tenantId" :event="selected" :date="''" :default-type="'task'" :can-write="(canEdit && !!selected) || (canCreate && !selected)" :can-delete="canDelete" @close="dialogOpen = false" @saved="saved" />
   </AppShell>
 </template>
