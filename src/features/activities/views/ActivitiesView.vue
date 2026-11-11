@@ -22,22 +22,14 @@ const search = ref('')
 const dialogOpen = ref(false)
 const selected = ref<CalendarEvent | null>(null)
 const now = ref(Date.now())
+const page = ref(1)
+const pagination = ref({ current_page: 1, last_page: 1, total: 0, per_page: 20 })
 const canCreate = computed(() => can(tenant.value, 'calendar.create') && !!tenant.value?.access?.allows_operational_writes)
 const canEdit = computed(() => can(tenant.value, 'calendar.update') && !!tenant.value?.access?.allows_operational_writes)
 const canDelete = computed(() => can(tenant.value, 'calendar.delete') && !!tenant.value?.access?.allows_operational_writes)
 const canTeam = computed(() => can(tenant.value, 'calendar.team.view'))
 const isOverdue = (event: CalendarEvent) => event.status === 'pending' && new Date(event.ends_at).getTime() < now.value
-const visible = computed(() => events.value.filter(event => {
-  if (filter.value === 'pending' && event.status !== 'pending') return false
-  if (filter.value === 'overdue' && !isOverdue(event)) return false
-  if (filter.value === 'completed' && event.status !== 'completed') return false
-  const query = search.value.trim().toLocaleLowerCase('pt-BR')
-  return !query || [event.title, event.description, event.client_name, event.opportunity_title].some(value => value?.toLocaleLowerCase('pt-BR').includes(query))
-}).sort((a, b) => {
-  if (a.status === 'pending' && b.status !== 'pending') return -1
-  if (b.status === 'pending' && a.status !== 'pending') return 1
-  return new Date(a.ends_at).getTime() - new Date(b.ends_at).getTime()
-}))
+const visible = computed(() => events.value)
 const pending = computed(() => events.value.filter(e => e.status === 'pending').length)
 const overdue = computed(() => events.value.filter(isOverdue).length)
 const completed = computed(() => events.value.filter(e => e.status === 'completed').length)
@@ -49,15 +41,18 @@ async function load() {
   error.value = ''
   try {
     // Reutiliza a agenda existente: nenhum segundo cadastro de tarefas é criado.
-    const response = await calendarApi.list(tenantId, '2000-01-01T00:00:00', '2100-01-01T00:00:00', scope.value)
+    const response = await calendarApi.activities(tenantId, { scope: scope.value, status: filter.value, search: search.value.trim(), page: page.value, per_page: 20 })
     if (current === version) {
-      events.value = response.data.filter(e => e.type === 'task' || e.type === 'reminder')
+      events.value = response.data
+      pagination.value = response.meta
       now.value = Date.now()
     }
   } catch (e) { if (current === version) error.value = errorMessage(e) }
   finally { if (current === version) loading.value = false }
 }
-watch(scope, () => { void load() }, { immediate: true })
+watch([scope, filter], () => { page.value = 1; void load() }, { immediate: true })
+watch(page, () => { void load() })
+function submitSearch() { page.value = 1; void load() }
 void tenantApi.show(tenantId).then(r => { tenant.value = r.data }).catch(e => { error.value = errorMessage(e) })
 function create() { selected.value = null; dialogOpen.value = true }
 function edit(event: CalendarEvent) { if (scope.value !== 'mine') return; selected.value = event; dialogOpen.value = true }
@@ -79,15 +74,15 @@ function saved() { dialogOpen.value = false; toast.success('Atividade salva.'); 
       <button v-if="canCreate && scope === 'mine'" class="primary-button w-auto" @click="create">+ Nova tarefa</button>
     </div>
     <div class="mb-5 grid gap-3 sm:grid-cols-3">
-      <button class="rounded-xl border border-stone-200 bg-white p-4 text-left shadow-sm" @click="filter = 'pending'"><span class="text-xs text-slate-500">Pendentes</span><strong class="mt-1 block text-2xl text-slate-800">{{ pending }}</strong></button>
-      <button class="rounded-xl border border-orange-200 bg-orange-50 p-4 text-left" @click="filter = 'overdue'"><span class="text-xs text-orange-800">Atrasadas</span><strong class="mt-1 block text-2xl text-orange-800">{{ overdue }}</strong></button>
-      <button class="rounded-xl border border-stone-200 bg-white p-4 text-left shadow-sm" @click="filter = 'completed'"><span class="text-xs text-slate-500">Concluídas</span><strong class="mt-1 block text-2xl text-slate-800">{{ completed }}</strong></button>
+      <button class="rounded-xl border border-stone-200 bg-white p-4 text-left shadow-sm" @click="filter = 'pending'"><span class="text-xs text-slate-500">Pendentes nesta página</span><strong class="mt-1 block text-2xl text-slate-800">{{ pending }}</strong></button>
+      <button class="rounded-xl border border-orange-200 bg-orange-50 p-4 text-left" @click="filter = 'overdue'"><span class="text-xs text-orange-800">Atrasadas nesta página</span><strong class="mt-1 block text-2xl text-orange-800">{{ overdue }}</strong></button>
+      <button class="rounded-xl border border-stone-200 bg-white p-4 text-left shadow-sm" @click="filter = 'completed'"><span class="text-xs text-slate-500">Concluídas nesta página</span><strong class="mt-1 block text-2xl text-slate-800">{{ completed }}</strong></button>
     </div>
     <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-stone-200 bg-white p-3">
-      <input v-model="search" class="field min-w-48 flex-1" aria-label="Buscar atividades" placeholder="Buscar por título, cliente ou oportunidade" />
+      <input v-model="search" @keyup.enter="submitSearch" class="field min-w-48 flex-1" aria-label="Buscar atividades" placeholder="Buscar por título, cliente ou oportunidade" />
       <select v-model="filter" class="field w-auto" aria-label="Filtrar situação"><option value="pending">Pendentes</option><option value="overdue">Atrasadas</option><option value="completed">Concluídas</option><option value="all">Todas</option></select>
       <select v-if="canTeam" v-model="scope" class="field w-auto" aria-label="Visualização"><option value="mine">Minhas</option><option value="team">Equipe</option></select>
-      <button class="secondary-button" :disabled="loading" @click="load">Atualizar</button>
+      <button class="secondary-button" :disabled="loading" @click="submitSearch">Buscar</button>
     </div>
     <AsyncNotice :loading="loading" :error="error" label="Carregando atividades…" @retry="load" />
     <div v-if="!loading && !error" class="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
@@ -102,6 +97,13 @@ function saved() { dialogOpen.value = false; toast.success('Atividade salva.'); 
           <button v-if="canEdit && event.status === 'pending'" class="secondary-button" @click="complete(event)">Concluir</button>
           <button class="secondary-button" @click="edit(event)">{{ canEdit ? 'Editar' : 'Ver detalhes' }}</button>
         </div>
+      </div>
+    </div>
+    <div v-if="!loading && !error" class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+      <span>{{ pagination.total }} atividade(s) · Página {{ pagination.current_page }} de {{ pagination.last_page }}</span>
+      <div class="flex gap-2">
+        <button class="secondary-button" :disabled="page <= 1" @click="page--">Anterior</button>
+        <button class="secondary-button" :disabled="page >= pagination.last_page" @click="page++">Próxima</button>
       </div>
     </div>
     <CalendarEventDialog :open="dialogOpen" :tenant-id="tenantId" :event="selected" :date="''" :default-type="'task'" :can-write="canEdit && !!selected || canCreate && !selected" :can-delete="canDelete" @close="dialogOpen = false" @saved="saved" />
