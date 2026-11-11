@@ -4,11 +4,11 @@ import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import ProductivityDashboard from '../components/ProductivityDashboard.vue'
 import { useProductivity } from '../composables/useProductivity'
-import { useTenant } from '@/features/tenants/composables/useTenant'
+import { useTenantDashboard } from '@/features/tenants/composables/useTenantDashboard'
 
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId ?? ''))
-const { tenant } = useTenant(tenantId)
+const { tenant } = useTenantDashboard(tenantId)
 const { from, to, consultantId, data, loading, error, rows, search, clear } = useProductivity(tenantId)
 </script>
 
