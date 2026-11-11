@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { computed } from 'vue'
 import ListTable from '@/components/ui/ListTable.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { roleLabels } from '@/features/tenants/types'
 import { dateLabel } from '@/lib/feedback'
 import type { Member, TeamAction } from '../types'
-const props = const props = defineProps<{
+const props = defineProps<{
   members: Member[]
   canWrite: boolean
   canViewProfiles: boolean
@@ -19,8 +18,7 @@ const props = const props = defineProps<{
   userId?: number
 }>()
 defineEmits<{ action: [action: TeamAction]; profile: [member: Member] }>()
-const isManager = computed(() => props.members.some(member => member.user_id === props.userId && ['OWNER', 'MANAGER'].includes(member.role)))
-const canOpenProfile = (member: Member) => props.canViewProfiles && (member.user_id === props.userId || (isManager.value && member.can_manage))
+const canOpenProfile = (member: Member) => member.can_view_profile
 const isManager = computed(() => props.members.some(member => member.user_id === props.userId && ['OWNER', 'MANAGER'].includes(member.role)))
 const canOpenProfile = (member: Member) => props.canViewProfiles && (member.user_id === props.userId || (isManager.value && member.can_manage))
 </script>
@@ -73,7 +71,7 @@ const canOpenProfile = (member: Member) => props.canViewProfiles && (member.user
               v-if="canOpenProfile(member) || (member.can_manage && (canChangeRole || canChangeStatus || canRemove))"
               class="flex justify-end gap-2"
             >
-              <TableActionButton v-if="canOpenProfile(member)" icon="edit" :label="`${canEditProfiles ? 'Editar' : 'Visualizar'} cadastro de ${member.name}`" :disabled="busy" @click="$emit('profile', member)" />
+              <TableActionButton v-if="canOpenProfile(member)" icon="edit" :label="`${member.can_edit_profile ? 'Editar' : 'Visualizar'} cadastro de ${member.name}`" :disabled="busy" @click="$emit('profile', member)" />
               <TableActionButton v-if="member.can_manage && canChangeRole" icon="shield" :label="`Alterar cargo de ${member.name}`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'role', member })" />
               <TableActionButton v-if="member.can_manage && canChangeStatus" :icon="member.status === 'ACTIVE' ? 'pause' : 'play'" :label="`${member.status === 'ACTIVE' ? 'Suspender' : 'Reativar'} ${member.name}`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'status', member })" />
               <TableActionButton v-if="member.can_manage && canRemove" icon="user-x" tone="danger" :label="`Desvincular ${member.name} da empresa`" :disabled="!canWrite || busy" @click="$emit('action', { kind: 'remove', member })" />
