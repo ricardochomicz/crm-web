@@ -17,6 +17,7 @@ export interface PortalOrderDetail extends PortalOrder {
   items: { description: string | null; line_number: string | null; quantity: number; monthly_unit_amount: string; status: string | null; activated_at: string | null }[]
 }
 export interface PortalOrdersResponse {
+  client_name: string | null
   data: PortalOrder[]
   meta: { current_page: number; last_page: number; total: number }
 }
@@ -27,7 +28,7 @@ export const customerPortalApi = {
       method: 'POST', body: JSON.stringify({ document }),
     }),
   verify: (challenge: string, code: string) =>
-    request<{ data: { tenant_id: string; token: string; expires_at: string } }>('/api/v1/public/customer-portal/verify', {
+    request<{ data: { tenant_id: string; client_name: string | null; token: string; expires_at: string } }>('/api/v1/public/customer-portal/verify', {
       method: 'POST', body: JSON.stringify({ challenge, code }),
     }),
   orders: (tenantId: string, token: string, page = 1) =>
