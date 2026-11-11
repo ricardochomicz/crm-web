@@ -4,6 +4,7 @@ import AppDialog from '@/components/ui/AppDialog.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
 import { calendarApi } from '../api'
+import { clientsApi, type Client } from '@/features/clients/api'
 import { errorMessage } from '@/lib/feedback'
 import type { CalendarEvent, CalendarEventInput, EventType, EventStatus, EventPriority } from '../types'
 
@@ -11,6 +12,17 @@ const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEven
 const emit = defineEmits<{ close: []; saved: [] }>()
 const busy = ref(false)
 const error = ref('')
+const clients = ref<Client[]>([])
+const clientsLoading = ref(false)
+const clientOptions = computed(() => clients.value.map(client => ({ value: client.id, label: client.company_name })))
+const lockedLink = computed(() => !!props.opportunityId || !!props.clientId)
+watch(() => [props.open, props.tenantId] as const, async ([open, tenantId]) => {
+  if (!open || !tenantId) return
+  clientsLoading.value = true
+  try { clients.value = (await clientsApi.list(tenantId)).data }
+  catch (e) { error.value = 'Não foi possível carregar os clientes: ' + errorMessage(e) }
+  finally { clientsLoading.value = false }
+}, { immediate: true })
 const form = ref<CalendarEventInput>(emptyForm(''))
 const types: { value: EventType; label: string }[] = [
   { value: 'meeting', label: 'Reunião' }, { value: 'call', label: 'Ligação' },
@@ -74,6 +86,7 @@ async function save() {
       const changes: Partial<CalendarEventInput> = {
         title: form.value.title, description: form.value.description, type: form.value.type,
         status: form.value.status, priority: form.value.priority, all_day: form.value.all_day,
+        client_id: form.value.client_id || null,
       }
       if (form.value.starts_at !== localInput(props.event.starts_at)) changes.starts_at = form.value.starts_at
       if (form.value.ends_at !== localInput(props.event.ends_at)) changes.ends_at = form.value.ends_at
@@ -106,6 +119,10 @@ async function remove() {
           <p v-if="opportunityTitle || event?.opportunity_title"><span class="font-medium">Oportunidade:</span> {{ opportunityTitle || event?.opportunity_title }}</p>
           <p v-if="!event?.client_name && !opportunityTitle && !event?.opportunity_title" class="text-orange-700">Vinculado ao cadastro do cliente ou à oportunidade.</p>
         </div>
+        <label class="block space-y-2 text-sm font-semibold text-slate-700">Cliente (opcional)
+          <SearchSelect v-model="form.client_id" :options="clientOptions" placeholder="Selecione o cliente" :disabled="clientsLoading || lockedLink || !!form.opportunity_id" clearable />
+          <span v-if="clientsLoading" class="text-xs font-normal text-slate-500">Carregando clientes…</span>
+        </label>
         <FormField id="calendar-title" v-model="form.title" label="Título" maxlength="200" required placeholder="Ex.: Reunião com cliente" />
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Tipo
           <SearchSelect v-model="form.type" :options="types" placeholder="Selecione o tipo" required />
