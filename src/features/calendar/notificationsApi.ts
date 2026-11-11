@@ -16,6 +16,9 @@ export const activityNotificationsApi = {
   list(tenantId: string) {
     return request<{ data: ActivityNotification[]; unread: number; membership_id: string }>(base(tenantId))
   },
+  markAllRead(tenantId: string) {
+    return mutate<{ ok: boolean; updated: number }>(`${base(tenantId)}/read-all`, {}, 'PATCH')
+  },
   markRead(tenantId: string, notificationId: string) {
     return mutate<{ ok: boolean }>(`${base(tenantId)}/${encodeURIComponent(notificationId)}/read`, {}, 'PATCH')
   },
