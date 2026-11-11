@@ -88,10 +88,10 @@ async function complete(event: CalendarEvent) {
   try {
     await calendarApi.update(tenantId, event.id, { status: 'completed' })
     toast.success('Tarefa concluída.')
-    await load()
+    await Promise.all([load(), loadOverview()])
   } catch (e) { toast.error(errorMessage(e)) }
 }
-function saved() { dialogOpen.value = false; toast.success('Atividade salva.'); void load() }
+function saved() { dialogOpen.value = false; toast.success('Atividade salva.'); void load(); void loadOverview() }
 </script>
 
 <template>
