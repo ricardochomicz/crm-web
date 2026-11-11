@@ -21,6 +21,13 @@ export const calendarApi = {
     const query = new URLSearchParams({ from, to, scope })
     return request<{ data: CalendarEvent[] }>(`${base(tenantId)}?${query}`)
   },
+  activitiesOverview(tenantId: string, filters: { scope: 'mine' | 'team'; search?: string }) {
+    const query = new URLSearchParams({ scope: filters.scope })
+    if (filters.search?.trim()) query.set('search', filters.search.trim())
+    return request<{ data: { total: number; pending: number; overdue: number; completed: number; cancelled: number } }>(
+      `/api/v1/tenants/${encodeURIComponent(tenantId)}/activities/overview?${query}`,
+    )
+  },
   activities(tenantId: string, filters: { scope: 'mine' | 'team'; status: string; search?: string; page: number; per_page: number }) {
     const query = new URLSearchParams()
     for (const [key, value] of Object.entries(filters)) {
