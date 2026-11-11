@@ -37,9 +37,23 @@ const canDelete = computed(() => can(tenant.value, 'calendar.delete') && !!tenan
 const canTeam = computed(() => can(tenant.value, 'calendar.team.view'))
 const isOverdue = (event: CalendarEvent) => event.status === 'pending' && new Date(event.ends_at).getTime() < now.value
 const visible = computed(() => events.value)
-const pending = computed(() => events.value.filter(e => e.status === 'pending').length)
-const overdue = computed(() => events.value.filter(isOverdue).length)
-const completed = computed(() => events.value.filter(e => e.status === 'completed').length)
+const overview = ref({ total: 0, pending: 0, overdue: 0, completed: 0, cancelled: 0 })
+const overviewLoading = ref(false)
+const overviewError = ref('')
+let overviewVersion = 0
+async function loadOverview() {
+  const current = ++overviewVersion
+  overviewLoading.value = true
+  overviewError.value = ''
+  try {
+    const response = await calendarApi.activitiesOverview(tenantId, { scope: scope.value, search: appliedSearch.value })
+    if (current === overviewVersion) overview.value = response.data
+  } catch (e) {
+    if (current === overviewVersion) overviewError.value = errorMessage(e)
+  } finally {
+    if (current === overviewVersion) overviewLoading.value = false
+  }
+}
 const dateLabel = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
 let version = 0
 async function load() {
@@ -57,10 +71,14 @@ async function load() {
   } catch (e) { if (current === version) error.value = errorMessage(e) }
   finally { if (current === version) loading.value = false }
 }
-watch([scope, filter], () => { page.value = 1; void load() }, { immediate: true })
+watch([scope, filter, appliedSearch], () => {
+  if (page.value !== 1) page.value = 1
+  else void load()
+}, { immediate: true })
 watch(page, () => { void load() })
-function submitSearch() { appliedSearch.value = search.value.trim(); page.value = 1; void load() }
-function clearFilters() { search.value = ''; appliedSearch.value = ''; filter.value = 'all'; scope.value = 'mine'; page.value = 1; void load() }
+watch([scope, appliedSearch], () => { void loadOverview() }, { immediate: true })
+function submitSearch() { const next = search.value.trim(); if (appliedSearch.value !== next) appliedSearch.value = next; else { page.value = 1; void load(); void loadOverview() } }
+function clearFilters() { search.value = ''; appliedSearch.value = ''; filter.value = 'all'; scope.value = 'mine'; page.value = 1; void load(); void loadOverview() }
 function changePage(value: number) { if (value >= 1 && value <= pagination.value.last_page) page.value = value }
 void tenantApi.show(tenantId).then(r => { tenant.value = r.data }).catch(e => { error.value = errorMessage(e) })
 function create() { selected.value = null; dialogOpen.value = true }
@@ -86,9 +104,10 @@ function saved() { dialogOpen.value = false; toast.success('Atividade salva.'); 
       </div>
       <button v-if="canCreate && scope === 'mine'" class="primary-button w-auto" @click="create">+ Nova tarefa</button>
     </header>
+    <p v-if="overviewError" role="alert" class="mb-3 text-sm text-red-700">Indicadores indisponíveis: {{ overviewError }} <button type="button" class="font-semibold underline" @click="loadOverview">Tentar novamente</button></p>
     <div class="mb-5 grid gap-3 sm:grid-cols-3">
-      <button v-for="item in [{ key: 'pending', label: 'Pendentes nesta página', count: pending }, { key: 'overdue', label: 'Atrasadas nesta página', count: overdue }, { key: 'completed', label: 'Concluídas nesta página', count: completed }]" :key="item.key" type="button" class="rounded-2xl border bg-white p-4 text-left shadow-sm transition hover:border-orange-300" :class="filter === item.key ? 'border-orange-500 ring-1 ring-orange-200' : 'border-stone-200'" @click="filter = item.key as typeof filter">
-        <p class="text-sm text-slate-500">{{ item.label }}</p><p class="mt-2 text-2xl font-semibold text-slate-800">{{ item.count }}</p>
+      <button v-for="item in [{ key: 'pending', label: 'Pendentes', count: overview.pending }, { key: 'overdue', label: 'Atrasadas', count: overview.overdue }, { key: 'completed', label: 'Concluídas', count: overview.completed }]" :key="item.key" type="button" class="rounded-2xl border bg-white p-4 text-left shadow-sm transition hover:border-orange-300" :class="filter === item.key ? 'border-orange-500 ring-1 ring-orange-200' : 'border-stone-200'" @click="filter = item.key as typeof filter">
+        <p class="text-sm text-slate-500">{{ item.label }}</p><p class="mt-2 text-2xl font-semibold text-slate-800">{{ overviewLoading ? '…' : overviewError ? '—' : item.count }}</p>
       </button>
     </div>
     <ListFilters :count-label="pagination.total + ' atividade(s) encontrada(s)'" :columns="3" collapsible :initially-collapsed="true" @search="submitSearch" @clear="clearFilters">
