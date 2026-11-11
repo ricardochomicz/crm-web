@@ -24,7 +24,7 @@ export const calendarApi = {
   activitiesOverview(tenantId: string, filters: { scope: 'mine' | 'team'; search?: string }) {
     const query = new URLSearchParams({ scope: filters.scope })
     if (filters.search?.trim()) query.set('search', filters.search.trim())
-    return request<{ data: { total: number; pending: number; overdue: number; completed: number; cancelled: number } }>(
+    return request<{ data: { total: number; pending: number; overdue: number; due_soon: number; completed: number; cancelled: number } }>(
       `/api/v1/tenants/${encodeURIComponent(tenantId)}/activities/overview?${query}`,
     )
   },
