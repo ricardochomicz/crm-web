@@ -137,13 +137,12 @@ async function logout() {
       <AppDialog :open="detailsOpen" title="Detalhes do pedido" size="wide" @close="detailsOpen = false">
         <div v-if="selectedOrder" class="space-y-5">
           <div class="grid gap-4 text-sm sm:grid-cols-3"><div><p class="text-xs text-slate-500">Pedido</p><p class="font-semibold">{{ selectedOrder.code }}</p></div><div><p class="text-xs text-slate-500">Situação</p><p class="font-semibold">{{ selectedOrder.status }}</p></div><div><p class="text-xs text-slate-500">Operadora</p><p class="font-semibold">{{ selectedOrder.operator }}</p></div></div>
-          <div class="grid gap-4 border-t border-stone-100 pt-4 text-sm sm:grid-cols-3">
+          <div class="grid gap-4 border-t border-stone-100 pt-4 text-sm sm:grid-cols-2">
             <div><p class="text-xs text-slate-500">Consultor responsável</p><p class="font-medium">{{ selectedOrder.consultant_name || 'Não informado' }}</p></div>
-            <div><p class="text-xs text-slate-500">Previsão de ativação</p><p class="font-medium">{{ date(selectedOrder.expected_activation_at) }}</p></div>
             <div><p class="text-xs text-slate-500">Ativação efetiva</p><p class="font-medium">{{ selectedOrder.activated_at ? date(selectedOrder.activated_at) : 'Aguardando ativação' }}</p></div>
           </div>
           <h3 class="font-semibold">Serviços contratados</h3>
-          <div v-for="(item, index) in selectedOrder.items" :key="index" class="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 py-3 text-sm"><div><p class="font-medium">{{ item.description || 'Serviço' }}</p><p class="text-xs text-slate-500">Quantidade: {{ item.quantity }} · {{ item.status || '—' }}</p></div><p class="font-semibold">{{ money(item.monthly_unit_amount) }}/mês</p></div>
+          <div v-for="(item, index) in selectedOrder.items" :key="index" class="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 py-3 text-sm"><div><p class="font-medium">{{ item.description || 'Serviço' }}</p><p v-if="item.line_number" class="text-xs text-slate-500">Número: {{ item.line_number }}</p><p class="text-xs text-slate-500">Quantidade: {{ item.quantity }} · {{ item.status || '—' }}</p></div><p class="font-semibold">{{ money(item.monthly_unit_amount) }}/mês</p></div>
         </div>
       </AppDialog>
       <p v-if="notice" role="status" class="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-900">{{ notice }}</p>
