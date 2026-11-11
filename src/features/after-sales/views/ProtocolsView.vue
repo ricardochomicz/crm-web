@@ -61,7 +61,7 @@ const canCreate = computed(() => can(tenant.value, 'after-sales.create'))
 const canUpdate = computed(() => can(tenant.value, 'after-sales.update'))
 const statusOptions = computed(() => [{ value: '', label: 'Todas as situações' }, ...Object.entries(statuses).map(([value, label]) => ({ value, label }))])
 const memberOptions = computed(() => [{ value: '', label: 'Não atribuído' }, ...members.value.map(m => ({ value: m.id, label: m.name }))])
-const categoryOptions = computed(() => [{ value: '', label: 'Selecionar categoria' }, ...Object.entries(categories).map(([value, label]) => ({ value, label }))])
+const categoryOptions = computed(() => Object.entries(categories).map(([value, label]) => ({ value, label })))
 const priorityOptions = computed(() => Object.entries(priorities).map(([value, label]) => ({ value, label })))
 const workflowStatusOptions = computed(() => Object.entries(statuses).map(([value, label]) => ({ value, label })))
 const clientOptions = computed(() => [{ value: '', label: 'Selecione o cliente' }, ...clients.value.map(c => ({ value: c.id, label: c.company_name }))])
@@ -78,7 +78,7 @@ void load()
 function newProtocol() {
   detail.value = null
   slaPreset.value = ''
-  form.value = { code: '', client_id: '', title: '', category: 'support', priority: 'normal', description: '', assigned_to_tenant_user_id: currentMemberId.value || null, due_at: null }
+  form.value = { code: '', client_id: '', title: '', category: '', priority: 'normal', description: '', assigned_to_tenant_user_id: currentMemberId.value || null, due_at: null }
   dialogOpen.value = true
 }
 async function openProtocol(p: Protocol) {
