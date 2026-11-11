@@ -139,6 +139,7 @@ const contactBlank = (): ContactInput => ({
   email: null,
   is_primary: false,
   is_active: true,
+  portal_access_enabled: false,
   notes: null,
 })
 const contact = ref<ContactInput>(contactBlank()),
@@ -530,6 +531,9 @@ watch(
           ><input v-model="contact.is_primary" type="checkbox" />Contato principal</label
         ><label class="flex gap-2 text-sm"
           ><input v-model="contact.is_active" type="checkbox" />Ativo</label
+        ><label class="flex gap-2 text-sm"
+          ><input v-model="contact.portal_access_enabled" type="checkbox" :disabled="!contact.is_active || !contact.email" />Autorizar acesso ao Portal do Cliente por este e-mail</label
+        ><p class="text-xs text-slate-500">Habilite somente após confirmar que o e-mail pertence à pessoa autorizada a consultar os pedidos da empresa.</p>
         >
         <div class="flex justify-end gap-2">
           <button v-if="!pendingContactClientId" type="button" class="rounded-lg border px-4 py-2" @click="contactModal = false">
