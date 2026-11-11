@@ -9,7 +9,7 @@ import { opportunitiesApi, type Opportunity } from '@/features/opportunities/api
 import { errorMessage } from '@/lib/feedback'
 import type { CalendarEvent, CalendarEventInput, EventType, EventStatus, EventPriority } from '../types'
 
-const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean; canDelete: boolean; opportunityId?: string; clientId?: string; opportunityTitle?: string; defaultType?: EventType; defaultAssigneeId?: string; initialTitle?: string }>()
+const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean; canDelete: boolean; opportunityId?: string; clientId?: string; opportunityTitle?: string; defaultType?: EventType; defaultAssigneeId?: string; initialTitle?: string; protocolId?: string }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const busy = ref(false)
 const error = ref('')
@@ -105,6 +105,7 @@ watch(() => [props.open, props.event, props.date] as const, () => {
     : { ...emptyForm(props.date), type: props.defaultType ?? ('' as EventType), opportunity_id: props.opportunityId ?? null,
         client_id: props.clientId ?? null,
         tenant_user_id: props.defaultAssigneeId ?? null,
+        protocol_id: props.protocolId ?? null,
         title: props.initialTitle ?? (props.opportunityTitle ? `Contato: ${props.opportunityTitle}` : '') }
 }, { immediate: true })
 const title = computed(() => props.event ? 'Editar compromisso' : 'Novo compromisso')
@@ -133,6 +134,7 @@ async function save() {
         status: form.value.status, priority: form.value.priority, all_day: form.value.all_day,
         client_id: form.value.client_id || null,
         opportunity_id: form.value.opportunity_id || null,
+        protocol_id: form.value.protocol_id || null,
         ...(form.value.tenant_user_id ? { tenant_user_id: form.value.tenant_user_id } : {}),
       }
       if (form.value.starts_at !== localInput(props.event.starts_at)) changes.starts_at = form.value.starts_at
