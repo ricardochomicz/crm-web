@@ -15,11 +15,23 @@ const busy = ref(false)
 const error = ref('')
 const clients = ref<Client[]>([])
 const clientsLoading = ref(false)
+const assignees = ref<{ id: string; name: string }[]>([])
+const assigneesLoading = ref(false)
+const assigneeOptions = computed(() => assignees.value.map(member => ({ value: member.id, label: member.name })))
 const opportunities = ref<Opportunity[]>([])
 const opportunitiesLoading = ref(false)
 const opportunityOptions = computed(() => opportunities.value.map(item => ({ value: item.id, label: item.code + ' · ' + item.title })))
 const clientOptions = computed(() => clients.value.map(client => ({ value: client.id, label: client.company_name })))
 const lockedLink = computed(() => !!props.opportunityId || !!props.clientId)
+watch(() => [props.open, props.tenantId] as const, async ([open, tenantId]) => {
+  if (!open || !tenantId) return
+  assigneesLoading.value = true
+  try {
+    assignees.value = (await calendarApi.assignees(tenantId)).data
+  } catch (e) {
+    error.value = 'Não foi possível carregar os responsáveis: ' + errorMessage(e)
+  } finally { assigneesLoading.value = false }
+}, { immediate: true })
 watch(() => [props.open, props.tenantId] as const, async ([open, tenantId]) => {
   if (!open || !tenantId) return
   clientsLoading.value = true
@@ -89,7 +101,7 @@ watch(() => [props.open, props.event, props.date] as const, () => {
     ? { title: props.event.title, description: props.event.description, type: props.event.type,
         status: props.event.status, priority: props.event.priority, all_day: props.event.all_day,
         starts_at: localInput(props.event.starts_at), ends_at: localInput(props.event.ends_at),
-        opportunity_id: props.event.opportunity_id, client_id: props.event.client_id }
+        opportunity_id: props.event.opportunity_id, client_id: props.event.client_id, tenant_user_id: props.event.tenant_user_id }
     : { ...emptyForm(props.date), type: props.defaultType ?? ('' as EventType), opportunity_id: props.opportunityId ?? null,
         client_id: props.clientId ?? null,
         title: props.opportunityTitle ? `Contato: ${props.opportunityTitle}` : '' }
@@ -120,6 +132,7 @@ async function save() {
         status: form.value.status, priority: form.value.priority, all_day: form.value.all_day,
         client_id: form.value.client_id || null,
         opportunity_id: form.value.opportunity_id || null,
+        ...(form.value.tenant_user_id ? { tenant_user_id: form.value.tenant_user_id } : {}),
       }
       if (form.value.starts_at !== localInput(props.event.starts_at)) changes.starts_at = form.value.starts_at
       if (form.value.ends_at !== localInput(props.event.ends_at)) changes.ends_at = form.value.ends_at
@@ -159,6 +172,10 @@ async function remove() {
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Oportunidade (opcional)
           <SearchSelect v-model="form.opportunity_id" :options="opportunityOptions" :placeholder="form.client_id ? 'Selecione a oportunidade' : 'Selecione primeiro um cliente'" :disabled="!form.client_id || opportunitiesLoading || lockedLink" />
           <span v-if="opportunitiesLoading" class="text-xs font-normal text-slate-500">Carregando oportunidades…</span>
+        </label>
+        <label class="block space-y-2 text-sm font-semibold text-slate-700">Responsável
+          <SearchSelect v-model="form.tenant_user_id" :options="assigneeOptions" placeholder="Eu (padrão)" :disabled="assigneesLoading || (!!event && !assigneeOptions.some(member => member.value === event.tenant_user_id))" />
+          <span v-if="assigneesLoading" class="text-xs font-normal text-slate-500">Carregando responsáveis…</span>
         </label>
         <FormField id="calendar-title" v-model="form.title" label="Título" maxlength="200" required placeholder="Ex.: Reunião com cliente" />
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Tipo
