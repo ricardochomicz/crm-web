@@ -72,6 +72,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Protocolos · Pós-venda' },
     },
     {
+      path: '/empresas/:tenantId/atividades',
+      component: () => import('@/features/activities/views/ActivitiesView.vue'),
+      meta: { requiresAuth: true, title: 'Central de atividades' },
+    },
+    {
       path: '/empresas/:tenantId/agenda',
       component: () => import('@/features/calendar/views/CalendarView.vue'),
       meta: { requiresAuth: true, title: 'Agenda' },
