@@ -11,8 +11,8 @@ export type Opportunity = {
   client_id: string; tenant_user_id: string; funnel_stage_id: string | null
   operator_id: number | null; order_type: string; order_type_id: string | null; description: string | null
   expected_close_at: string | null; estimated_monthly_amount: string
-  estimated_one_time_amount: string; client?: { id: string; company_name: string }
-  assignee?: { id: string; user?: { id: string; name: string } | null } | null
+  estimated_one_time_amount: string; client?: { id: string; company_name: string; contacts?: { id: string; name: string; is_primary: boolean; is_active: boolean }[] }
+  assignee?: { id: string; mobile_phone?: string | null; secondary_phone?: string | null; user?: { id: string; name: string } | null } | null
   stage?: { id: string; name: string }; operator?: { id: number; name: string }
 }
 export type OpportunityInput = {
@@ -94,6 +94,7 @@ export const comparisonsApi = {
 
 export type ProposalSnapshot = {
   title: string; company_name: string; client_name: string; consultant_name: string
+  client_contact_name?: string | null; consultant_phone?: string | null
   opportunity_code: string; conditions: string; notes: string
   items: { description: string; quantity: number; monthly_unit_amount: string; one_time_unit_amount: string }[]
 }
