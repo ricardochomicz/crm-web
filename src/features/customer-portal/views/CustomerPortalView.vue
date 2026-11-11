@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { customerPortalApi, type PortalOrder } from '../api'
+import AppDialog from '@/components/ui/AppDialog.vue'
+import { customerPortalApi, type PortalOrder, type PortalOrderDetail } from '../api'
 import { errorMessage } from '@/lib/feedback'
 
 const route = useRoute()
@@ -11,6 +12,8 @@ const code = ref('')
 const challenge = ref('')
 const token = ref('')
 const orders = ref<PortalOrder[]>([])
+const selectedOrder = ref<PortalOrderDetail | null>(null)
+const detailsOpen = ref(false)
 const page = ref(1)
 const lastPage = ref(1)
 const loading = ref(false)
@@ -55,6 +58,15 @@ async function verify() {
   } catch (e) { error.value = errorMessage(e) }
   finally { loading.value = false }
 }
+async function showOrder(id: string) {
+  error.value = ''
+  loading.value = true
+  try {
+    selectedOrder.value = (await customerPortalApi.order(tenantId.value, token.value, id)).data
+    detailsOpen.value = true
+  } catch (e) { error.value = errorMessage(e) }
+  finally { loading.value = false }
+}
 async function logout() {
   const current = token.value
   token.value = ''
@@ -96,9 +108,17 @@ async function logout() {
         <article v-for="order in orders" :key="order.id" class="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
           <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="font-semibold">{{ order.operator || 'Operadora não informada' }}</p><p class="mt-1 text-xs text-slate-500">Pedido {{ order.code }} · {{ date(order.created_at) }}</p></div><span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold">{{ order.status || 'Em andamento' }}</span></div>
           <div class="mt-4 grid gap-3 border-t border-stone-100 pt-4 text-sm sm:grid-cols-3"><p><span class="block text-xs text-slate-500">Negociação</span>{{ order.order_type || '—' }}</p><p><span class="block text-xs text-slate-500">Linhas</span>{{ order.line_quantity }}</p><p><span class="block text-xs text-slate-500">Mensalidade</span>{{ money(order.monthly_amount) }}</p></div>
+          <button type="button" class="secondary-button mt-4 w-auto" :disabled="loading" @click="showOrder(order.id)">Ver detalhes</button>
         </article>
         <div v-if="lastPage > 1" class="flex items-center justify-between gap-3"><button class="secondary-button w-auto" type="button" :disabled="loading || page === 1" @click="loadOrders(page - 1)">Anterior</button><span class="text-sm text-slate-600">Página {{ page }} de {{ lastPage }}</span><button class="secondary-button w-auto" type="button" :disabled="loading || page === lastPage" @click="loadOrders(page + 1)">Próxima</button></div>
       </section>
+      <AppDialog :open="detailsOpen" title="Detalhes do pedido" size="wide" @close="detailsOpen = false">
+        <div v-if="selectedOrder" class="space-y-5">
+          <div class="grid gap-4 text-sm sm:grid-cols-3"><div><p class="text-xs text-slate-500">Pedido</p><p class="font-semibold">{{ selectedOrder.code }}</p></div><div><p class="text-xs text-slate-500">Situação</p><p class="font-semibold">{{ selectedOrder.status }}</p></div><div><p class="text-xs text-slate-500">Operadora</p><p class="font-semibold">{{ selectedOrder.operator }}</p></div></div>
+          <h3 class="font-semibold">Serviços contratados</h3>
+          <div v-for="(item, index) in selectedOrder.items" :key="index" class="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 py-3 text-sm"><div><p class="font-medium">{{ item.description || 'Serviço' }}</p><p class="text-xs text-slate-500">Quantidade: {{ item.quantity }} · {{ item.status || '—' }}</p></div><p class="font-semibold">{{ money(item.monthly_unit_amount) }}/mês</p></div>
+        </div>
+      </AppDialog>
       <p v-if="notice" role="status" class="mt-4 rounded-xl bg-blue-50 p-3 text-sm text-blue-900">{{ notice }}</p>
       <p v-if="error" role="alert" class="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">{{ error }}</p>
       <p class="mt-8 text-xs text-slate-500">Se não receber o código, solicite à empresa que confirme o contato autorizado para acesso ao portal.</p>
