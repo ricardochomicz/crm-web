@@ -134,6 +134,8 @@ const form = ref<ClientInput>(blank()),
   detailsInitialTab = ref<'data' | 'history'>('data')
 const contactBlank = (): ContactInput => ({
   name: '',
+  cpf: null,
+  birth_date: null,
   position: null,
   phone: null,
   email: null,
@@ -311,11 +313,14 @@ function editContact(c?: Contact) {
   contact.value = c
     ? {
         name: c.name,
+        cpf: c.cpf,
+        birth_date: c.birth_date,
         position: c.position,
         phone: c.phone,
         email: c.email,
         is_primary: c.is_primary,
         is_active: c.is_active,
+        portal_access_enabled: c.portal_access_enabled ?? false,
         notes: c.notes,
       }
     : contactBlank()
@@ -518,7 +523,10 @@ watch(
         <p v-if="pendingContactClientId" class="text-sm text-amber-800">Para concluir o cadastro do cliente, informe o responsável principal.</p>
         <label class="block text-sm"
           >Nome<input v-model="contact.name" required class="field" /></label
-        ><label class="block text-sm">Cargo<input v-model="contact.position" :required="!!pendingContactClientId" class="field" /></label
+        ><div class="grid gap-3 sm:grid-cols-2">
+          <label class="block text-sm">CPF (opcional)<input :value="contact.cpf ?? ''" @input="contact.cpf = ($event.target as HTMLInputElement).value.replace(/\\D/g, '').slice(0, 11) || null" inputmode="numeric" maxlength="11" placeholder="Somente números" class="field" /></label>
+          <label class="block text-sm">Data de nascimento (opcional)<input v-model="contact.birth_date" type="date" class="field" /></label>
+        </div><label class="block text-sm">Cargo<input v-model="contact.position" :required="!!pendingContactClientId" class="field" /></label
         ><label class="block text-sm"
           >Telefone<input
             v-model="contactPhoneModel"
