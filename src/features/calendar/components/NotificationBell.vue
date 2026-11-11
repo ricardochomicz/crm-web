@@ -5,9 +5,10 @@ import Pusher from 'pusher-js'
 import { activityNotificationsApi, type ActivityNotification } from '../notificationsApi'
 import { request } from '@/lib/http'
 
-const props = defineProps<{ tenantId: string; membershipId: string }>()
+const props = defineProps<{ tenantId: string }>()
 const notifications = ref<ActivityNotification[]>([])
 const unread = ref(0)
+const membershipId = ref('')
 const open = ref(false)
 const loading = ref(false)
 const error = ref('')
@@ -23,6 +24,10 @@ async function refresh() {
     if (current !== version) return
     notifications.value = response.data
     unread.value = response.unread
+    if (membershipId.value !== response.membership_id) {
+      membershipId.value = response.membership_id
+      subscribe()
+    }
     error.value = ''
   } catch {
     if (current === version) error.value = 'Não foi possível carregar as notificações.'
@@ -53,11 +58,14 @@ function connect() {
   notifications.value = []
   unread.value = 0
   open.value = false
-  if (!props.tenantId || !props.membershipId) return
+  membershipId.value = ''
+  if (!props.tenantId) return
   void refresh()
   fallback = setInterval(() => { void refresh() }, 60000)
+}
+function subscribe() {
   const key = import.meta.env.VITE_REVERB_APP_KEY
-  if (!key) return
+  if (!key || !membershipId.value || echo) return
   try {
     echo = new Echo({
       broadcaster: 'reverb',
@@ -82,14 +90,14 @@ function connect() {
         },
       }),
     })
-    echo.private(`tenant.${props.tenantId}.member.${props.membershipId}.notifications`)
+    echo.private(`tenant.${props.tenantId}.member.${membershipId.value}.notifications`)
       .listen('.activity.notification.changed', () => { void refresh() })
   } catch {
     echo?.disconnect()
     echo = null
   }
 }
-watch(() => [props.tenantId, props.membershipId], connect)
+watch(() => props.tenantId, connect)
 onMounted(connect)
 onUnmounted(disconnect)
 </script>
