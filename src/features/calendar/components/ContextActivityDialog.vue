@@ -9,6 +9,7 @@ defineProps<{
   clientId: string
   initialTitle: string
   defaultAssigneeId?: string | null
+  protocolId?: string
   defaultType?: EventType
 }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
@@ -23,6 +24,7 @@ const emit = defineEmits<{ close: []; saved: [] }>()
     :can-write="canWrite"
     :can-delete="false"
     :client-id="clientId"
+    :protocol-id="protocolId"
     :initial-title="initialTitle"
     :default-assignee-id="defaultAssigneeId ?? undefined"
     :default-type="defaultType ?? 'task'"
