@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
@@ -23,6 +23,7 @@ const dialogOpen = ref(false)
 const selectedEvent = ref<CalendarEvent | null>(null)
 const selectedDate = ref('')
 const focusedDay = ref('')
+const dayDetailsSection = ref<HTMLElement | null>(null)
 const now = ref(Date.now())
 let clock: ReturnType<typeof setInterval> | undefined
 onMounted(() => { clock = setInterval(() => { now.value = Date.now() }, 30_000) })
@@ -103,10 +104,10 @@ function create(day: number) {
   selectedDate.value = dateKey(new Date(month.value.getFullYear(), month.value.getMonth(), day))
   dialogOpen.value = true
 }
-function selectDay(day: number) {
-  const key = dateKey(new Date(month.value.getFullYear(), month.value.getMonth(), day))
-  focusedDay.value = key
-  if (scope.value === 'mine' && canCreate.value && key >= dateKey(new Date())) create(day)
+async function selectDay(day: number) {
+  focusedDay.value = dateKey(new Date(month.value.getFullYear(), month.value.getMonth(), day))
+  await nextTick()
+  dayDetailsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 function edit(event: CalendarEvent) {
   if (scope.value === 'team' || !canEdit.value) return
@@ -134,7 +135,7 @@ function saved() {
     <section v-if="!loading && !error" aria-label="Calendário mensal" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <div class="grid grid-cols-7 border-b border-stone-200 bg-stone-50 text-center text-xs font-semibold text-slate-500"><div v-for="name in ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']" :key="name" class="py-3">{{ name }}</div></div>
       <div class="grid grid-cols-7">
-        <div v-for="(day, index) in days" :key="index" class="min-h-28 cursor-pointer border-b border-r border-stone-100 p-1.5 sm:min-h-36 sm:p-2"  :class="{ 'ring-2 ring-inset ring-orange-400': day && focusedDay === dateKey(new Date(month.getFullYear(), month.getMonth(), day)), 'bg-stone-50/70': day && dateKey(new Date(month.getFullYear(), month.getMonth(), day)) < dateKey(new Date()) }" @click="day && selectDay(day)">
+        <div v-for="(day, index) in days" :key="index" class="min-h-28 border-b border-r border-stone-100 p-1.5 sm:min-h-36 sm:p-2"  :class="{ 'ring-2 ring-inset ring-orange-400': day && focusedDay === dateKey(new Date(month.getFullYear(), month.getMonth(), day)), 'bg-stone-50/70': day && dateKey(new Date(month.getFullYear(), month.getMonth(), day)) < dateKey(new Date()) }" @click="day && selectDay(day)">
           <template v-if="day">
             <button type="button" class="mb-1 flex size-7 items-center justify-center rounded-full text-xs font-semibold hover:bg-orange-100" :class="dateKey(new Date(month.getFullYear(), month.getMonth(), day)) === dateKey(new Date()) ? 'bg-orange-600 text-white hover:bg-orange-700' : 'text-slate-700'" :aria-label="`Ver compromissos do dia ${day}`" @click.stop="selectDay(day)">{{ day }}</button>
             <button v-for="event in (byDay.get(dateKey(new Date(month.getFullYear(), month.getMonth(), day))) ?? []).slice(0, 3)" :key="event.id" type="button" class="mb-1 flex w-full items-center gap-1 rounded-md px-1.5 py-1 text-left text-[11px] font-medium" :class="[event.status === 'completed' ? completedColors[event.type] : eventStyles[event.type].color, { 'border-l-2 border-orange-500': isOverdue(event) }]" :title="`${event.title} · ${statusLabel(event)}`" :aria-label="`${event.title} · ${statusLabel(event)}`" @click.stop="focusedDay = dateKey(new Date(event.starts_at)); edit(event)">
@@ -143,12 +144,12 @@ function saved() {
               <AppIcon v-else-if="event.status === 'cancelled'" name="xCircle" class="size-3.5 shrink-0 text-slate-500" />
               <span class="truncate" :class="{ 'line-through opacity-60': event.status === 'cancelled' }">{{ event.title }}</span>
             </button>
-            <p v-if="(byDay.get(dateKey(new Date(month.getFullYear(), month.getMonth(), day))) ?? []).length > 3" class="text-[10px] text-slate-500">Mais compromissos…</p>
+            <button v-if="(byDay.get(dateKey(new Date(month.getFullYear(), month.getMonth(), day))) ?? []).length > 3" type="button" class="mt-1 text-left text-[11px] font-semibold text-orange-700 hover:underline" @click.stop="selectDay(day)">+{{ (byDay.get(dateKey(new Date(month.getFullYear(), month.getMonth(), day))) ?? []).length - 3 }} compromissos · Ver todos</button>
           </template>
         </div>
       </div>
     </section>
-    <section v-if="!loading && !error" aria-label="Compromissos do dia" class="mt-5 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
+    <section v-if="!loading && !error" ref="dayDetailsSection" aria-label="Compromissos do dia" class="mt-5 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div><h2 class="text-lg font-semibold text-slate-800">Compromissos do dia</h2><p class="text-sm capitalize text-slate-500">{{ dayTitle }}</p></div>
         <button v-if="canCreate && scope === 'mine' && focusedDay >= dateKey(new Date())" type="button" class="secondary-button" @click="create(Number(focusedDay.slice(-2)))">Novo neste dia</button>
