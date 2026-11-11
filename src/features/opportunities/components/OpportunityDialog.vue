@@ -307,7 +307,7 @@ async function save() {
         <input v-model.number="batchQuantity" class="field" type="number" min="1" :max="maxItems - form.items.length" />
       </label>
       <label v-else-if="selectedBatchType?.requires_number" class="block space-y-2 text-sm font-semibold">Números (um por linha)
-        <textarea v-model="pastedNumbers" class="field min-h-48 font-mono" rows="8" placeholder="(00) 90000-0001&#10;(00) 90000-0002&#10;(00) 90000-0003" />
+        <textarea v-model="pastedNumbers" class="field min-h-48 font-mono" rows="8" placeholder="00900000001&#10;00900000002&#10;00900000003" />
       </label>
       <div class="grid gap-4 sm:grid-cols-2">
         <AppAutocomplete v-model="batchProductId" label="Plano do lote" placeholder="Buscar plano" :options="activePlanOptions" />
