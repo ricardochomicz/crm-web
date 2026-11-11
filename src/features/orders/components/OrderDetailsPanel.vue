@@ -26,10 +26,17 @@ const formattedDocument = computed(() => {
 })
 const activeTab = ref<'workflow' | 'documents' | 'commissions'>('workflow')
 const tenant = ref<Tenant>()
-const canViewCommissions = computed(() => can(tenant.value, 'commissions.view'))
+const isCommissionManager = computed(
+  () => tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER',
+)
+const canViewCommissions = computed(
+  () => isCommissionManager.value && can(tenant.value, 'commissions.view'),
+)
 const canReviseCommissions = computed(
   () =>
-    can(tenant.value, 'commissions.manage') && !!tenant.value?.access?.allows_operational_writes,
+    isCommissionManager.value &&
+    can(tenant.value, 'commissions.manage') &&
+    !!tenant.value?.access?.allows_operational_writes,
 )
 const statuses = ref<OrderStatus[]>([])
 const statusId = ref('')
