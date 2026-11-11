@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
+import CalendarEventHistoryDialog from '@/features/calendar/components/CalendarEventHistoryDialog.vue'
 import CalendarEventDialog from '../components/CalendarEventDialog.vue'
 import { tenantApi } from '@/features/tenants/api'
 import { can, type Tenant } from '@/features/tenants/types'
@@ -21,6 +22,7 @@ const loading = ref(true)
 const error = ref('')
 const dialogOpen = ref(false)
 const selectedEvent = ref<CalendarEvent | null>(null)
+const historyEvent = ref<CalendarEvent | null>(null)
 const selectedDate = ref('')
 const focusedDay = ref('')
 const dayDetailsSection = ref<HTMLElement | null>(null)
@@ -169,8 +171,12 @@ function saved() {
             <span class="mt-1 block text-xs text-slate-500">{{ event.all_day ? 'Dia inteiro' : eventTime(event.starts_at) + ' – ' + eventTime(event.ends_at) }} · <span :class="{ 'font-semibold text-orange-700': isOverdue(event), 'font-medium text-emerald-700': event.status === 'completed' }">{{ statusLabel(event) }}</span><template v-if="event.client_name"> · {{ event.client_name }}</template></span>
           </span>
         </button>
+        <div v-for="event in dayEvents" :key="'history-' + event.id" class="flex justify-end">
+          <button v-if="scope === 'mine'" type="button" class="text-xs font-semibold text-orange-700 hover:underline" @click="historyEvent = event">Histórico: {{ event.title }}</button>
+        </div>
       </div>
     </section>
+    <CalendarEventHistoryDialog :open="!!historyEvent" :tenant-id="tenantId" :event-id="historyEvent?.id ?? null" :title="historyEvent?.title" @close="historyEvent = null" />
     <CalendarEventDialog :open="dialogOpen" :tenant-id="tenantId" :event="selectedEvent" :date="selectedDate" :can-write="selectedEvent ? canEdit : canCreate" :can-delete="canDelete" @close="dialogOpen = false" @saved="saved" />
   </AppShell>
 </template>
