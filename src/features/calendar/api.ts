@@ -1,8 +1,19 @@
 import { mutate, request } from '@/lib/http'
 import type { CalendarEvent, CalendarEventInput } from './types'
 
+export interface CalendarEventHistoryEntry {
+  id: string
+  action: 'created' | 'updated' | 'reassigned' | 'completed' | 'deleted'
+  actor_name: string
+  created_at: string
+  changes: Record<string, { from: unknown; to: unknown }> | null
+}
+
 const base = (tenantId: string) => `/api/v1/tenants/${encodeURIComponent(tenantId)}/calendar/events`
 export const calendarApi = {
+  history(tenantId: string, eventId: string) {
+    return request<{ data: CalendarEventHistoryEntry[] }>(`${base(tenantId)}/${encodeURIComponent(eventId)}/history`)
+  },
   assignees(tenantId: string) {
     return request<{ data: { id: string; name: string }[] }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/calendar/assignees`)
   },
