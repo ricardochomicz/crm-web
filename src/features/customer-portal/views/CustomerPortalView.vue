@@ -14,6 +14,7 @@ const code = ref('')
 const challenge = ref('')
 const token = ref(portalSession.value?.tenantId === tenantId.value ? portalSession.value.token : '')
 const orders = ref<PortalOrder[]>([])
+const clientName = ref('')
 const selectedOrder = ref<PortalOrderDetail | null>(null)
 const detailsOpen = ref(false)
 const lineSearch = ref('')
@@ -59,6 +60,7 @@ async function loadOrders(nextPage = 1) {
   error.value = ''
   try {
     const result = await customerPortalApi.orders(tenantId.value, token.value, nextPage)
+    clientName.value = result.client_name || ''
     orders.value = result.data
     page.value = result.meta.current_page
     lastPage.value = result.meta.last_page
@@ -75,6 +77,7 @@ async function verify() {
     const result = await customerPortalApi.verify(challenge.value, code.value)
     portalSession.value = { tenantId: result.data.tenant_id, token: result.data.token }
     token.value = result.data.token
+    clientName.value = result.data.client_name || ''
     notice.value = ''
     await router.replace('/portal-do-cliente/' + result.data.tenant_id)
     await loadOrders()
@@ -98,6 +101,7 @@ async function logout() {
   challenge.value = ''
   code.value = ''
   orders.value = []
+  clientName.value = ''
   await router.replace('/portal-do-cliente')
   if (current) { try { await customerPortalApi.logout(tenantId.value, current) } catch { /* Session also expires on the server. */ } }
 }
@@ -107,7 +111,7 @@ async function logout() {
   <main class="min-h-screen bg-stone-100 px-4 py-10 text-slate-900">
     <div class="mx-auto max-w-4xl">
       <header class="mb-8 flex items-center justify-between gap-4">
-        <div><p class="text-xs font-semibold uppercase tracking-widest text-orange-700">Atendimento ao cliente</p><h1 class="mt-2 text-3xl font-bold">Portal do Cliente</h1><p class="mt-2 text-slate-600">Acompanhe seus pedidos comerciais com segurança.</p></div>
+        <div><p class="text-xs font-semibold uppercase tracking-widest text-orange-700">Atendimento ao cliente</p><h1 class="mt-2 text-3xl font-bold">Portal do Cliente</h1><p v-if="step === 'orders' && clientName" class="mt-2 text-lg font-semibold text-slate-800">{{ clientName }}</p><p class="mt-2 text-slate-600">Acompanhe seus pedidos comerciais com segurança.</p></div>
         <button v-if="token" type="button" class="secondary-button w-auto" @click="logout">Sair</button>
       </header>
       <section v-if="step !== 'orders'" class="max-w-lg rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
