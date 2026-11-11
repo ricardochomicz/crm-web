@@ -9,7 +9,7 @@ import { useTenantDashboard } from '@/features/tenants/composables/useTenantDash
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId ?? ''))
 const { tenant } = useTenantDashboard(tenantId)
-const { from, to, consultantId, data, loading, error, rows, search, clear } = useProductivity(tenantId)
+const { from, to, consultantId, data, loading, error, consultants, search, clear } = useProductivity(tenantId)
 </script>
 
 <template>
@@ -21,7 +21,7 @@ const { from, to, consultantId, data, loading, error, rows, search, clear } = us
         <label class="text-sm text-slate-700">Consultor
           <select v-model="consultantId" class="mt-1 block rounded-lg border border-stone-300 px-3 py-2">
             <option value="">Todos</option>
-            <option v-for="person in rows" :key="person.id" :value="person.id">{{ person.name }}</option>
+            <option v-for="person in consultants" :key="person.id" :value="person.id">{{ person.name }}</option>
           </select>
         </label>
         <button type="submit" class="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white" :disabled="loading">Buscar</button>
