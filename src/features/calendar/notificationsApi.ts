@@ -14,7 +14,7 @@ const base = (tenantId: string) => `/api/v1/tenants/${encodeURIComponent(tenantI
 
 export const activityNotificationsApi = {
   list(tenantId: string) {
-    return request<{ data: ActivityNotification[]; unread: number }>(base(tenantId))
+    return request<{ data: ActivityNotification[]; unread: number; membership_id: string }>(base(tenantId))
   },
   markRead(tenantId: string, notificationId: string) {
     return mutate<{ ok: boolean }>(`${base(tenantId)}/${encodeURIComponent(notificationId)}/read`, {}, 'PATCH')
