@@ -6,6 +6,9 @@ import { ordersApi, type CommercialOrder } from '../api'
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
 import ClientDocumentsPanel from '@/features/opportunities/components/ClientDocumentsPanel.vue'
 import OrderItemsSection from './OrderItemsSection.vue'
+import OrderCommissionsPanel from './OrderCommissionsPanel.vue'
+import { tenantApi } from '@/features/tenants/api'
+import { can, type Tenant } from '@/features/tenants/types'
 import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
@@ -17,10 +20,17 @@ const order = ref<CommercialOrder | null>(null)
 const formattedDocument = computed(() => {
   const digits = (order.value?.customer_document ?? '').replace(/\D/g, '')
   if (digits.length === 11) return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4')
-  if (digits.length === 14) return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+  if (digits.length === 14)
+    return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
   return order.value?.customer_document || 'Não informado'
 })
-const activeTab = ref<'workflow' | 'documents'>('workflow')
+const activeTab = ref<'workflow' | 'documents' | 'commissions'>('workflow')
+const tenant = ref<Tenant>()
+const canViewCommissions = computed(() => can(tenant.value, 'commissions.view'))
+const canReviseCommissions = computed(
+  () =>
+    can(tenant.value, 'commissions.manage') && !!tenant.value?.access?.allows_operational_writes,
+)
 const statuses = ref<OrderStatus[]>([])
 const statusId = ref('')
 const loading = ref(false)
@@ -112,12 +122,17 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [detail, options] = await Promise.all([
+    const [detail, company, options] = await Promise.all([
       ordersApi.show(props.tenantId, props.orderId),
-      props.canManage ? orderStatusesApi.list(props.tenantId) : Promise.resolve({ data: [] as OrderStatus[] }),
+      tenantApi.show(props.tenantId),
+      props.canManage
+        ? orderStatusesApi.list(props.tenantId)
+        : Promise.resolve({ data: [] as OrderStatus[] }),
     ])
     if (current !== sequence) return
     order.value = detail.data
+    tenant.value = company.data
+    if (!canViewCommissions.value && activeTab.value === 'commissions') activeTab.value = 'workflow'
     selectedItems.value = []
     confirmationOpen.value = false
     statuses.value = options.data
@@ -184,7 +199,8 @@ async function submitCorrection() {
 }
 
 async function save(correctionReason?: string) {
-  if (!props.canManage || !statusId.value || saving.value || moving.value || !canEditWorkflow.value) return
+  if (!props.canManage || !statusId.value || saving.value || moving.value || !canEditWorkflow.value)
+    return
   saving.value = true
   try {
     await ordersApi.updateWorkflow(props.tenantId, props.orderId, {
@@ -204,7 +220,13 @@ async function save(correctionReason?: string) {
   }
 }
 async function activateSelected() {
-  if (!props.canManage || moving.value || orderLocked.value || (!validActivation.value && !canComplete.value)) return
+  if (
+    !props.canManage ||
+    moving.value ||
+    orderLocked.value ||
+    (!validActivation.value && !canComplete.value)
+  )
+    return
   moving.value = true
   try {
     if (selectedItems.value.length) {
@@ -250,18 +272,64 @@ watch(
         <h2 class="mt-2 text-xl font-semibold text-slate-800">Detalhes do pedido</h2>
         <div v-if="order && !loading" class="mt-3 space-y-1">
           <p class="text-sm font-semibold text-slate-800">{{ order.customer_name }}</p>
-          <p class="text-xs text-slate-500">{{ (order.customer_document || '').replace(/\\D/g, '').length === 11 ? 'CPF' : 'CNPJ/CPF' }}: {{ formattedDocument }}</p>
+          <p class="text-xs text-slate-500">
+            {{
+              (order.customer_document || '').replace(/\\D/g, '').length === 11
+                ? 'CPF'
+                : 'CNPJ/CPF'
+            }}: {{ formattedDocument }}
+          </p>
         </div>
       </div>
       <button type="button" class="secondary-button w-auto" @click="emit('close')">Fechar</button>
     </header>
     <p v-if="loading" class="text-sm text-slate-500">Carregando pedido…</p>
     <p v-else-if="error" class="text-sm text-rose-700">{{ error }}</p>
-    <nav v-if="order && !loading" class="mb-5 flex flex-wrap gap-2 border-b border-stone-200 pb-3" aria-label="Seções do pedido">
-      <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'workflow' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'workflow'">Andamento do pedido</button>
-      <button v-if="order.client_id" type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'documents' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'documents'">Anexos do Cliente</button>
+    <nav
+      v-if="order && !loading"
+      class="mb-5 flex flex-wrap gap-2 border-b border-stone-200 pb-3"
+      aria-label="Seções do pedido"
+    >
+      <button
+        type="button"
+        class="rounded-lg px-4 py-2 text-sm font-semibold"
+        :class="activeTab === 'workflow' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'"
+        @click="activeTab = 'workflow'"
+      >
+        Andamento do pedido
+      </button>
+      <button
+        v-if="order.client_id"
+        type="button"
+        class="rounded-lg px-4 py-2 text-sm font-semibold"
+        :class="activeTab === 'documents' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'"
+        @click="activeTab = 'documents'"
+      >
+        Anexos do Cliente
+      </button>
+      <button
+        v-if="canViewCommissions"
+        type="button"
+        class="rounded-lg px-4 py-2 text-sm font-semibold"
+        :class="activeTab === 'commissions' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'"
+        @click="activeTab = 'commissions'"
+      >
+        Comissões
+      </button>
     </nav>
-    <ClientDocumentsPanel v-if="order && !loading && activeTab === 'documents' && order.client_id" :tenant-id="tenantId" :client-id="order.client_id" :can-upload="false" />
+    <OrderCommissionsPanel
+      v-if="order && !loading && !error && activeTab === 'commissions' && canViewCommissions"
+      :key="tenantId + ':' + orderId"
+      :tenant-id="tenantId"
+      :order-id="orderId"
+      :writable="canReviseCommissions"
+    />
+    <ClientDocumentsPanel
+      v-if="order && !loading && activeTab === 'documents' && order.client_id"
+      :tenant-id="tenantId"
+      :client-id="order.client_id"
+      :can-upload="false"
+    />
     <div
       v-else-if="order && activeTab === 'workflow'"
       class="grid items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,1fr)]"
@@ -282,11 +350,22 @@ watch(
             </div>
             <div class="min-w-0">
               <dt class="text-xs font-medium text-slate-500">Tipo de negociação</dt>
-              <dd class="mt-1 text-sm font-semibold text-slate-800">{{ order.order_type ? order.order_type.replace(/[_-]/g, ' ').toLocaleLowerCase('pt-BR').replace(/(^|\\s)\\S/g, (letter) => letter.toLocaleUpperCase('pt-BR')) : 'Não informado' }}</dd>
+              <dd class="mt-1 text-sm font-semibold text-slate-800">
+                {{
+                  order.order_type
+                    ? order.order_type
+                        .replace(/[_-]/g, ' ')
+                        .toLocaleLowerCase('pt-BR')
+                        .replace(/(^|\\s)\\S/g, (letter) => letter.toLocaleUpperCase('pt-BR'))
+                    : 'Não informado'
+                }}
+              </dd>
             </div>
             <div class="min-w-0">
               <dt class="text-xs font-medium text-slate-500">Consultor responsável</dt>
-              <dd class="mt-1 text-sm font-semibold text-slate-800">{{ order.consultant_name || 'Não informado' }}</dd>
+              <dd class="mt-1 text-sm font-semibold text-slate-800">
+                {{ order.consultant_name || 'Não informado' }}
+              </dd>
             </div>
             <div>
               <dt class="text-xs font-medium text-slate-500">Quantidade de linhas</dt>
@@ -322,7 +401,20 @@ watch(
           <p v-if="saving" class="mt-3 text-xs text-slate-500" role="status">Atualizando pedido…</p>
         </section>
 
-        <section v-if="!canManage" class="rounded-xl border border-stone-200 bg-stone-50 p-5"><h3 class="font-semibold text-slate-800">Andamento do pedido</h3><p class="mt-2 text-sm text-slate-700">Status atual: <strong>{{ order.order_status || order.status || "Não informado" }}</strong></p><p v-if="order.expected_activation_at" class="mt-1 text-sm text-slate-600">Previsão de ativação: {{ new Date(order.expected_activation_at).toLocaleDateString("pt-BR") }}</p><p class="mt-2 text-xs text-slate-500">Consulta somente leitura. A movimentação é realizada pela equipe responsável.</p></section>
+        <section v-if="!canManage" class="rounded-xl border border-stone-200 bg-stone-50 p-5">
+          <h3 class="font-semibold text-slate-800">Andamento do pedido</h3>
+          <p class="mt-2 text-sm text-slate-700">
+            Status atual:
+            <strong>{{ order.order_status || order.status || 'Não informado' }}</strong>
+          </p>
+          <p v-if="order.expected_activation_at" class="mt-1 text-sm text-slate-600">
+            Previsão de ativação:
+            {{ new Date(order.expected_activation_at).toLocaleDateString('pt-BR') }}
+          </p>
+          <p class="mt-2 text-xs text-slate-500">
+            Consulta somente leitura. A movimentação é realizada pela equipe responsável.
+          </p>
+        </section>
         <section class="space-y-4 rounded-xl border border-stone-200 p-5">
           <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -338,7 +430,9 @@ watch(
               </p>
             </div>
             <button
-              v-if="canManage && !orderLocked && activeCount > 0 && (pendingItems.length || canComplete)"
+              v-if="
+                canManage && !orderLocked && activeCount > 0 && (pendingItems.length || canComplete)
+              "
               type="button"
               class="primary-button w-auto"
               :disabled="saving || moving"
@@ -387,13 +481,43 @@ watch(
         />
       </aside>
     </div>
-    <AppDialog :open="!!canManage && correctionOpen" title="Devolver pedido para correção" :busy="saving" @close="correctionOpen = false">
+    <AppDialog
+      :open="!!canManage && correctionOpen"
+      title="Devolver pedido para correção"
+      :busy="saving"
+      @close="correctionOpen = false"
+    >
       <form class="space-y-4" @submit.prevent="submitCorrection">
-        <p class="text-sm text-slate-600">Informe o que o consultor precisa corrigir. A oportunidade retornará ao Kanban na coluna Para Correção.</p>
-        <label class="block text-sm font-semibold text-slate-700">Motivo da devolução
-          <textarea v-model="correctionReason" class="field mt-2 min-h-28 w-full" maxlength="2000" required placeholder="Ex.: Renegociar o plano e confirmar o valor mensal." />
+        <p class="text-sm text-slate-600">
+          Informe o que o consultor precisa corrigir. A oportunidade retornará ao Kanban na coluna
+          Para Correção.
+        </p>
+        <label class="block text-sm font-semibold text-slate-700"
+          >Motivo da devolução
+          <textarea
+            v-model="correctionReason"
+            class="field mt-2 min-h-28 w-full"
+            maxlength="2000"
+            required
+            placeholder="Ex.: Renegociar o plano e confirmar o valor mensal."
+          />
         </label>
-        <div class="flex justify-end gap-2"><button type="button" class="secondary-button w-auto" :disabled="saving" @click="correctionOpen = false">Cancelar</button><button type="submit" class="primary-button w-auto" :disabled="saving || !correctionReason.trim()">Confirmar devolução</button></div>
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            class="secondary-button w-auto"
+            :disabled="saving"
+            @click="correctionOpen = false"
+          >
+            Cancelar</button
+          ><button
+            type="submit"
+            class="primary-button w-auto"
+            :disabled="saving || !correctionReason.trim()"
+          >
+            Confirmar devolução
+          </button>
+        </div>
       </form>
     </AppDialog>
     <AppDialog
