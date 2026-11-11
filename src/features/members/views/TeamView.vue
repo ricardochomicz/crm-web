@@ -373,7 +373,7 @@ onMounted(load)
       </section>
     </template>
     <MemberProfileDialog :tenant-id="tenantId" :member="profileMember"
-      :can-edit="has('members.profile.update')" :can-write="canWrite"
+      :can-edit="has('members.profile.update') && !!profileMember?.can_edit_profile" :can-write="canWrite"
       @close="profileMember = null" @saved="profileSaved" />
     <InviteMemberDialog
       :open="inviteOpen"
