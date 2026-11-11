@@ -24,6 +24,7 @@ async function refresh() {
     if (current !== version) return
     notifications.value = response.data
     unread.value = response.unread
+    window.dispatchEvent(new CustomEvent('activity-notifications:changed', { detail: { tenantId: props.tenantId } }))
     if (membershipId.value !== response.membership_id) {
       membershipId.value = response.membership_id
       subscribe()
