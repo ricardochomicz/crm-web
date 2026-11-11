@@ -28,6 +28,8 @@ const protocolPage = ref(1)
 const protocolLastPage = ref(1)
 const protocolsLoading = ref(false)
 const protocolsError = ref('')
+const formatCpf = (cpf: string | null) => cpf && /^\d{11}$/.test(cpf) ? cpf.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4') : cpf
+const formatBirthDate = (value: string | null) => value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split('-').reverse().join('/') : value
 const protocolStatuses: Record<string, string> = {
   open: 'Aberto', in_progress: 'Em atendimento', waiting: 'Aguardando retorno',
   resolved: 'Resolvido', cancelled: 'Cancelado', reopened: 'Reaberto',
@@ -126,6 +128,11 @@ watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, p
               <strong>{{ c.name }}</strong> {{ c.is_primary ? '· Principal' : '' }}
               <p class="text-slate-500">
                 {{ [c.position, c.phone, c.email].filter(Boolean).join(' · ') }}
+              </p>
+              <p v-if="c.cpf || c.birth_date" class="mt-1 text-xs text-slate-500">
+                <span v-if="c.cpf">CPF: {{ formatCpf(c.cpf) }}</span>
+                <span v-if="c.cpf && c.birth_date"> · </span>
+                <span v-if="c.birth_date">Nascimento: {{ formatBirthDate(c.birth_date) }}</span>
               </p>
             </div>
             <button v-if="writable" class="rounded-lg border px-3 py-1.5" @click="emit('edit-contact', c)">
