@@ -20,12 +20,12 @@ export interface PortalOrdersResponse {
 }
 const root = (tenantId: string) => `/api/v1/public/customer-portal/${encodeURIComponent(tenantId)}`
 export const customerPortalApi = {
-  requestCode: (tenantId: string, document: string) =>
-    request<{ message: string; challenge: string }>(`${root(tenantId)}/request-code`, {
+  requestCode: (document: string) =>
+    request<{ message: string; challenge: string }>('/api/v1/public/customer-portal/request-code', {
       method: 'POST', body: JSON.stringify({ document }),
     }),
-  verify: (tenantId: string, challenge: string, code: string) =>
-    request<{ data: { token: string; expires_at: string } }>(`${root(tenantId)}/verify`, {
+  verify: (challenge: string, code: string) =>
+    request<{ data: { tenant_id: string; token: string; expires_at: string } }>('/api/v1/public/customer-portal/verify', {
       method: 'POST', body: JSON.stringify({ challenge, code }),
     }),
   orders: (tenantId: string, token: string, page = 1) =>
