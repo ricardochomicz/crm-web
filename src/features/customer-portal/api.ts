@@ -14,7 +14,7 @@ export interface PortalOrder {
   consultant_name: string | null
 }
 export interface PortalOrderDetail extends PortalOrder {
-  items: { description: string | null; quantity: number; monthly_unit_amount: string; status: string | null; activated_at: string | null }[]
+  items: { description: string | null; line_number: string | null; quantity: number; monthly_unit_amount: string; status: string | null; activated_at: string | null }[]
 }
 export interface PortalOrdersResponse {
   data: PortalOrder[]
