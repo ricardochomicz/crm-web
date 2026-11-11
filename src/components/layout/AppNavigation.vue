@@ -64,6 +64,7 @@ watch(() => route.path, (path) => {
           :aria-current="route.path === `/empresas/${tenant.id}` ? 'page' : undefined"
           ><AppIcon name="grid" class="size-5" />Início</RouterLink
         >
+        <RouterLink v-if="can(tenant, 'calendar.view')" :to="`/empresas/${tenant.id}/atividades`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/atividades') }"><AppIcon name="checkCircle" class="size-5" />Atividades</RouterLink>
         <RouterLink v-if="can(tenant, 'calendar.view')" :to="`/empresas/${tenant.id}/agenda`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/agenda') }" :aria-current="route.path.endsWith('/agenda') ? 'page' : undefined"><AppIcon name="calendar" class="size-5" /><span class="flex-1">Agenda</span><span v-if="futureAppointments !== null && futureAppointments > 0" class="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold leading-none text-orange-800">{{ futureAppointments > 99 ? "99+" : futureAppointments }}</span></RouterLink>
         <div v-if="canViewTeam(tenant)" class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="teamOpen" @click="teamOpen = !teamOpen"><span class="inline-flex items-center gap-2"><AppIcon name="users" class="size-4" />Equipe</span> <span aria-hidden="true">{{ teamOpen ? '⌄' : '›' }}</span></button>
