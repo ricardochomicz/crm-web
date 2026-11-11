@@ -9,7 +9,7 @@ import { opportunitiesApi, type Opportunity } from '@/features/opportunities/api
 import { errorMessage } from '@/lib/feedback'
 import type { CalendarEvent, CalendarEventInput, EventType, EventStatus, EventPriority } from '../types'
 
-const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean; canDelete: boolean; opportunityId?: string; clientId?: string; opportunityTitle?: string; defaultType?: EventType }>()
+const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean; canDelete: boolean; opportunityId?: string; clientId?: string; opportunityTitle?: string; defaultType?: EventType; defaultAssigneeId?: string; initialTitle?: string }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const busy = ref(false)
 const error = ref('')
@@ -104,7 +104,8 @@ watch(() => [props.open, props.event, props.date] as const, () => {
         opportunity_id: props.event.opportunity_id, client_id: props.event.client_id, tenant_user_id: props.event.tenant_user_id }
     : { ...emptyForm(props.date), type: props.defaultType ?? ('' as EventType), opportunity_id: props.opportunityId ?? null,
         client_id: props.clientId ?? null,
-        title: props.opportunityTitle ? `Contato: ${props.opportunityTitle}` : '' }
+        tenant_user_id: props.defaultAssigneeId ?? null,
+        title: props.initialTitle ?? (props.opportunityTitle ? `Contato: ${props.opportunityTitle}` : '') }
 }, { immediate: true })
 const title = computed(() => props.event ? 'Editar compromisso' : 'Novo compromisso')
 async function save() {
