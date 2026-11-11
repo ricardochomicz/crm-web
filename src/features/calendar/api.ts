@@ -3,6 +3,9 @@ import type { CalendarEvent, CalendarEventInput } from './types'
 
 const base = (tenantId: string) => `/api/v1/tenants/${encodeURIComponent(tenantId)}/calendar/events`
 export const calendarApi = {
+  assignees(tenantId: string) {
+    return request<{ data: { id: string; name: string }[] }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/calendar/assignees`)
+  },
   list(tenantId: string, from: string, to: string, scope: 'mine' | 'team') {
     const query = new URLSearchParams({ from, to, scope })
     return request<{ data: CalendarEvent[] }>(`${base(tenantId)}?${query}`)
