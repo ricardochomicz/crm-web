@@ -30,7 +30,12 @@ onMounted(() => {
   }
 })
 const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-const date = (value: string | null) => value ? new Date(value).toLocaleDateString('pt-BR') : '—'
+const date = (value: string | null) => {
+  if (!value) return '—'
+  const isoDate = value.slice(0, 10)
+  const parts = isoDate.split('-')
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : new Date(value).toLocaleDateString('pt-BR')
+}
 async function requestCode() {
   if (loading.value) return
   loading.value = true
@@ -121,6 +126,10 @@ async function logout() {
         <article v-for="order in orders" :key="order.id" class="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
           <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="font-semibold">{{ order.operator || 'Operadora não informada' }}</p><p class="mt-1 text-xs text-slate-500">Pedido {{ order.code }} · {{ date(order.created_at) }}</p></div><span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold">{{ order.status || 'Em andamento' }}</span></div>
           <div class="mt-4 grid gap-3 border-t border-stone-100 pt-4 text-sm sm:grid-cols-3"><p><span class="block text-xs text-slate-500">Negociação</span>{{ order.order_type || '—' }}</p><p><span class="block text-xs text-slate-500">Linhas</span>{{ order.line_quantity }}</p><p><span class="block text-xs text-slate-500">Mensalidade</span>{{ money(order.monthly_amount) }}</p></div>
+          <div class="mt-4 grid gap-3 border-t border-stone-100 pt-4 text-sm sm:grid-cols-2">
+            <p><span class="block text-xs text-slate-500">Data de ativação</span>{{ order.activated_at ? date(order.activated_at) : 'Aguardando ativação' }}</p>
+            <p><span class="block text-xs text-slate-500">Consultor responsável</span>{{ order.consultant_name || 'Não informado' }}</p>
+          </div>
           <button type="button" class="secondary-button mt-4 w-auto" :disabled="loading" @click="showOrder(order.id)">Ver detalhes</button>
         </article>
         <div v-if="lastPage > 1" class="flex items-center justify-between gap-3"><button class="secondary-button w-auto" type="button" :disabled="loading || page === 1" @click="loadOrders(page - 1)">Anterior</button><span class="text-sm text-slate-600">Página {{ page }} de {{ lastPage }}</span><button class="secondary-button w-auto" type="button" :disabled="loading || page === lastPage" @click="loadOrders(page + 1)">Próxima</button></div>
@@ -128,6 +137,11 @@ async function logout() {
       <AppDialog :open="detailsOpen" title="Detalhes do pedido" size="wide" @close="detailsOpen = false">
         <div v-if="selectedOrder" class="space-y-5">
           <div class="grid gap-4 text-sm sm:grid-cols-3"><div><p class="text-xs text-slate-500">Pedido</p><p class="font-semibold">{{ selectedOrder.code }}</p></div><div><p class="text-xs text-slate-500">Situação</p><p class="font-semibold">{{ selectedOrder.status }}</p></div><div><p class="text-xs text-slate-500">Operadora</p><p class="font-semibold">{{ selectedOrder.operator }}</p></div></div>
+          <div class="grid gap-4 border-t border-stone-100 pt-4 text-sm sm:grid-cols-3">
+            <div><p class="text-xs text-slate-500">Consultor responsável</p><p class="font-medium">{{ selectedOrder.consultant_name || 'Não informado' }}</p></div>
+            <div><p class="text-xs text-slate-500">Previsão de ativação</p><p class="font-medium">{{ date(selectedOrder.expected_activation_at) }}</p></div>
+            <div><p class="text-xs text-slate-500">Ativação efetiva</p><p class="font-medium">{{ selectedOrder.activated_at ? date(selectedOrder.activated_at) : 'Aguardando ativação' }}</p></div>
+          </div>
           <h3 class="font-semibold">Serviços contratados</h3>
           <div v-for="(item, index) in selectedOrder.items" :key="index" class="flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 py-3 text-sm"><div><p class="font-medium">{{ item.description || 'Serviço' }}</p><p class="text-xs text-slate-500">Quantidade: {{ item.quantity }} · {{ item.status || '—' }}</p></div><p class="font-semibold">{{ money(item.monthly_unit_amount) }}/mês</p></div>
         </div>
