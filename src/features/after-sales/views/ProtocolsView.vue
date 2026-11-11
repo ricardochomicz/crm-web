@@ -160,6 +160,7 @@ function searchNow() { if (page.value === 1) void load(); else page.value = 1 }
       :open="!!activityProtocol"
       :tenant-id="tenantId"
       :client-id="activityProtocol?.client_id ?? ''"
+      :protocol-id="activityProtocol?.id"
       :initial-title="activityProtocol ? 'Protocolo ' + activityProtocol.code + ': ' + activityProtocol.title : ''"
       :default-assignee-id="activityProtocol?.assigned_to_tenant_user_id"
       :can-write="canCreateActivity"
