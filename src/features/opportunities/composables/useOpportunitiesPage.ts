@@ -9,19 +9,17 @@ import { useOpportunityRealtimeSync } from './useOpportunityRealtimeSync'
 import { useOpportunityReferenceData } from './useOpportunityReferenceData'
 import { useOpportunityCommercialActions } from './useOpportunityCommercialActions'
 import { useOpportunityStageMovement } from './useOpportunityStageMovement'
+import { useOpportunityListFilters } from './useOpportunityListFilters'
 
 export function useOpportunitiesPage() {
     const tenantId = computed(() => String(useRoute().params.tenantId))
 const referenceData = useOpportunityReferenceData(tenantId)
 const { tenant, clients, products, operators, orderTypes, stages, canCreate, canEdit } = referenceData
-const rows = ref<Opportunity[]>([])
 const viewMode = ref<'list' | 'kanban'>('kanban')
 const section = ref<'open' | 'closed'>('open')
 function switchSection(next: 'open' | 'closed') {
     section.value = next
-    page.value = 1
-    filters.value = defaultFilters(next)
-    applied.value = { ...filters.value }
+    list.resetSection(next)
     viewMode.value = next === 'closed' ? 'list' : 'kanban'
     if (next === 'open' && stages.value.length === 0) {
         void opportunitiesApi.stages(tenantId.value).then(result => {
@@ -32,25 +30,12 @@ function switchSection(next: 'open' | 'closed') {
 }
 const draggingOpportunity = ref(false)
 const commercialOverview = ref<InstanceType<typeof OpportunityCommercialOverview> | null>(null)
-const defaultFilters = (area: 'open' | 'closed' = 'open'): OpportunityFilters => ({
-    search: '',
-    status: area === 'closed' ? 'all' : 'open',
-    period: area === 'closed' ? 'closed' : 'current',
-    order_type_id: '',
-    date_from: '',
-    date_to: '',
-})
-const filters = ref<OpportunityFilters>(defaultFilters())
-const applied = ref<OpportunityFilters>(defaultFilters())
+const list = useOpportunityListFilters(tenantId, section, () => reload())
+const { rows, filters, applied, page, total, lastPage, perPage, loading, error,
+  applyFilters, clearFilters, changePage } = list
 const stagePagination = useOpportunityStagePagination(tenantId, stages, applied)
 const kanbanRows = stagePagination.items
 const stageStates = stagePagination.states
-const page = ref(1)
-const total = ref(0)
-const lastPage = ref(1)
-const perPage = ref(20)
-const loading = ref(true)
-const error = ref('')
 const { movingId, moveStage } = useOpportunityStageMovement({
   tenantId, canEdit, stages, items: kanbanRows, pagination: stagePagination,
   updateTotal: value => { total.value = value },
@@ -70,18 +55,8 @@ const {
 const editing = ref<Opportunity | null>(null)
 let version = 0
 async function load() {
-  const current = ++version
-  loading.value = true
-  error.value = ''
-  try {
-    const result = await opportunitiesApi.list(tenantId.value, { ...applied.value, page: page.value })
-    if (current !== version) return
-    rows.value = result.data
-    total.value = result.total
-    lastPage.value = result.last_page
-    perPage.value = result.per_page
-  } catch (e) { if (current === version) error.value = errorMessage(e) }
-  finally { if (current === version) loading.value = false }
+  ++version
+  await list.load()
 }
 async function loadKanban() {
   const current = ++version
@@ -115,25 +90,6 @@ async function setup() {
     error.value = errorMessage(e)
   }
 }
-function applyFilters() {
-    if (filters.value.min_amount !== undefined && filters.value.max_amount !== undefined && Number(filters.value.min_amount) > Number(filters.value.max_amount)) {
-        toast.error('O valor mínimo não pode ser maior que o máximo.')
-        return
-    }
-    page.value = 1
-    applied.value = {
-        ...filters.value,
-        search: filters.value.search?.trim(),
-        status: section.value === 'open' ? 'open' : filters.value.status === 'open' ? 'all' : filters.value.status,
-        period: section.value === 'closed' ? 'closed' : filters.value.period,
-    }
-    reload()
-}
-function clearFilters() {
-    filters.value = defaultFilters(section.value)
-    applyFilters()
-}
-function changePage(next: number) { page.value = next; void load() }
 async function open(item: Opportunity | null = null, tab: 'details' | 'history' = 'details') {
   dialogTab.value = tab
   if (item) {
@@ -167,7 +123,7 @@ useOpportunityRealtimeSync({
   refreshRows: refreshRowsSilently,
   refreshOverview: () => { void commercialOverview.value?.refresh() },
 })
-watch(tenantId, () => { section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; referenceData.clear(); page.value = 1; void setup(); reload() }, { immediate: true })
+watch(tenantId, () => { section.value = 'open'; list.resetSection('open'); viewMode.value = 'kanban'; referenceData.clear(); page.value = 1; void setup(); reload() }, { immediate: true })
 watch(stages, (next, previous) => {
   if (viewMode.value === 'kanban' && next.length > 0 && previous.length === 0) reload()
 })
