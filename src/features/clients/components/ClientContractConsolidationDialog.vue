@@ -41,7 +41,7 @@ async function confirm(orderId: string) {
   <AppDialog
     :open="open"
     :title="clientName ? `Consolidar pedidos · ${clientName}` : 'Consolidar pedidos do cliente'"
-    description="Selecione o contrato correto para cada pedido. Não agrupe contratos distintos apenas por terem a mesma operadora."
+    description="Organize os pedidos por contrato. Somente contratos da mesma operadora e com classificação compatível podem receber o pedido."
     size="wide"
     :busy="!!busyOrderId"
     @close="emit('close')"
@@ -81,6 +81,10 @@ async function confirm(orderId: string) {
       </p>
 
       <div v-else class="space-y-3">
+        <p class="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+          Para cada pedido, escolha um contrato existente da mesma operadora ou crie um novo.
+          O sistema impede vínculos entre operadoras diferentes.
+        </p>
         <ContractConsolidationOrderCard
           v-for="order in data.orders"
           :key="order.id"
