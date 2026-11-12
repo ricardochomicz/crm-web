@@ -18,6 +18,15 @@ const selectedOrderId = ref<string | null>(null)
 const { close: closeOrderDetails } = useOrderDeepLink(selectedOrderId)
 const tenantId = computed(() => String(route.params.tenantId))
 const { tenant, paginated, total, page, lastPage, perPage, loading, error, search, status, month, dateField, consultant, team, quickView, summary, consultants, teams, statuses, setQuickView, applyFilters, clearFilters, changePage, load } = useOrdersPage(tenantId)
+type OrderQuickView = 'progress' | 'activated' | 'completed'
+const quickViewCards = computed(() => [
+  { key: 'progress' as const, label: 'Em tramitação', count: summary.value.progress },
+  { key: 'activated' as const, label: 'Ativados no mês', count: summary.value.activated },
+  { key: 'completed' as const, label: 'Concluídos no mês', count: summary.value.completed },
+])
+function selectQuickView(view: OrderQuickView) {
+  setQuickView(view)
+}
 const canMoveOrders = computed(() => can(tenant.value, 'orders.manage') && (tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER'))
 const isCompletedOrder = (order: { administratively_completed_at?: string | null; status?: string }) =>
     !!order.administratively_completed_at || ['COMPLETED', 'CONCLUDED'].includes(order.status?.toUpperCase() ?? '')
@@ -35,7 +44,7 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
             <p class="mt-2 text-sm text-slate-500">Acompanhe os pedidos originados das oportunidades ganhas.</p>
         </header>
         <div class="mb-5 grid gap-3 sm:grid-cols-3">
-            <button v-for="item in [{ key: 'progress', label: 'Em tramitação', count: summary.progress }, { key: 'activated', label: 'Ativados no mês', count: summary.activated }, { key: 'completed', label: 'Concluídos no mês', count: summary.completed }]" :key="item.key" type="button" class="rounded-2xl border bg-white p-4 text-left shadow-sm transition hover:border-orange-300" :class="quickView === item.key ? 'border-orange-500 ring-1 ring-orange-200' : 'border-stone-200'" @click="setQuickView(item.key as typeof quickView)">
+            <button v-for="item in quickViewCards" :key="item.key" type="button" class="rounded-2xl border bg-white p-4 text-left shadow-sm transition hover:border-orange-300" :class="quickView === item.key ? 'border-orange-500 ring-1 ring-orange-200' : 'border-stone-200'" @click="selectQuickView(item.key)">
                 <p class="text-sm text-slate-500">{{ item.label }}</p><p class="mt-2 text-2xl font-semibold text-slate-800">{{ item.count }}</p>
             </button>
         </div>
