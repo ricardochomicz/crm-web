@@ -3,6 +3,7 @@ import { mutate, request } from '@/lib/http'
 export interface CommercialPriority {
   id: string
   title: string
+  created_at: string | null
   client_name: string | null
   operator_name: string | null
   expected_close_at: string | null
