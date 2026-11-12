@@ -75,8 +75,8 @@ watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, p
             v-for="item in [
               { id: 'data', label: 'Dados' },
               { id: 'contacts', label: 'Pessoas de contato' },
-              { id: 'operators', label: 'Operadoras e classificações' },
               { id: 'contracts', label: 'Contratos e renovações' },
+              { id: 'operators', label: 'Operadoras e classificações' },
               { id: 'sellers', label: 'Histórico de vendedores' },
               { id: 'history', label: 'Histórico' },
             ] as const"
