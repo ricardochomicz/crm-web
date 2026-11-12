@@ -11,7 +11,7 @@
 
 ## Padrões obrigatórios
 
-1. Seleções: usar `SearchSelect` compartilhado; não usar `<select>` nativo em telas novas ou refatoradas.
+1. Seleções: usar **sempre** `SearchSelect` compartilhado; não introduzir `<select>` nativo em nenhuma tela, formulário, filtro ou modal. Ao migrar uma tela, substituir os selects nativos existentes e preservar `v-model`, valores, acessibilidade e comportamento dentro de `AppDialog`.
 2. Listagens: `ListFilters`, `ListTable`, `PagePagination` e estados explícitos de carregamento, erro e vazio.
 3. Modais: `AppDialog` e componentes específicos; não implementar modais diretamente nas Views.
 4. Dados remotos: controlar respostas obsoletas ao trocar filtros/empresa e limpar assinaturas no desmontar.
