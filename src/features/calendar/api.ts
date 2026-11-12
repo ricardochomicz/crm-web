@@ -1,5 +1,6 @@
 import { mutate, request } from '@/lib/http'
 import type { CalendarEvent, CalendarEventInput } from './types'
+import { publishActivityChanged } from './activityEvents'
 
 export interface CalendarEventHistoryEntry {
   id: string
@@ -45,13 +46,19 @@ export const calendarApi = {
     const query = new URLSearchParams({ from: '2000-01-01T00:00:00', to: '2100-01-01T00:00:00', scope: 'mine', opportunity_id: opportunityId })
     return request<{ data: CalendarEvent[] }>(`${base(tenantId)}?${query}`)
   },
-  create(tenantId: string, data: CalendarEventInput) {
-    return mutate<{ data: CalendarEvent }>(base(tenantId), data)
+  async create(tenantId: string, data: CalendarEventInput) {
+    const result = await mutate<{ data: CalendarEvent }>(base(tenantId), data)
+    publishActivityChanged(tenantId)
+    return result
   },
-  update(tenantId: string, id: string, data: Partial<CalendarEventInput>) {
-    return mutate<{ data: CalendarEvent }>(`${base(tenantId)}/${encodeURIComponent(id)}`, data, 'PATCH')
+  async update(tenantId: string, id: string, data: Partial<CalendarEventInput>) {
+    const result = await mutate<{ data: CalendarEvent }>(`${base(tenantId)}/${encodeURIComponent(id)}`, data, 'PATCH')
+    publishActivityChanged(tenantId)
+    return result
   },
-  remove(tenantId: string, id: string) {
-    return mutate(`${base(tenantId)}/${encodeURIComponent(id)}`, undefined, 'DELETE')
+  async remove(tenantId: string, id: string) {
+    const result = await mutate(`${base(tenantId)}/${encodeURIComponent(id)}`, undefined, 'DELETE')
+    publishActivityChanged(tenantId)
+    return result
   },
 }
