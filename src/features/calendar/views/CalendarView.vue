@@ -5,16 +5,16 @@ import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import CalendarEventHistoryDialog from '@/features/calendar/components/CalendarEventHistoryDialog.vue'
 import CalendarEventDialog from '../components/CalendarEventDialog.vue'
 import { useCalendarPage } from '../composables/useCalendarPage'
-const { tenantId, tenant, month, scope, events, loading, error, dialogOpen, selectedEvent, historyEvent, selectedDate, focusedDay, dayDetailsSection, now, isOverdue, statusLabel, dayEvents, dayTitle, eventTime, canCreate, canEdit, canDelete, teamAllowed, title, range, days, byDay, load, navigate, create, selectDay, edit, saved, dateKey, completedColors, eventStyles } = useCalendarPage()
+const { canCreateInMonth, createFromToolbar, goToToday, tenantId, tenant, month, scope, events, loading, error, dialogOpen, selectedEvent, historyEvent, selectedDate, focusedDay, dayDetailsSection, now, isOverdue, statusLabel, dayEvents, dayTitle, eventTime, canCreate, canEdit, canDelete, teamAllowed, title, range, days, byDay, load, navigate, create, selectDay, edit, saved, dateKey, completedColors, eventStyles } = useCalendarPage()
 </script>
 <template>
   <AppShell :tenant="tenant" title="Agenda" subtitle="Organização de compromissos">
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
       <div><h1 class="text-2xl font-bold capitalize text-slate-800">{{ title }}</h1><p class="mt-1 text-sm text-slate-500">Compromissos e atividades da empresa</p></div>
-      <button v-if="canCreate && scope === 'mine' && new Date(month.getFullYear(), month.getMonth() + 1, 0) >= new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())" class="primary-button w-auto" @click="create(new Date().getMonth() === month.getMonth() && new Date().getFullYear() === month.getFullYear() ? new Date().getDate() : (new Date(month.getFullYear(), month.getMonth(), 1) < new Date(new Date().getFullYear(), new Date().getMonth(), 1) ? new Date().getDate() : 1))">Novo compromisso</button>
+      <button v-if="canCreateInMonth" class="primary-button w-auto" @click="createFromToolbar">Novo compromisso</button>
     </div>
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex gap-2"><button class="secondary-button" aria-label="Mês anterior" @click="navigate(-1)">Anterior</button><button class="secondary-button" @click="month = new Date(new Date().getFullYear(), new Date().getMonth(), 1); focusedDay = dateKey(new Date())">Hoje</button><button class="secondary-button" aria-label="Próximo mês" @click="navigate(1)">Próximo</button></div>
+      <div class="flex gap-2"><button class="secondary-button" aria-label="Mês anterior" @click="navigate(-1)">Anterior</button><button class="secondary-button" @click="goToToday">Hoje</button><button class="secondary-button" aria-label="Próximo mês" @click="navigate(1)">Próximo</button></div>
       <div v-if="teamAllowed" class="flex rounded-xl bg-stone-100 p-1"><button class="rounded-lg px-4 py-2 text-sm" :class="scope === 'mine' ? 'bg-white font-semibold shadow-sm' : ''" @click="scope = 'mine'">Minha agenda</button><button class="rounded-lg px-4 py-2 text-sm" :class="scope === 'team' ? 'bg-white font-semibold shadow-sm' : ''" @click="scope = 'team'">Equipe</button></div>
     </div>
     <AsyncNotice :loading="loading" :error="error" label="Carregando agenda…" @retry="load" />
