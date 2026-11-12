@@ -78,3 +78,58 @@ describe('stage pagination during Kanban movement', () => {
     expect(pagination.states.value.target?.total).toBe(1)
   })
 })
+
+describe('stage pagination request concurrency', () => {
+  it('does not let an older reset clear the loading state of a newer reset', async () => {
+    const pagination = setup()
+    const pending: Array<(value: ReturnType<typeof response>) => void> = []
+    vi.mocked(opportunitiesApi.list).mockImplementation(() => new Promise(done => { pending.push(done) }))
+    const first = pagination.reset()
+    expect(pagination.loading.value).toBe(true)
+    const second = pagination.reset()
+    pending.splice(0, 3).forEach(resolve => resolve(response([])))
+    await first
+    expect(pagination.loading.value).toBe(true)
+    pending.forEach(resolve => resolve(response([])))
+    await second
+    expect(pagination.loading.value).toBe(false)
+  })
+
+  it('ignores stale errors after the tenant changes', async () => {
+    vi.mocked(opportunitiesApi.list).mockReset()
+    const tenant = ref('tenant-a')
+    const pagination = useOpportunityStagePagination(tenant, ref(stages), ref<OpportunityFilters>({ status: 'open' }))
+    let reject!: (reason: Error) => void
+    vi.mocked(opportunitiesApi.list).mockImplementation(() => new Promise((_resolve, fail) => { reject = fail }))
+    const request = pagination.reset()
+    tenant.value = 'tenant-b'
+    reject(new Error('Old tenant unavailable'))
+    await request
+    expect(Object.values(pagination.states.value).every(state => !state.error)).toBe(true)
+  })
+
+  it('does not fetch more cards for inactive stages', () => {
+    const pagination = useOpportunityStagePagination(
+      ref('tenant'),
+      ref([{ ...stages[0]!, is_active: false }]),
+      ref<OpportunityFilters>({ status: 'open' }),
+    )
+    vi.mocked(opportunitiesApi.list).mockClear()
+    pagination.loadMore('source')
+    expect(opportunitiesApi.list).not.toHaveBeenCalled()
+  })
+
+  it('uses a stable filter snapshot for every page of a refresh', async () => {
+    vi.mocked(opportunitiesApi.list).mockReset()
+    const filters = ref<OpportunityFilters>({ status: 'open', search: 'initial' })
+    const pagination = useOpportunityStagePagination(ref('tenant'), ref(stages), filters)
+    pagination.states.value = { source: { page: 2, lastPage: 2, total: 2, loading: false, error: '' } }
+    vi.mocked(opportunitiesApi.list).mockImplementation(async (_tenant, params) => {
+      if (params?.page === 1) filters.value = { status: 'open', search: 'changed' }
+      return response([], params?.page)
+    })
+    await pagination.refresh(['source'])
+    expect(vi.mocked(opportunitiesApi.list).mock.calls.map(([, params]) => params?.search))
+      .toEqual(['initial', 'initial'])
+  })
+})
