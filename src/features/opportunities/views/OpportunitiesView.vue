@@ -18,8 +18,10 @@ import OpportunityDialog from '../components/OpportunityDialog.vue'
 import OpportunityKanban from '../components/OpportunityKanban.vue'
 import OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
 import { useOpportunitiesPage } from '../composables/useOpportunitiesPage'
+import { useOpportunityDeepLink } from '../composables/useOpportunityDeepLink'
 
 const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages, viewMode, section, recoveringId, recover, switchSection, kanbanRows, movingId, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, kanbanLimitReached, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
+useOpportunityDeepLink(tenantId, dialogOpen, open)
 const highlightedIds = ref<string[]>([])
 const highlightingId = ref<string | null>(null)
 let highlightRequestVersion = 0
