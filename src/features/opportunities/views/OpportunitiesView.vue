@@ -11,6 +11,7 @@ import PagePagination from '@/components/ui/PagePagination.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import OpportunityDialog from '../components/OpportunityDialog.vue'
 import OpportunitySaleDialog from '../components/OpportunitySaleDialog.vue'
+import OpportunityRecoverDialog from '../components/OpportunityRecoverDialog.vue'
 import OpportunityLostDialog from '../components/OpportunityLostDialog.vue'
 import OpportunityResendDialog from '../components/OpportunityResendDialog.vue'
 import OpportunityKanban from '../components/OpportunityKanban.vue'
@@ -24,7 +25,7 @@ function onScheduleSaved() {
   scheduling.value = null
   toast.success('Compromisso agendado na oportunidade.')
 }
-const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages, viewMode, section, recoveringId, recover, switchSection, kanbanRows, movingId, draggingOpportunity, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, stageStates, loadMoreKanban, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
+const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages, viewMode, section, recoveringId, recoverCandidate, askRecover, recover, switchSection, kanbanRows, movingId, draggingOpportunity, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, stageStates, loadMoreKanban, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
 useOpportunityDeepLink(tenantId, dialogOpen, open)
 const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = useOpportunityHighlights(tenantId)
 </script>
@@ -77,7 +78,7 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
               <TableActionButton v-if="section === 'open' && canEdit && item.status === 'open'" icon="calendar" :label="`Agendar atividade para ${item.title}`" @click="scheduling = item" />
               <TableActionButton icon="message-square" :label="`Histórico de ${item.title}`" @click="open(item, 'history')" />
               <TableActionButton v-if="section === 'open' && canEdit && item.status === 'open'" icon="edit" :label="`Editar ${item.title}`" @click="open(item)" />
-              <button v-if="canEdit && section === 'closed' && item.status === 'lost'" type="button" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100" :disabled="!!recoveringId" @click="recover(item)">{{ recoveringId === item.id ? 'Recuperando…' : 'Recuperar negociação' }}</button>
+              <button v-if="canEdit && section === 'closed' && item.status === 'lost'" type="button" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100" :disabled="!!recoveringId" @click="askRecover(item)">{{ recoveringId === item.id ? 'Recuperando…' : 'Recuperar negociação' }}</button>
               <button v-if="section === 'open' && canEdit && item.status === 'open'" type="button" class="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100" @click="askConfirmSale(item)">Confirmar venda</button>
               <button v-if="section === 'open' && canEdit && item.status === 'open'" type="button" class="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100" @click="askMarkLost(item)">Venda perdida</button>
             </div>
@@ -100,6 +101,7 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
       @close="scheduling = null"
       @saved="onScheduleSaved"
     />
+    <OpportunityRecoverDialog :opportunity="recoverCandidate" :busy="!!recoveringId" @close="recoverCandidate = null" @confirm="recover" />
     <OpportunityResendDialog :opportunity="resendCandidate" :busy="!!movingId" :money="money" @close="resendCandidate = null" @confirm="resendToBackoffice" />
     <OpportunityLostDialog :opportunity="lostCandidate" :busy="markingLost" :reason="lostReason" @update:reason="lostReason = $event" @close="lostCandidate = null" @confirm="markLost" />
     <OpportunitySaleDialog :opportunity="saleCandidate" :busy="confirmingSale" :money="money" @close="saleCandidate = null" @confirm="confirmSale" />
