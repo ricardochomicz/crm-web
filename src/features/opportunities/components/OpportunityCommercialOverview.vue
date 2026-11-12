@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { opportunitiesApi, type CommercialOverview } from '../api'
 import { errorMessage } from '@/lib/feedback'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 
 const props = defineProps<{ tenantId: string }>()
 const today = new Date()
@@ -41,7 +42,7 @@ async function refresh() {
     if (mode.value === 'month') {
         if (!/^\d{4}-\d{2}$/.test(month.value)) return
         const [year, number] = month.value.split('-').map(Number)
-        if (!year || !number || number < 1 || number > 12) return
+        if (!year || number === undefined || number < 1 || number > 12) return
         from = `${month.value}-01`
         to = `${month.value}-${String(new Date(year, number, 0).getDate()).padStart(2, '0')}`
     }
@@ -84,10 +85,7 @@ defineExpose({ refresh })
             <form class="mb-4 flex flex-wrap items-end justify-end gap-2" @submit.prevent="refresh">
                 <label class="text-xs font-semibold text-slate-600">
                     Consultar por
-                    <select v-model="mode" class="field mt-1 min-w-32">
-                        <option value="month">Mês / Ano</option>
-                        <option value="range">Intervalo</option>
-                    </select>
+                    <SearchSelect :model-value="mode" :options="[{ value: 'month', label: 'Mês / Ano' }, { value: 'range', label: 'Intervalo' }]" @update:model-value="value => mode = value === 'range' ? 'range' : 'month'" />
                 </label>
                 <label v-if="mode === 'month'" class="text-xs font-semibold text-slate-600">
                     Mês e ano
