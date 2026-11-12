@@ -4,6 +4,7 @@ import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import PortfolioDetailsDialog from '../components/PortfolioDetailsDialog.vue'
 import PortfolioFilters from '../components/PortfolioFilters.vue'
+import PortfolioModeSelector from '../components/PortfolioModeSelector.vue'
 import PortfolioContractsTable from '../components/PortfolioContractsTable.vue'
 import PortfolioRenewalDialog from '../components/PortfolioRenewalDialog.vue'
 import { useClientPortfolioPage } from '../composables/useClientPortfolioPage'
@@ -65,12 +66,12 @@ const {
       @clear="clearFilters"
     />
 
-    <div class="mb-4 flex flex-wrap items-center gap-2">
-      <button type="button" class="rounded-lg border px-4 py-2 text-sm font-medium" :class="viewMode === 'contracts' ? 'border-slate-900 bg-slate-900 text-white' : 'border-stone-200 bg-white text-slate-700'" @click="changeMode('contracts')">Contratos consolidados</button>
-      <button type="button" class="rounded-lg border px-4 py-2 text-sm font-medium" :class="viewMode === 'orders' ? 'border-slate-900 bg-slate-900 text-white' : 'border-stone-200 bg-white text-slate-700'" @click="changeMode('orders')">Pedidos históricos</button>
-      <button type="button" class="rounded-lg border px-4 py-2 text-sm font-medium" :class="viewMode === 'renewing' ? 'border-slate-900 bg-slate-900 text-white' : 'border-stone-200 bg-white text-slate-700'" @click="changeMode('renewing')">Em renovação</button>
-    </div>
-    <p v-if="viewMode === 'orders'" class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Estes pedidos ainda são exibidos individualmente. Vincule-os aos contratos pelo cadastro do cliente para que apareçam na carteira consolidada. A renovação integral deve ser calculada somente após a consolidação.</p>
+    <PortfolioModeSelector
+      :model-value="viewMode"
+      :disabled="loading"
+      @update:model-value="changeMode"
+    />
+
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
 
     <template v-if="!loading && !error">
