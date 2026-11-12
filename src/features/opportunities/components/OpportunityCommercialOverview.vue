@@ -41,7 +41,7 @@ async function refresh() {
     if (mode.value === 'month') {
         if (!/^\d{4}-\d{2}$/.test(month.value)) return
         const [year, number] = month.value.split('-').map(Number)
-        if (number < 1 || number > 12) return
+        if (!year || !number || number < 1 || number > 12) return
         from = `${month.value}-01`
         to = `${month.value}-${String(new Date(year, number, 0).getDate()).padStart(2, '0')}`
     }
