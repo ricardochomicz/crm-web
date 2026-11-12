@@ -1,38 +1,23 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { toast } from '@/services/toast'
 import { tenantApi } from '@/features/tenants/api'
 import { operatorsApi } from '@/features/operators/api'
 import type { Tenant } from '@/features/tenants/types'
 import { clientsApi, type PortfolioContract } from '../api'
+import { usePortfolioRenewal } from './usePortfolioRenewal'
 
 export function useClientPortfolioPage() {
   const route = useRoute()
   const router = useRouter()
-  const renewing = ref<PortfolioContract | null>(null)
   const selectedDetails = ref<PortfolioContract | null>(null)
-  const savingRenewal = ref(false)
-  const visibleRows = computed(() => rows.value)
-  function openRenewal(contract: PortfolioContract) {
-    renewing.value = contract
-  }
-  async function confirmRenewal() {
-    const contract = renewing.value
-    if (!contract?.order_id || savingRenewal.value || !(contract.lines?.length)) return
-    savingRenewal.value = true
-    try {
-      await clientsApi.renewHistoricalOrder(tenantId.value, contract.order_id, (contract.lines ?? []).map(line => line.id))
-      renewing.value = null
-      toast.success('Oportunidade de renovação criada com sucesso.')
-      await load()
-      await router.push('/empresas/' + tenantId.value + '/oportunidades')
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Não foi possível iniciar a renovação.')
-    } finally { savingRenewal.value = false }
-  }
+
   const tenantId = computed(() => String(route.params.tenantId))
   const tenant = ref<Tenant>()
   const operators = ref<{ id: number; name: string }[]>([])
+  const { renewing, savingRenewal, openRenewal, closeRenewal, confirmRenewal } =
+    usePortfolioRenewal(tenantId, load)
+
+  const visibleRows = computed(() => rows.value)
   const rows = ref<PortfolioContract[]>([])
   const viewMode = ref<'contracts' | 'orders' | 'renewing'>('contracts')
   const ungroupedCount = ref(0)
@@ -213,6 +198,7 @@ export function useClientPortfolioPage() {
     selectedDetails,
     savingRenewal,
     openRenewal,
+    closeRenewal,
     confirmRenewal,
     router,
   }
