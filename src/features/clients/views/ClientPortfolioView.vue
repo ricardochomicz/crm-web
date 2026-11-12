@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
-import ListFilters from '@/components/ui/ListFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
-import SearchSelect from '@/components/ui/SearchSelect.vue'
 import PortfolioDetailsDialog from '../components/PortfolioDetailsDialog.vue'
+import PortfolioFilters from '../components/PortfolioFilters.vue'
 import PortfolioRenewalDialog from '../components/PortfolioRenewalDialog.vue'
 import { useClientPortfolioPage } from '../composables/useClientPortfolioPage'
 
@@ -57,38 +56,18 @@ const {
       </p>
     </header>
 
-    <ListFilters
-      :columns="4"
-      collapsible
-      initially-collapsed
+    <PortfolioFilters
+      v-model:search="search"
+      v-model:operator-filter="operatorFilter"
+      v-model:renewal-month="renewalMonth"
+      v-model:renewal-year="renewalYear"
+      :operators="operators"
+      :total="total"
       :active-count="[appliedSearch, appliedOperator, appliedRenewalMonth, appliedRenewalYear].filter(Boolean).length"
-      :count-label="`${total} contrato(s) encontrado(s)`"
+      :busy="loading"
       @search="applyFilters"
       @clear="clearFilters"
-    >
-      <label class="text-xs font-semibold text-slate-600">
-        Buscar cliente
-        <input v-model="search" class="field" type="search" placeholder="Nome, CPF ou CNPJ" />
-      </label>
-      <label class="text-xs font-semibold text-slate-600">
-        Operadora
-        <SearchSelect
-          v-model="operatorFilter"
-          :options="[
-            { value: '', label: 'Todas as operadoras' },
-            ...operators.map((operator) => ({ value: String(operator.id), label: operator.name })),
-          ]"
-        />
-      </label>
-      <label class="text-xs font-semibold text-slate-600">
-        Mês da renovação
-        <SearchSelect v-model="renewalMonth" :options="[{ value: '', label: 'Todos os meses' }, ...['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((name, index) => ({ value: String(index + 1), label: name }))]" />
-      </label>
-      <label class="text-xs font-semibold text-slate-600">
-        Ano da renovação
-        <input v-model="renewalYear" class="field" type="number" min="2000" max="2200" placeholder="Ex.: 2028" />
-      </label>
-    </ListFilters>
+    />
 
     <div class="mb-4 flex flex-wrap items-center gap-2">
       <button type="button" class="rounded-lg border px-4 py-2 text-sm font-medium" :class="viewMode === 'contracts' ? 'border-slate-900 bg-slate-900 text-white' : 'border-stone-200 bg-white text-slate-700'" @click="changeMode('contracts')">Contratos consolidados</button>
