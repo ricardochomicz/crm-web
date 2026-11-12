@@ -2,11 +2,13 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
-import type { ChannelAuthorizationCallback, ChannelAuthorizationData } from 'pusher-js'
+import type { ChannelAuthorizationCallback } from 'pusher-js'
 import { useRouter } from 'vue-router'
 import { activityNotificationsApi, type ActivityNotification } from '../notificationsApi'
 import { request } from '@/lib/http'
 import { subscribeActivityChanged } from '../activityEvents'
+
+type ChannelAuthorizationData = NonNullable<Parameters<ChannelAuthorizationCallback>[1]>
 
 const router = useRouter()
 const props = defineProps<{ tenantId: string }>()

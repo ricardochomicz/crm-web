@@ -72,6 +72,8 @@ describe('role assignment', () => {
             role: 'ASSISTANT',
             status: 'ACTIVE',
             can_manage: true,
+            can_view_profile: true,
+            can_edit_profile: true,
             joined_at: null,
           },
         },

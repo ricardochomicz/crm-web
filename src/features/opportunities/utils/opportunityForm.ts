@@ -19,5 +19,5 @@ export function opportunityTotal(items: OpportunityInput['items'], field: 'month
 }
 
 export function parseOpportunityNumbers(input: string): string[] {
-  return input.split(/[\s,;]+/).map(value => value.replace(/\D/g, '')).filter(Boolean)
+  return input.split(/[\r\n\t,;]+/).map(value => value.replace(/\D/g, '')).filter(Boolean)
 }

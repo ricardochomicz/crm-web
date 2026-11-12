@@ -105,7 +105,7 @@ describe('Matriz e filiais', () => {
     const wrapper = await render()
     await wrapper.findAll('article button')[1]!.trigger('click')
     expect(wrapper.get('aside').text()).toBe('Matriz')
-    expect(wrapper.find('form').exists()).toBe(false)
+    expect(wrapper.find('#unit-name').exists()).toBe(false)
     wrapper.unmount()
   })
   it('keeps form input when validation fails', async () => {

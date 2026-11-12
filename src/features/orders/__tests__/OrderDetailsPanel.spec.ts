@@ -2,17 +2,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import OrderDetailsPanel from '../components/OrderDetailsPanel.vue'
 import { ordersApi, type CommercialOrder } from '../api'
+import { tenantApi } from '@/features/tenants/api'
 import { orderStatusesApi } from '@/features/order-statuses/api'
 
 vi.mock('../api', () => ({
   ordersApi: { show: vi.fn(), updateWorkflow: vi.fn(), activateItems: vi.fn(), complete: vi.fn() },
 }))
 vi.mock('@/features/order-statuses/api', () => ({ orderStatusesApi: { list: vi.fn() } }))
+vi.mock('@/features/tenants/api', () => ({ tenantApi: { show: vi.fn() } }))
 vi.mock('@/services/toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 let order: CommercialOrder
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(tenantApi.show).mockResolvedValue({ data: { id: 'tenant-1', name: 'Empresa', type: 'PJ', role: 'OWNER' } })
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date(2026, 10, 7, 12))
   order = {
@@ -55,7 +58,7 @@ afterEach(() => vi.useRealTimers())
 
 async function render() {
   const wrapper = mount(OrderDetailsPanel, {
-    props: { tenantId: 'tenant-1', orderId: 'order-1' },
+    props: { tenantId: 'tenant-1', orderId: 'order-1', canManage: true },
     global: {
       stubs: {
         TimelinePanel: true,
