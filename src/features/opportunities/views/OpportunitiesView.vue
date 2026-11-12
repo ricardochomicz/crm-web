@@ -19,6 +19,7 @@ import OpportunityCommercialOverview from '../components/OpportunityCommercialOv
 import { useOpportunitiesPage } from '../composables/useOpportunitiesPage'
 import { useOpportunityDeepLink } from '../composables/useOpportunityDeepLink'
 import { useOpportunityHighlights } from '../composables/useOpportunityHighlights'
+import { opportunityAgeClass, opportunityAgeLabel } from '../utils/opportunityAge'
 
 const scheduling = ref<{ id: string; client_id?: string | null; title: string } | null>(null)
 function onScheduleSaved() {
@@ -64,8 +65,22 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
           <td class="p-4">{{ item.client?.company_name ?? '—' }}</td>
           <td class="p-4">{{ displayOrderType(item) }}</td>
           <td class="p-4">
-              <span>{{ item.expected_close_at ? item.expected_close_at.slice(0, 10).split('-').reverse().join('/') : '—' }}</span>
-              <span v-if="item.status === 'open' && item.expected_close_at && item.expected_close_at.slice(0, 10) < new Date().toISOString().slice(0, 10)" class="ml-2 rounded-md bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700">Atrasada</span>
+              <div class="flex flex-wrap items-center gap-2">
+                <span>{{ item.expected_close_at ? item.expected_close_at.slice(0, 10).split('-').reverse().join('/') : '—' }}</span>
+                <span
+                  v-if="item.status === 'open' && item.expected_close_at && item.expected_close_at.slice(0, 10) < new Date().toISOString().slice(0, 10)"
+                  class="rounded-md bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700"
+                >
+                  Atrasada
+                </span>
+              </div>
+              <small
+                v-if="opportunityAgeLabel(item.created_at)"
+                class="mt-1 block text-xs"
+                :class="opportunityAgeClass(item.created_at)"
+              >
+                {{ opportunityAgeLabel(item.created_at) }}
+              </small>
             </td>
           <td class="p-4 font-semibold">{{ money(item.estimated_monthly_amount) }}</td>
           <td v-if="section === 'closed'" class="p-4 text-sm">
