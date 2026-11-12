@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import FormField from '@/components/ui/FormField.vue'
+import FormActions from '@/components/ui/FormActions.vue'
 import { calendarApi } from '../api'
 import { clientsApi, type Client } from '@/features/clients/api'
 import { opportunitiesApi, type Opportunity } from '@/features/opportunities/api'
@@ -203,13 +204,12 @@ async function remove() {
         </label>
       </fieldset>
       <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ error }}</p>
-      <div class="flex items-center justify-between gap-2 border-t border-stone-100 pt-4">
-        <button v-if="event && canDelete" type="button" class="text-sm font-semibold text-red-700" :disabled="busy" @click="remove">Excluir</button>
-        <span v-else />
-        <div class="flex gap-2">
-          <button type="button" class="secondary-button" :disabled="busy" @click="emit('close')">Fechar</button>
-          <button v-if="canWrite" type="submit" class="primary-button w-auto" :disabled="busy">{{ busy ? 'Salvando…' : 'Salvar' }}</button>
-        </div>
+      <div class="border-t border-stone-100 pt-4">
+        <FormActions :busy="busy" :show-submit="canWrite" cancel-label="Fechar" @cancel="emit('close')">
+          <template v-if="event && canDelete" #before>
+            <button type="button" class="mr-auto text-sm font-semibold text-red-700" :disabled="busy" @click="remove">Excluir</button>
+          </template>
+        </FormActions>
       </div>
     </form>
   </AppDialog>
