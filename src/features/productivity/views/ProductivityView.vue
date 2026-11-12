@@ -19,7 +19,7 @@ const { from, to, appliedPeriod, consultantId, data, loading, error, consultants
       <ProductivityFilters v-model:from="from" v-model:to="to" v-model:consultant-id="consultantId" :consultants="consultants" :loading="loading" @search="search" @clear="clear" />
       <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
       <p v-if="loading" class="text-sm text-slate-500">Carregando indicadores…</p>
-      <ProductivityDashboard v-else-if="data" :result="data" :tenant-id="tenantId" :from="appliedPeriod.from" :to="appliedPeriod.to" />
+      <ProductivityDashboard v-else-if="data" :result="data" :tenant-id="tenantId" :from="appliedPeriod.from" :to="appliedPeriod.to" :consultant-id="appliedPeriod.consultantId" />
     </div>
   </AppShell>
 </template>
