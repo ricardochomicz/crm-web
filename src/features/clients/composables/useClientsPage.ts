@@ -7,10 +7,10 @@ import { ApiError } from '@/lib/http'
 import { validateClient } from '../validation'
 import { blankClient } from '../utils/clientFormDefaults'
 import { useClientContacts } from './useClientContacts'
+import { useClientTransfer } from './useClientTransfer'
 import { useClientsList } from '../composables/useClientsList'
 import { useClientMasks } from '../composables/useClientMasks'
 import { useClientAddress } from '../composables/useClientAddress'
-import { digits } from '@/lib/masks'
 import { useFormValidation } from '@/composables/useFormValidation'
 import { can } from '@/features/tenants/types'
 import {
@@ -19,7 +19,6 @@ import {
   type ClientInput,
   type Classification,
   type Seller,
-  type ClientTransferLookup,
 } from '../api'
 import type { Tenant } from '@/features/tenants/types'
 
@@ -61,54 +60,26 @@ const {
 } = useClientsList(rows)
 const blank = blankClient
 const validationState = useFormValidation<keyof ClientInput>()
-const duplicate = ref<ClientTransferLookup | null>(null)
-const checkingDocument = ref(false)
-const transferBusy = ref(false)
-const transferDialogOpen = ref(false)
-function requestTransfer() {
-  if (duplicate.value?.client_id && !transferBusy.value) transferDialogOpen.value = true
-}
-let lookupVersion = 0
-
-async function checkDocument() {
-  const version = ++lookupVersion
-  duplicate.value = null
-  const document = digits(form.value.document, 14)
-  if (editing.value || ![11, 14].includes(document.length)) return
-  checkingDocument.value = true
-  try {
-    const result = await clientsApi.transferLookup(tenantId.value, document)
-    if (version === lookupVersion) duplicate.value = result.data
-  } catch (e) {
-    if (version === lookupVersion) toast.error(e instanceof Error ? e.message : 'Erro ao verificar cliente.')
-  } finally {
-    if (version === lookupVersion) checkingDocument.value = false
-  }
-}
-
-async function submitTransfer(reason: string) {
-  if (!duplicate.value?.client_id || transferBusy.value) return
-  const clientId = duplicate.value.client_id
-  const id = tenantId.value
-  transferBusy.value = true
-  try {
-    await clientsApi.requestTransfer(id, clientId, reason.trim())
-    if (id !== tenantId.value) return
-    transferDialogOpen.value = false
-    modal.value = false
-    toast.success('Solicitação enviada para aprovação do supervisor.')
-  } catch (e) {
-    if (id === tenantId.value) toast.error(e instanceof Error ? e.message : 'Não foi possível solicitar a transferência.')
-  } finally {
-    transferBusy.value = false
-  }
-}
-
 const form = ref<ClientInput>(blank()),
   editing = ref(''),
   modal = ref(false),
   selected = ref<Client | null>(null),
   detailsInitialTab = ref<'data' | 'history'>('data')
+const {
+  duplicate,
+  checkingDocument,
+  transferBusy,
+  transferDialogOpen,
+  checkDocument,
+  requestTransfer,
+  submitTransfer,
+  resetLookup,
+} = useClientTransfer({
+  tenantId,
+  form,
+  editing,
+  closeClientModal: () => { modal.value = false },
+})
 const {
   contactBlank,
   contact,
@@ -140,9 +111,7 @@ const sellerName = (client: Client): string => {
   return sellers.value.find((seller) => seller.id === sellerId)?.name ?? '—'
 }
 function start(c?: Client) {
-  ++lookupVersion
-  duplicate.value = null
-  checkingDocument.value = false
+  resetLookup()
   validationState.clear()
   editing.value = c?.id ?? ''
   form.value = c
@@ -210,7 +179,8 @@ async function load() {
 async function save() {
   if (busy.value) return
   if (!editing.value) {
-    await checkDocument()
+    const documentChecked = await checkDocument()
+    if (!documentChecked) return
     if (duplicate.value?.exists) {
       toast.error('Cliente já cadastrado. Utilize a transferência de carteira, quando disponível.')
       return
@@ -294,7 +264,7 @@ watch(
   () => {
     selected.value = null
     modal.value = false
-    transferDialogOpen.value = false
+    resetLookup()
     pendingContactClientId.value = null
     contactModal.value = false
     cancelLookup()
