@@ -8,6 +8,7 @@ import { toast } from '@/services/toast'
 import { useOpportunityRealtimeSync } from './useOpportunityRealtimeSync'
 import { useOpportunityReferenceData } from './useOpportunityReferenceData'
 import { useOpportunityCommercialActions } from './useOpportunityCommercialActions'
+import { useOpportunityStageMovement } from './useOpportunityStageMovement'
 
 export function useOpportunitiesPage() {
     const tenantId = computed(() => String(useRoute().params.tenantId))
@@ -29,7 +30,6 @@ function switchSection(next: 'open' | 'closed') {
     }
     reload()
 }
-const movingId = ref<string | null>(null)
 const draggingOpportunity = ref(false)
 const commercialOverview = ref<InstanceType<typeof OpportunityCommercialOverview> | null>(null)
 const defaultFilters = (area: 'open' | 'closed' = 'open'): OpportunityFilters => ({
@@ -51,6 +51,10 @@ const lastPage = ref(1)
 const perPage = ref(20)
 const loading = ref(true)
 const error = ref('')
+const { movingId, moveStage } = useOpportunityStageMovement({
+  tenantId, canEdit, stages, items: kanbanRows, pagination: stagePagination,
+  updateTotal: value => { total.value = value },
+})
 const dialogTab = ref<'details' | 'history'>('details')
 const dialogOpen = ref(false)
 const {
@@ -103,42 +107,6 @@ async function changeView(mode: 'list' | 'kanban') {
     try { stages.value = (await opportunitiesApi.stages(tenantId.value)).data } catch (e) { toast.error(errorMessage(e)) }
   }
   reload()
-}
-async function moveStage(id: string, stageId: string) {
-  if (!canEdit.value || movingId.value || !stageId) return
-  const item = kanbanRows.value.find(i => i.id === id)
-  if (!item || item.funnel_stage_id === stageId) return
-
-  const tenant = tenantId.value
-  const previousStageId = item.funnel_stage_id
-  // Replace the array entry so the Kanban recomputes its columns immediately.
-  const setStage = (nextStageId: string | null) => {
-    stagePagination.updateStage(id, nextStageId)
-  }
-  movingId.value = id
-  setStage(stageId)
-  try {
-    const result = await opportunitiesApi.moveStage(tenant, id, stageId)
-    if (tenant !== tenantId.value) return
-    // Use the persisted stage, not a stale object captured before the request.
-    setStage(result.data.funnel_stage_id)
-    toast.success('Etapa atualizada.')
-    const sourceStageId = previousStageId ?? stages.value.find(stage => /prospec/i.test(stage.name))?.id
-    const affectedStageIds = [...new Set([sourceStageId, result.data.funnel_stage_id].filter((value): value is string => !!value))]
-    try {
-      await stagePagination.refresh(affectedStageIds, () => tenant === tenantId.value, id)
-      total.value = stagePagination.total.value
-    } catch {
-      // The move is already persisted; keep the updated cards if reconciliation fails.
-    }
-  } catch (e) {
-    if (tenant === tenantId.value) {
-      setStage(previousStageId)
-      toast.error(errorMessage(e))
-    }
-  } finally {
-    movingId.value = null
-  }
 }
 async function setup() {
   try {
