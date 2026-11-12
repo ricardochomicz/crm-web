@@ -3,164 +3,15 @@ import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
-import { useListPagination } from '@/composables/useListPagination'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
-import { useListFilters } from '@/composables/useListFilters'
 import ListTable from '@/components/ui/ListTable.vue'
-import { computed, ref, onMounted } from 'vue'
-import { clientsApi, type Classification, type ClassificationInput, type RuleInput } from '../api'
-import { request } from '@/lib/http'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
-import { toast } from '@/services/toast'
-const rows = ref<Classification[]>([]),
-  operators = ref<{ id: number; name: string }[]>([]),
-  loading = ref(true),
-  busy = ref(false),
-  error = ref('')
-const form = ref<ClassificationInput>({
-  operator_id: 0,
-  code: '',
-  name: '',
-  description: null,
-  is_active: true,
-  sort_order: 0,
-})
-const months = ref(21)
-const editing = ref<number | null>(null),
-  modal = ref(false),
-  ruleFor = ref<Classification | null>(null)
-const rule = ref<RuleInput>({
-  minimum_months: 18,
-  valid_from: new Date().toISOString().slice(0, 10),
-  valid_until: null,
-  is_active: true,
-  notes: null,
-})
-const ruleEditing = ref<string | null>(null)
-const filter = ref('')
-const { applied, apply: applyFilters, clear: clearFilters } = useListFilters({ filter })
-const filtered = computed(() =>
-  rows.value.filter((c) => !applied.value.filter || String(c.operator_id) === applied.value.filter),
-)
-async function load() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [r, o] = await Promise.all([
-      clientsApi.globalClassifications(),
-      request<{ data: { id: number; name: string }[] }>('/api/v1/admin/operators'),
-    ])
-    rows.value = r.data
-    operators.value = o.data
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Erro ao carregar.'
-  } finally {
-    loading.value = false
-  }
-}
-function edit(c?: Classification) {
-  editing.value = c?.id ?? null
-  months.value = c?.rules.find((rule) => rule.is_active && !rule.valid_until)?.minimum_months ?? c?.rules.find((rule) => rule.is_active)?.minimum_months ?? 21
-  form.value = c
-    ? {
-        operator_id: c.operator_id,
-        code: c.code,
-        name: c.name,
-        description: c.description,
-        is_active: c.is_active,
-        sort_order: c.sort_order,
-      }
-    : {
-        operator_id: operators.value[0]?.id ?? 0,
-        code: '',
-        name: '',
-        description: null,
-        is_active: true,
-        sort_order: 0,
-      }
-  modal.value = true
-}
-async function save() {
-  busy.value = true
-  try {
-    if (!Number.isInteger(months.value) || months.value < 1 || months.value > 1200) {
-      toast.error('Informe um prazo válido em meses.')
-      return
-    }
+import ClassificationForm from '../components/ClassificationForm.vue'
+import ClassificationRuleForm from '../components/ClassificationRuleForm.vue'
+import { useAdminClassificationsPage } from '../composables/useAdminClassificationsPage'
 
-    const classificationCode = form.value.name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-')
-    const payload = { ...form.value, code: editing.value ? form.value.code : classificationCode }
-    if (!payload.code) {
-      toast.error('Informe o nome da classificação.')
-      return
-    }
-
-    const current = rows.value.find((item) => item.id === editing.value)
-    const activeRule = current?.rules.find((item) => item.is_active && !item.valid_until)
-    if (activeRule && activeRule.minimum_months !== months.value) {
-      toast.error('Para alterar um prazo vigente, utilize a ação de regras, preservando o histórico.')
-      return
-    }
-
-    const response = await clientsApi.saveGlobalClassification(payload, editing.value ?? undefined)
-    const classificationId = editing.value ?? response.data.id
-    if (!activeRule) {
-      await clientsApi.addGlobalRule(classificationId, {
-        minimum_months: months.value,
-        valid_from: new Date().toISOString().slice(0, 10),
-        valid_until: null,
-        is_active: true,
-        notes: null,
-      })
-    }
-    modal.value = false
-    toast.success('Classificação global salva.')
-    await load()
-  } catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Erro ao salvar.')
-  } finally {
-    busy.value = false
-  }
-}
-function addRule(c: Classification) {
-  ruleEditing.value = null
-  ruleFor.value = c
-  rule.value = {
-    minimum_months: 18,
-    valid_from: new Date().toISOString().slice(0, 10),
-    valid_until: null,
-    is_active: true,
-    notes: null,
-  }
-}
-function editRule(c: Classification, r: Classification['rules'][number]) {
-  ruleFor.value = c
-  ruleEditing.value = r.id
-  rule.value = {
-    minimum_months: r.minimum_months,
-    valid_from: r.valid_from,
-    valid_until: r.valid_until,
-    is_active: r.is_active,
-    notes: r.notes,
-  }
-}
-async function saveRule() {
-  if (!ruleFor.value) return
-  busy.value = true
-  try {
-    await clientsApi.addGlobalRule(ruleFor.value.id, rule.value, ruleEditing.value ?? undefined)
-    ruleFor.value = null
-    toast.success('Regra global salva.')
-    await load()
-  } catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Erro ao salvar regra.')
-  } finally {
-    busy.value = false
-  }
-}
-onMounted(load)
-const { page, total, lastPage, pageRows, changePage } = useListPagination(filtered)
+const { rows, operators, loading, busy, error, form, months, editing, modal, ruleFor, rule, ruleEditing, filter, filtered, load, edit, save, addRule, editRule, saveRule, page, total, lastPage, pageRows, changePage, applyFilters, clearFilters } = useAdminClassificationsPage()
 </script>
 <template>
   <AppShell title="Classificações globais" subtitle="Administração da plataforma"
@@ -258,53 +109,14 @@ const { page, total, lastPage, pageRows, changePage } = useListPagination(filter
       :title="editing ? 'Editar classificação' : 'Nova classificação'"
       :busy="busy"
       @close="modal = false"
-      ><form class="space-y-4" @submit.prevent="save">
-        <label class="block text-sm"
-          >Operadora<SearchSelect
-            v-model="form.operator_id"
-            :options="operators.map((o) => ({ value: o.id, label: o.name }))" /></label
-        ><label class="block text-sm"
-          >Prazo de renovação (meses)<input v-model.number="months" type="number" min="1" max="1200" required class="field" /></label
-        ><label class="block text-sm"
-          >Nome<input v-model="form.name" required class="field" /></label
-        ><label class="block text-sm"
-          >Descrição<input v-model="form.description" class="field" /></label
-        ><label class="flex gap-2 text-sm"
-          ><input v-model="form.is_active" type="checkbox" />Ativa</label
-        >
-        <div class="flex justify-end gap-2">
-          <button type="button" class="secondary-button" :disabled="busy" @click="modal = false">
-            Cancelar</button
-          ><button class="primary-button w-auto" :disabled="busy">Salvar</button>
-        </div>
-      </form></AppDialog
+      ><ClassificationForm v-model:form="form" v-model:months="months" :operators="operators" :busy="busy" show-description :max-months="1200" @submit="save" @cancel="modal = false" /></AppDialog
     >
     <AppDialog
       :open="ruleFor !== null"
       :title="`Regra global · ${ruleFor?.code ?? ''}`"
       :busy="busy"
       @close="ruleFor = null"
-      ><form class="space-y-4" @submit.prevent="saveRule">
-        <label class="block text-sm"
-          >Meses mínimos<input
-            v-model.number="rule.minimum_months"
-            type="number"
-            min="0"
-            required
-            class="field" /></label
-        ><label class="block text-sm"
-          >Início<input v-model="rule.valid_from" type="date" required class="field" /></label
-        ><label class="block text-sm"
-          >Fim<input v-model="rule.valid_until" type="date" class="field" /></label
-        ><label class="block text-sm"
-          >Observações<input v-model="rule.notes" class="field"
-        /></label>
-        <div class="flex justify-end gap-2">
-          <button type="button" class="secondary-button" :disabled="busy" @click="ruleFor = null">
-            Cancelar</button
-          ><button class="primary-button w-auto" :disabled="busy">Salvar regra</button>
-        </div>
-      </form></AppDialog
+      ><ClassificationRuleForm v-model:rule="rule" :busy="busy" @submit="saveRule" @cancel="ruleFor = null" /></AppDialog
     >
   </AppShell>
 </template>
