@@ -53,7 +53,6 @@ function switchSection(next: 'open' | 'closed') {
     }
     reload()
 }
-const kanbanRows = ref<Opportunity[]>([])
 const movingId = ref<string | null>(null)
 const resendCandidate = ref<Opportunity | null>(null)
 function askResendToBackoffice(item: Opportunity) {
@@ -85,6 +84,7 @@ const defaultFilters = (area: 'open' | 'closed' = 'open'): OpportunityFilters =>
 const filters = ref<OpportunityFilters>(defaultFilters())
 const applied = ref<OpportunityFilters>(defaultFilters())
 const stagePagination = useOpportunityStagePagination(tenantId, stages, applied)
+const kanbanRows = stagePagination.items
 const page = ref(1)
 const total = ref(0)
 const lastPage = ref(1)
@@ -169,7 +169,6 @@ async function loadKanban() {
   try {
     await stagePagination.reset()
     if (current !== version) return
-    kanbanRows.value = stagePagination.items.value
     total.value = stagePagination.total.value
   } catch (e) {
     if (current === version) error.value = errorMessage(e)
@@ -198,7 +197,6 @@ async function moveStage(id: string, stageId: string) {
   // Replace the array entry so the Kanban recomputes its columns immediately.
   const setStage = (nextStageId: string | null) => {
     stagePagination.updateStage(id, nextStageId)
-    kanbanRows.value = [...stagePagination.items.value]
   }
   movingId.value = id
   setStage(stageId)
@@ -309,7 +307,6 @@ async function refreshRowsSilently(id: string, current: number) {
   // Reuse the stage-scoped API and preserve the same visibility rules.
   await stagePagination.reset()
   if (id !== tenantId.value || current !== version || viewMode.value !== 'kanban') return
-  kanbanRows.value = stagePagination.items.value
   total.value = stagePagination.total.value
 }
 function reconnectRealtime() {
