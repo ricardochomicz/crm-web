@@ -12,6 +12,7 @@ export function useProductivity(tenantId: Ref<string>) {
   const from = ref(localDate(first))
   const to = ref(localDate(today))
   const consultantId = ref('')
+  const appliedPeriod = ref({ from: from.value, to: to.value })
   const data = ref<ProductivityResponse | null>(null)
   const consultants = ref<{ id: string; name: string }[]>([])
   const loading = ref(false)
@@ -34,6 +35,7 @@ export function useProductivity(tenantId: Ref<string>) {
       })
       if (current === version) {
         data.value = result
+        appliedPeriod.value = { from: from.value, to: to.value }
         if (!consultantId.value) consultants.value = result.data.map(({ id, name }) => ({ id, name }))
       }
     } catch {
@@ -51,5 +53,5 @@ export function useProductivity(tenantId: Ref<string>) {
   }
 
   watch(tenantId, () => { consultantId.value = ''; consultants.value = []; void search() }, { immediate: true })
-  return { from, to, consultantId, data, loading, error, consultants, search, clear }
+  return { from, to, appliedPeriod, consultantId, data, loading, error, consultants, search, clear }
 }
