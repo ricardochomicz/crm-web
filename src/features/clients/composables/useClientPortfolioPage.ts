@@ -17,10 +17,9 @@ export function useClientPortfolioPage() {
   const { renewing, savingRenewal, openRenewal, closeRenewal, confirmRenewal } =
     usePortfolioRenewal(tenantId, load)
 
-  const visibleRows = computed(() => rows.value)
   const rows = ref<PortfolioContract[]>([])
+  const visibleRows = computed(() => rows.value)
   const viewMode = ref<'contracts' | 'orders' | 'renewing'>('contracts')
-  const ungroupedCount = ref(0)
   const hasCheckedLegacy = ref(false)
   const search = ref('')
   const operatorFilter = ref('')
@@ -38,6 +37,8 @@ export function useClientPortfolioPage() {
   const error = ref('')
 
   let requestVersion = 0
+  let initializationVersion = 0
+  const initializing = ref(false)
 
   async function load() {
     const version = ++requestVersion
@@ -46,6 +47,7 @@ export function useClientPortfolioPage() {
     error.value = ''
 
     try {
+      const mode = viewMode.value
       const params = {
         search: appliedSearch.value || undefined,
         operator_id: appliedOperator.value ? Number(appliedOperator.value) : undefined,
@@ -53,18 +55,19 @@ export function useClientPortfolioPage() {
         renewal_year: appliedRenewalYear.value ? Number(appliedRenewalYear.value) : undefined,
         page: page.value,
         per_page: perPage,
-        ...(viewMode.value !== 'contracts' ? { renewal_state: viewMode.value === 'renewing' ? 'in_progress' as const : 'available' as const } : {}),
+        ...(mode !== 'contracts'
+          ? { renewal_state: mode === 'renewing' ? 'in_progress' as const : 'available' as const }
+          : {}),
       }
-      let response = viewMode.value === 'contracts'
+      let response = mode === 'contracts'
         ? await clientsApi.consolidatedPortfolio(id, params)
         : await clientsApi.portfolio(id, params)
 
-      if (version !== requestVersion) return
-      if (viewMode.value === 'contracts' && response.meta.total === 0 && !hasCheckedLegacy.value) {
+      if (version !== requestVersion || id !== tenantId.value) return
+      if (mode === 'contracts' && response.meta.total === 0 && !hasCheckedLegacy.value) {
         const legacy = await clientsApi.portfolio(id, params)
-        if (version !== requestVersion) return
+        if (version !== requestVersion || id !== tenantId.value) return
         hasCheckedLegacy.value = true
-        ungroupedCount.value = legacy.meta.total
         if (legacy.meta.total > 0) {
           viewMode.value = 'orders'
           response = legacy
@@ -74,15 +77,23 @@ export function useClientPortfolioPage() {
       total.value = response.meta.total
       lastPage.value = response.meta.last_page
     } catch (failure) {
-      if (version !== requestVersion) return
+      if (version !== requestVersion || id !== tenantId.value) return
       error.value = failure instanceof Error ? failure.message : 'Não foi possível carregar a carteira.'
     } finally {
-      if (version === requestVersion) loading.value = false
+      if (version === requestVersion && id === tenantId.value) loading.value = false
     }
   }
 
   async function initialize() {
+    const version = ++initializationVersion
     ++requestVersion
+    initializing.value = true
+    loading.value = true
+    error.value = ''
+    tenant.value = undefined
+    operators.value = []
+    selectedDetails.value = null
+    closeRenewal()
     rows.value = []
     page.value = 1
     total.value = 0
@@ -97,7 +108,6 @@ export function useClientPortfolioPage() {
     appliedOperator.value = ''
     viewMode.value = 'contracts'
     hasCheckedLegacy.value = false
-    ungroupedCount.value = 0
 
     try {
       const id = tenantId.value
@@ -105,19 +115,23 @@ export function useClientPortfolioPage() {
         tenantApi.show(id),
         operatorsApi.available(),
       ])
-      if (id !== tenantId.value) return
+      if (version !== initializationVersion || id !== tenantId.value) return
       tenant.value = tenantResponse.data
       operators.value = operatorsResponse.data
     } catch (failure) {
+      if (version !== initializationVersion) return
       error.value = failure instanceof Error ? failure.message : 'Erro ao carregar dados da empresa.'
       loading.value = false
       return
+    } finally {
+      if (version === initializationVersion) initializing.value = false
     }
 
-    await load()
+    if (version === initializationVersion) await load()
   }
 
   function applyFilters() {
+    if (initializing.value) return
     appliedSearch.value = search.value.trim()
     appliedOperator.value = operatorFilter.value
     appliedRenewalMonth.value = renewalMonth.value
@@ -135,13 +149,14 @@ export function useClientPortfolioPage() {
   }
 
   function changeMode(mode: 'contracts' | 'orders' | 'renewing') {
-    if (viewMode.value === mode) return
+    if (initializing.value || viewMode.value === mode) return
     viewMode.value = mode
     page.value = 1
     void load()
   }
 
   function changePage(value: number) {
+    if (initializing.value || value < 1 || value > lastPage.value) return
     page.value = value
     void load()
   }
