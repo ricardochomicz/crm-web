@@ -7,6 +7,7 @@ import { toRef } from 'vue'
 import { useConsultantDetails } from '../composables/useConsultantDetails'
 const props = defineProps<{ result: ProductivityResponse; tenantId: string; from: string; to: string; consultantId?: string }>()
 const { selected, openConsultant, closeConsultant } = useConsultantDetails(toRef(() => props.result.data))
+const attainment = (sold: number, target: number | null) => target === null ? 'Não definida' : target === 0 ? '—' : `${(sold / target * 100).toFixed(1)}%`
 const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 </script>
 
@@ -26,6 +27,7 @@ const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'cur
       </div>
     </div>
     <GoalConfigurations :tenant-id="tenantId" :from="from" :to="to" :consultant-id="consultantId" />
+    <p class="text-xs text-slate-500">Metas mensais são exibidas apenas quando o período selecionado está dentro de um único mês. O atingimento considera as vendas no intervalo filtrado.</p>
     <ConsultantRanking :rows="result.data" @select="openConsultant" />
     <div class="overflow-hidden rounded-xl border border-stone-200 bg-white">
       <div class="border-b border-stone-200 px-5 py-4"><h2 class="font-semibold text-slate-800">Resultados por consultor</h2></div>
@@ -39,6 +41,8 @@ const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'cur
             <th scope="col" class="px-4 py-3 text-right">Em aberto</th>
             <th scope="col" class="px-4 py-3 text-right">Pedidos</th>
             <th scope="col" class="px-4 py-3 text-right">Valor mensal</th>
+            <th scope="col" class="px-4 py-3 text-right">Meta mensal</th>
+            <th scope="col" class="px-4 py-3 text-right">Atingimento</th>
           </tr></thead>
           <tbody class="divide-y divide-stone-100">
             <tr v-for="row in result.data" :key="row.id">
@@ -49,8 +53,10 @@ const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'cur
               <td class="px-4 py-3 text-right">{{ row.open_opportunities }}</td>
               <td class="px-4 py-3 text-right">{{ row.orders }}</td>
               <td class="px-4 py-3 text-right">{{ currency(row.monthly_amount) }}</td>
+              <td class="px-4 py-3 text-right">{{ row.monthly_target === null ? "Não definida" : currency(row.monthly_target) }}</td>
+              <td class="px-4 py-3 text-right font-semibold">{{ attainment(row.monthly_amount, row.monthly_target) }}</td>
             </tr>
-            <tr v-if="!result.data.length"><td colspan="7" class="px-4 py-10 text-center text-slate-500">Nenhum consultor encontrado para os filtros.</td></tr>
+            <tr v-if="!result.data.length"><td colspan="9" class="px-4 py-10 text-center text-slate-500">Nenhum consultor encontrado para os filtros.</td></tr>
           </tbody>
         </table>
       </div>
