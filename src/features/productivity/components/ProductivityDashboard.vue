@@ -2,12 +2,14 @@
 import type { ProductivityResponse } from '../api'
 import ConsultantRanking from './ConsultantRanking.vue'
 import GoalConfigurations from './GoalConfigurations.vue'
+import MonthlyTargetEditor from './MonthlyTargetEditor.vue'
 import ConsultantDetailsDialog from './ConsultantDetailsDialog.vue'
 import { toRef } from 'vue'
 import { useConsultantDetails } from '../composables/useConsultantDetails'
-const props = defineProps<{ result: ProductivityResponse; tenantId: string; from: string; to: string; consultantId?: string }>()
+const props = defineProps<{ result: ProductivityResponse; tenantId: string; from: string; to: string; consultantId?: string; canManageTargets?: boolean }>()
 const { selected, openConsultant, closeConsultant } = useConsultantDetails(toRef(() => props.result.data))
 const attainment = (sold: number, target: number | null) => target === null ? 'Não definida' : target === 0 ? '—' : `${(sold / target * 100).toFixed(1)}%`
+const emit = defineEmits<{ refresh: [] }>()
 const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 </script>
 
@@ -26,6 +28,7 @@ const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'cur
         <p class="mt-2 text-2xl font-bold text-slate-800">{{ metric.value }}</p>
       </div>
     </div>
+    <MonthlyTargetEditor v-if="canManageTargets" :tenant-id="tenantId" :from="from" :to="to" :rows="result.data" @saved="emit('refresh')" />
     <GoalConfigurations :tenant-id="tenantId" :from="from" :to="to" :consultant-id="consultantId" />
     <p class="text-xs text-slate-500">Metas mensais são exibidas apenas quando o período selecionado está dentro de um único mês. O atingimento considera as vendas no intervalo filtrado.</p>
     <ConsultantRanking :rows="result.data" @select="openConsultant" />
