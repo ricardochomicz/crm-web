@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { ProductivityResponse } from '../api'
 import ConsultantRanking from './ConsultantRanking.vue'
+import GoalConfigurations from './GoalConfigurations.vue'
 import ConsultantDetailsDialog from './ConsultantDetailsDialog.vue'
 import { toRef } from 'vue'
 import { useConsultantDetails } from '../composables/useConsultantDetails'
-const props = defineProps<{ result: ProductivityResponse; tenantId: string; from: string; to: string }>()
+const props = defineProps<{ result: ProductivityResponse; tenantId: string; from: string; to: string; consultantId?: string }>()
 const { selected, openConsultant, closeConsultant } = useConsultantDetails(toRef(() => props.result.data))
 const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 </script>
@@ -24,6 +25,7 @@ const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'cur
         <p class="mt-2 text-2xl font-bold text-slate-800">{{ metric.value }}</p>
       </div>
     </div>
+    <GoalConfigurations :tenant-id="tenantId" :from="from" :to="to" :consultant-id="consultantId" />
     <ConsultantRanking :rows="result.data" @select="openConsultant" />
     <div class="overflow-hidden rounded-xl border border-stone-200 bg-white">
       <div class="border-b border-stone-200 px-5 py-4"><h2 class="font-semibold text-slate-800">Resultados por consultor</h2></div>
