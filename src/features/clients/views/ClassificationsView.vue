@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import PagePagination from '@/components/ui/PagePagination.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
-import FormActions from '@/components/ui/FormActions.vue'
 import ClassificationForm from '../components/ClassificationForm.vue'
+import ClassificationRuleForm from '../components/ClassificationRuleForm.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
@@ -26,23 +26,7 @@ const { tenant, tenantId, operators, loading, error, busy, filter, writable, fil
   <ClassificationForm v-model:form="form" v-model:months="months" :operators="operators" :busy="busy" @submit="save" @cancel="modal = false" />
 </AppDialog>
 <AppDialog :open="ruleFor !== null" :title="`Regra de renovação · ${ruleFor?.code ?? ''}`" :busy="busy" @close="ruleFor = null">
-  <form class="space-y-4" @submit.prevent="saveRule">
-    <label class="block space-y-2 text-sm font-semibold text-slate-700">Meses mínimos
-      <input v-model.number="rule.minimum_months" type="number" min="0" step="1" required class="field" :disabled="busy" />
-    </label>
-    <label class="block space-y-2 text-sm font-semibold text-slate-700">Início da vigência
-      <input v-model="rule.valid_from" type="date" required class="field" :disabled="busy" />
-    </label>
-    <label class="block space-y-2 text-sm font-semibold text-slate-700">Fim da vigência
-      <input v-model="rule.valid_until" type="date" class="field" :disabled="busy" />
-    </label>
-    <label class="block space-y-2 text-sm font-semibold text-slate-700">Observações
-      <input v-model="rule.notes" class="field" :disabled="busy" />
-    </label>
-    <div class="border-t border-stone-100 pt-4">
-      <FormActions :busy="busy" submit-label="Salvar regra" @cancel="ruleFor = null" />
-    </div>
-  </form>
+  <ClassificationRuleForm v-model:rule="rule" :busy="busy" @submit="saveRule" @cancel="ruleFor = null" />
 </AppDialog>
 </AppShell>
 </template>
