@@ -26,11 +26,12 @@ export function useOpportunityStagePagination(
     const generationAtStart = generation
     const mutationAtStart = mutationVersion
     const tenant = tenantId.value
+    const requestFilters = { ...filters.value }
     const next = reset ? 1 : previous.page + 1
     states.value = { ...states.value, [stage.id]: { ...previous, loading: true, error: '' } }
     try {
       const response = await opportunitiesApi.list(tenant, {
-        ...filters.value,
+        ...requestFilters,
         funnel_stage_id: stage.id,
         include_unassigned: /prospec/i.test(stage.name),
         page: next,
@@ -47,40 +48,41 @@ export function useOpportunityStagePagination(
         page: response.current_page, lastPage: response.last_page, total: response.total, loading: false, error: '',
       } }
     } catch {
-      if (generationAtStart === generation) {
+      if (generationAtStart === generation && tenant === tenantId.value && mutationAtStart === mutationVersion) {
         states.value = { ...states.value, [stage.id]: { ...state(stage.id), loading: false, error: 'Não foi possível carregar esta etapa.' } }
       }
     }
   }
 
   async function reset() {
-    generation++
+    const currentGeneration = ++generation
     items.value = []
     states.value = {}
     loading.value = true
     try {
       await Promise.all(stages.value.filter(stage => stage.is_active).map(stage => fetchStage(stage, true)))
     } finally {
-      loading.value = false
+      if (currentGeneration === generation) loading.value = false
     }
   }
 
   function loadMore(stageId: string) {
     const stage = stages.value.find(candidate => candidate.id === stageId)
-    if (stage) void fetchStage(stage)
+    if (stage?.is_active) void fetchStage(stage)
   }
 
   async function refresh(stageIds = stages.value.filter(stage => stage.is_active).map(stage => stage.id), canApply = () => true, retainedId?: string) {
     const generationAtStart = generation
     const mutationAtStart = mutationVersion
     const tenant = tenantId.value
+    const requestFilters = { ...filters.value }
     const results = await Promise.all(stageIds.map(async stageId => {
       const stage = stages.value.find(candidate => candidate.id === stageId)
       if (!stage) return null
       const loadedPage = state(stageId).page
       const pages = await Promise.all(Array.from({ length: Math.max(1, loadedPage) }, (_, index) =>
         opportunitiesApi.list(tenant, {
-          ...filters.value, funnel_stage_id: stageId, include_unassigned: /prospec/i.test(stage.name), page: index + 1,
+          ...requestFilters, funnel_stage_id: stageId, include_unassigned: /prospec/i.test(stage.name), page: index + 1,
         }),
       ))
       return { stage, pages, loadedPage }
