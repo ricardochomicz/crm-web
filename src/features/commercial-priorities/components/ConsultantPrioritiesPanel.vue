@@ -26,6 +26,13 @@ const opportunityPending = computed(
   () => summary.value?.items.filter((item) => !item.acknowledged).length ?? 0,
 )
 
+function formatDate(value: string | null): string {
+  if (!value) return 'Não informada'
+
+  const [year, month, day] = value.slice(0, 10).split('-')
+  return year && month && day ? `${day}/${month}/${year}` : value
+}
+
 const money = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
   currency: 'BRL',
@@ -125,7 +132,7 @@ const pending = computed(
               · {{ money.format(Number(item.monthly)) }}/mês
             </p>
             <p class="mt-1 text-xs text-slate-500">
-              Previsão: {{ item.expected_close_at ?? 'Não informada' }}
+              Previsão: {{ formatDate(item.expected_close_at) }}
             </p>
           </div>
           <div class="flex items-center gap-2">
