@@ -7,6 +7,7 @@ import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
 import { useOpportunityRealtimeSync } from './useOpportunityRealtimeSync'
 import { useOpportunityReferenceData } from './useOpportunityReferenceData'
+import { useOpportunityCommercialActions } from './useOpportunityCommercialActions'
 
 export function useOpportunitiesPage() {
     const tenantId = computed(() => String(useRoute().params.tenantId))
@@ -15,22 +16,6 @@ const { tenant, clients, products, operators, orderTypes, stages, canCreate, can
 const rows = ref<Opportunity[]>([])
 const viewMode = ref<'list' | 'kanban'>('kanban')
 const section = ref<'open' | 'closed'>('open')
-const recoveringId = ref<string | null>(null)
-async function recover(item: Opportunity) {
-    if (!canEdit.value || item.status !== 'lost' || recoveringId.value) return
-    if (!window.confirm(`Recuperar "${item.title}"? Uma nova oportunidade será criada com os mesmos itens e valores.`)) return
-    recoveringId.value = item.id
-    try {
-        const result = await opportunitiesApi.recover(tenantId.value, item.id)
-        toast.success(`Negociação recuperada: ${result.data.code}`)
-        switchSection('open')
-        void commercialOverview.value?.refresh()
-    } catch (exception) {
-        toast.error(errorMessage(exception))
-    } finally {
-        recoveringId.value = null
-    }
-}
 function switchSection(next: 'open' | 'closed') {
     section.value = next
     page.value = 1
@@ -46,24 +31,6 @@ function switchSection(next: 'open' | 'closed') {
 }
 const movingId = ref<string | null>(null)
 const draggingOpportunity = ref(false)
-const resendCandidate = ref<Opportunity | null>(null)
-function askResendToBackoffice(item: Opportunity) {
-  if (!canEdit.value || movingId.value || !/para correção/i.test(item.stage?.name || stages.value.find(s => s.id === item.funnel_stage_id)?.name || '')) return
-  resendCandidate.value = item
-}
-async function resendToBackoffice() {
-  const item = resendCandidate.value
-  if (!item || movingId.value) return
-  movingId.value = item.id
-  try {
-    await opportunitiesApi.resendToBackoffice(tenantId.value, item.id)
-    resendCandidate.value = null
-    toast.success('Pedido corrigido e reenviado ao Backoffice.')
-    reload()
-    void commercialOverview.value?.refresh()
-  } catch (e) { toast.error(errorMessage(e)) }
-  finally { movingId.value = null }
-}
 const commercialOverview = ref<InstanceType<typeof OpportunityCommercialOverview> | null>(null)
 const defaultFilters = (area: 'open' | 'closed' = 'open'): OpportunityFilters => ({
     search: '',
@@ -86,57 +53,16 @@ const loading = ref(true)
 const error = ref('')
 const dialogTab = ref<'details' | 'history'>('details')
 const dialogOpen = ref(false)
-const confirmingSale = ref(false)
-const lostCandidate = ref<Opportunity | null>(null)
-const lostReason = ref('')
-const markingLost = ref(false)
-function askMarkLost(item: Opportunity) {
-    if (!canEdit.value || item.status !== 'open') return
-    lostReason.value = ''
-    lostCandidate.value = item
-}
-async function markLost() {
-    const item = lostCandidate.value
-    const reason = lostReason.value.trim()
-    if (!item || markingLost.value) return
-    if (reason.length < 3) {
-        toast.error('Informe o motivo da perda (mínimo de 3 caracteres).')
-        return
-    }
-    markingLost.value = true
-    try {
-        await opportunitiesApi.markLost(tenantId.value, item.id, reason)
-        lostCandidate.value = null
-        toast.success('Oportunidade marcada como perdida.')
-        reload()
-        void commercialOverview.value?.refresh()
-    } catch (error) {
-        toast.error(errorMessage(error))
-    } finally {
-        markingLost.value = false
-    }
-}
-const saleCandidate = ref<Opportunity | null>(null)
-function askConfirmSale(item: Opportunity) {
-    if (!canEdit.value || item.status !== 'open') return
-    saleCandidate.value = item
-}
-async function confirmSale() {
-    const item = saleCandidate.value
-    if (!item || confirmingSale.value) return
-    confirmingSale.value = true
-    try {
-        await opportunitiesApi.confirmSale(tenantId.value, item.id)
-        saleCandidate.value = null
-        toast.success('Venda confirmada. Pedido comercial criado.')
-        reload()
-        void commercialOverview.value?.refresh()
-    } catch (error) {
-        toast.error(errorMessage(error))
-    } finally {
-        confirmingSale.value = false
-    }
-}
+const {
+  recoveringId, recover, resendCandidate, askResendToBackoffice, resendToBackoffice,
+  confirmingSale, saleCandidate, askConfirmSale, confirmSale,
+  lostCandidate, lostReason, markingLost, askMarkLost, markLost,
+} = useOpportunityCommercialActions({
+  tenantId, canEdit, stages, movingId,
+  reload: () => reload(),
+  refreshOverview: () => { void commercialOverview.value?.refresh() },
+  switchToOpen: () => switchSection('open'),
+})
 const editing = ref<Opportunity | null>(null)
 let version = 0
 async function load() {
