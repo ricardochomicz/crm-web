@@ -53,10 +53,11 @@ function date(value?: string | null) {
       <button type="button" class="ml-2 underline" @click="load">Tentar novamente</button>
     </p>
     <div v-else class="overflow-x-auto rounded-xl border border-stone-200">
-      <table class="w-full min-w-[760px] text-left text-sm">
+      <table class="w-full min-w-[900px] text-left text-sm">
         <thead class="bg-stone-50 text-xs font-semibold uppercase text-slate-500">
           <tr>
             <th class="p-4">Pedido</th>
+            <th class="p-4">Tipo do pedido</th>
             <th class="p-4">Data da venda</th>
             <th class="p-4">Consultor</th>
             <th class="p-4">Linhas</th>
@@ -68,6 +69,7 @@ function date(value?: string | null) {
         <tbody class="divide-y divide-stone-100">
           <tr v-for="order in orders" :key="order.id" class="hover:bg-stone-50/70">
             <td class="p-4 font-semibold">{{ order.code ?? order.id.slice(0, 8) }}</td>
+            <td class="p-4">{{ order.order_type ?? '—' }}</td>
             <td class="p-4">{{ date(order.sold_on) }}</td>
             <td class="p-4">{{ order.consultant_name ?? '—' }}</td>
             <td class="p-4">{{ order.line_quantity }}</td>
@@ -80,7 +82,7 @@ function date(value?: string | null) {
             </td>
           </tr>
           <tr v-if="!orders.length">
-            <td colspan="7" class="p-6 text-center text-slate-500">
+            <td colspan="8" class="p-6 text-center text-slate-500">
               Nenhum pedido comercial encontrado para este cliente.
             </td>
           </tr>
