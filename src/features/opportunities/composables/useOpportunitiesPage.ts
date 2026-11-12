@@ -329,6 +329,10 @@ onUnmounted(() => {
   document.removeEventListener('visibilitychange', refreshOnFocus)
 })
 watch(tenantId, () => { if (realtimeMounted) reconnectRealtime(); section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; stages.value = []; tenant.value = undefined; clients.value = []; operators.value = []; products.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
+watch(stages, (next, previous) => {
+  if (viewMode.value === 'kanban' && next.length > 0 && previous.length === 0) reload()
+})
+
 function displayOrderType(item: Opportunity): string {
   const value: unknown = item.order_type
   if (value && typeof value === 'object') {
