@@ -50,7 +50,7 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
     </div>
     <AsyncNotice :loading="loading" :error="error" @retry="reload" />
     <div v-if="section === 'open' && viewMode === 'kanban' && !loading && !error">
-      <OpportunityKanban :stage-states="stagePagination.states.value" @load-more="loadMoreKanban" :highlights-only="showHighlightsOnly" :highlighted-ids="highlightedIds" :highlighting-id="highlightingId" @highlight="toggleHighlight" :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @schedule="item => scheduling = item" @won="askConfirmSale" @lost="askMarkLost" @resend="askResendToBackoffice" />
+      <OpportunityKanban :stage-states="stagePagination.states" @load-more="loadMoreKanban" :highlights-only="showHighlightsOnly" :highlighted-ids="highlightedIds" :highlighting-id="highlightingId" @highlight="toggleHighlight" :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @schedule="item => scheduling = item" @won="askConfirmSale" @lost="askMarkLost" @resend="askResendToBackoffice" />
 
     </div>
     <section v-if="(section === 'closed' || viewMode === 'list') && !loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
