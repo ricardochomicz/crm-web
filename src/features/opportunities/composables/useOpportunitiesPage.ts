@@ -73,7 +73,6 @@ async function resendToBackoffice() {
   finally { movingId.value = null }
 }
 const commercialOverview = ref<InstanceType<typeof OpportunityCommercialOverview> | null>(null)
-const kanbanLimitReached = ref(false)
 const kanbanPage = ref(0)
 const kanbanLastPage = ref(1)
 const loadingMoreKanban = ref(false)
@@ -167,12 +166,12 @@ async function load() {
 }
 async function loadKanban() {
   const current = ++version
+  loadingMoreKanban.value = false
   loading.value = true
   error.value = ''
   kanbanPage.value = 0
   kanbanLastPage.value = 1
   kanbanRows.value = []
-  kanbanLimitReached.value = false
   try {
     const result = await opportunitiesApi.list(tenantId.value, { ...applied.value, page: 1 })
     if (current !== version) return
@@ -205,7 +204,7 @@ async function loadMoreKanban() {
   } catch (e) {
     if (current === version) toast.error('Não foi possível carregar mais oportunidades: ' + errorMessage(e))
   } finally {
-    loadingMoreKanban.value = false
+    if (current === version) loadingMoreKanban.value = false
   }
 }
 function reload() { if (viewMode.value === 'kanban') void loadKanban(); else void load() }
@@ -308,12 +307,13 @@ let realtimeTimer: ReturnType<typeof setInterval> | undefined
 let realtimeMounted = false
 let refreshInFlight = false
 async function refreshFromRealtime() {
-  if (refreshInFlight || document.hidden || movingId.value || dialogOpen.value) return
+  if (refreshInFlight || loading.value || loadingMoreKanban.value || document.hidden || movingId.value || dialogOpen.value) return
   refreshInFlight = true
   try {
     const id = tenantId.value
-    const [stageResult] = await Promise.all([opportunitiesApi.stages(id), refreshRowsSilently(id)])
-    if (id === tenantId.value) {
+    const current = version
+    const [stageResult] = await Promise.all([opportunitiesApi.stages(id), refreshRowsSilently(id, current)])
+    if (id === tenantId.value && current === version) {
       stages.value = stageResult.data
       void commercialOverview.value?.refresh()
     }
@@ -323,11 +323,11 @@ async function refreshFromRealtime() {
     refreshInFlight = false
   }
 }
-async function refreshRowsSilently(id: string) {
+async function refreshRowsSilently(id: string, current: number) {
   const params = { ...applied.value, page: page.value }
   if (viewMode.value === 'list') {
     const result = await opportunitiesApi.list(id, params)
-    if (id !== tenantId.value) return
+    if (id !== tenantId.value || current !== version || viewMode.value !== 'list') return
     rows.value = result.data
     total.value = result.total
     lastPage.value = result.last_page
@@ -341,13 +341,13 @@ async function refreshRowsSilently(id: string) {
   let serverTotal = 0
   for (let next = 1; next <= requestedPages; next++) {
     const result = await opportunitiesApi.list(id, { ...applied.value, page: next })
-    if (id !== tenantId.value || viewMode.value !== 'kanban') return
+    if (id !== tenantId.value || current !== version || viewMode.value !== 'kanban') return
     items.push(...result.data)
     pages = result.last_page
     serverTotal = result.total
     if (next >= pages) break
   }
-  if (id !== tenantId.value || viewMode.value !== 'kanban') return
+  if (id !== tenantId.value || current !== version || viewMode.value !== 'kanban') return
   kanbanRows.value = items
   kanbanPage.value = Math.min(requestedPages, pages)
   kanbanLastPage.value = pages
@@ -416,7 +416,6 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
         askResendToBackoffice,
         resendCandidate,
         commercialOverview,
-        kanbanLimitReached,
         kanbanHasMore,
         loadingMoreKanban,
         loadMoreKanban,
