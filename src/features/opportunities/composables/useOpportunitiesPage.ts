@@ -7,6 +7,7 @@ import { productsApi, type Product } from '@/features/products/api'
 import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { clientsApi, type Client } from '@/features/clients/api'
 import { opportunitiesApi, type Opportunity, type FunnelStage, type OpportunityFilters } from '../api'
+import { useOpportunityStagePagination } from './useOpportunityStagePagination'
 import type OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
@@ -73,10 +74,6 @@ async function resendToBackoffice() {
   finally { movingId.value = null }
 }
 const commercialOverview = ref<InstanceType<typeof OpportunityCommercialOverview> | null>(null)
-const kanbanPage = ref(0)
-const kanbanLastPage = ref(1)
-const loadingMoreKanban = ref(false)
-const kanbanHasMore = computed(() => kanbanPage.value < kanbanLastPage.value)
 const defaultFilters = (area: 'open' | 'closed' = 'open'): OpportunityFilters => ({
     search: '',
     status: area === 'closed' ? 'all' : 'open',
@@ -87,6 +84,7 @@ const defaultFilters = (area: 'open' | 'closed' = 'open'): OpportunityFilters =>
 })
 const filters = ref<OpportunityFilters>(defaultFilters())
 const applied = ref<OpportunityFilters>(defaultFilters())
+const stagePagination = useOpportunityStagePagination(tenantId, stages, applied)
 const page = ref(1)
 const total = ref(0)
 const lastPage = ref(1)
@@ -166,46 +164,21 @@ async function load() {
 }
 async function loadKanban() {
   const current = ++version
-  loadingMoreKanban.value = false
   loading.value = true
   error.value = ''
-  kanbanPage.value = 0
-  kanbanLastPage.value = 1
-  kanbanRows.value = []
   try {
-    const result = await opportunitiesApi.list(tenantId.value, { ...applied.value, page: 1 })
+    await stagePagination.reset()
     if (current !== version) return
-    kanbanRows.value = result.data
-    kanbanPage.value = result.current_page
-    kanbanLastPage.value = result.last_page
-    total.value = result.total
-    perPage.value = result.per_page
+    kanbanRows.value = stagePagination.items.value
+    total.value = stagePagination.total.value
   } catch (e) {
     if (current === version) error.value = errorMessage(e)
   } finally {
     if (current === version) loading.value = false
   }
 }
-
-async function loadMoreKanban() {
-  if (loading.value || loadingMoreKanban.value || !kanbanHasMore.value || error.value || viewMode.value !== 'kanban') return
-  const current = version
-  const tenant = tenantId.value
-  const nextPage = kanbanPage.value + 1
-  loadingMoreKanban.value = true
-  try {
-    const result = await opportunitiesApi.list(tenant, { ...applied.value, page: nextPage })
-    if (current !== version || tenant !== tenantId.value || viewMode.value !== 'kanban') return
-    const seen = new Set(kanbanRows.value.map(item => item.id))
-    kanbanRows.value = [...kanbanRows.value, ...result.data.filter(item => !seen.has(item.id))]
-    kanbanPage.value = result.current_page
-    kanbanLastPage.value = result.last_page
-    total.value = result.total
-  } catch (e) {
-    if (current === version) toast.error('Não foi possível carregar mais oportunidades: ' + errorMessage(e))
-  } finally {
-    if (current === version) loadingMoreKanban.value = false
-  }
+function loadMoreKanban(stageId: string) {
+  stagePagination.loadMore(stageId)
 }
 function reload() { if (viewMode.value === 'kanban') void loadKanban(); else void load() }
 async function changeView(mode: 'list' | 'kanban') {
@@ -224,9 +197,8 @@ async function moveStage(id: string, stageId: string) {
   const previousStageId = item.funnel_stage_id
   // Replace the array entry so the Kanban recomputes its columns immediately.
   const setStage = (nextStageId: string | null) => {
-    kanbanRows.value = kanbanRows.value.map(row =>
-      row.id === id ? { ...row, funnel_stage_id: nextStageId } : row,
-    )
+    stagePagination.updateStage(id, nextStageId)
+    kanbanRows.value = [...stagePagination.items.value]
   }
   movingId.value = id
   setStage(stageId)
@@ -307,7 +279,7 @@ let realtimeTimer: ReturnType<typeof setInterval> | undefined
 let realtimeMounted = false
 let refreshInFlight = false
 async function refreshFromRealtime() {
-  if (refreshInFlight || loading.value || loadingMoreKanban.value || document.hidden || movingId.value || dialogOpen.value) return
+  if (refreshInFlight || loading.value || document.hidden || movingId.value || dialogOpen.value) return
   refreshInFlight = true
   try {
     const id = tenantId.value
@@ -334,24 +306,11 @@ async function refreshRowsSilently(id: string, current: number) {
     perPage.value = result.per_page
     return
   }
-  // Refresh only the pages already loaded; never download the whole board on a timer.
-  const requestedPages = Math.max(1, kanbanPage.value)
-  const items: Opportunity[] = []
-  let pages = 1
-  let serverTotal = 0
-  for (let next = 1; next <= requestedPages; next++) {
-    const result = await opportunitiesApi.list(id, { ...applied.value, page: next })
-    if (id !== tenantId.value || current !== version || viewMode.value !== 'kanban') return
-    items.push(...result.data)
-    pages = result.last_page
-    serverTotal = result.total
-    if (next >= pages) break
-  }
+  // Reuse the stage-scoped API and preserve the same visibility rules.
+  await stagePagination.reset()
   if (id !== tenantId.value || current !== version || viewMode.value !== 'kanban') return
-  kanbanRows.value = items
-  kanbanPage.value = Math.min(requestedPages, pages)
-  kanbanLastPage.value = pages
-  total.value = serverTotal
+  kanbanRows.value = stagePagination.items.value
+  total.value = stagePagination.total.value
 }
 function reconnectRealtime() {
   unsubscribeRealtime?.()
@@ -416,8 +375,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
         askResendToBackoffice,
         resendCandidate,
         commercialOverview,
-        kanbanHasMore,
-        loadingMoreKanban,
+        stagePagination,
         loadMoreKanban,
         filters,
         applied,
