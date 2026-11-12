@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import FormActions from '@/components/ui/FormActions.vue'
 import { productivityApi, type ProductivityRow } from '../api'
 
 const props = defineProps<{ tenantId: string; from: string; to: string; rows: ProductivityRow[] }>()
@@ -44,7 +45,7 @@ async function save() {
         <label class="mb-1 block text-sm font-medium" for="monthly-target-amount">Meta (R$)</label>
         <input id="monthly-target-amount" v-model.number="amount" type="number" min="0" step="0.01" class="field w-44" required />
       </div>
-      <button type="submit" class="primary-button w-auto" :disabled="busy">{{ busy ? 'Salvando…' : 'Salvar meta' }}</button>
+      <FormActions :busy="busy" submit-label="Salvar meta" :show-cancel="false" />
     </form>
     <p v-if="error" role="alert" class="mt-2 text-sm text-red-700">{{ error }}</p>
     <p v-if="success" role="status" class="mt-2 text-sm text-green-700">{{ success }}</p>
