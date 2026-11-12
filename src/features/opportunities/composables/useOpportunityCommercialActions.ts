@@ -16,6 +16,7 @@ type ActionsContext = {
 /** Commercial actions and their confirmation state; independent of the page view. */
 export function useOpportunityCommercialActions(context: ActionsContext) {
   const recoveringId = ref<string | null>(null)
+  const recoverCandidate = ref<Opportunity | null>(null)
   const resendCandidate = ref<Opportunity | null>(null)
   const confirmingSale = ref(false)
   const saleCandidate = ref<Opportunity | null>(null)
@@ -23,12 +24,18 @@ export function useOpportunityCommercialActions(context: ActionsContext) {
   const lostReason = ref('')
   const markingLost = ref(false)
 
-  async function recover(item: Opportunity) {
+  function askRecover(item: Opportunity) {
     if (!context.canEdit.value || item.status !== 'lost' || recoveringId.value) return
-    if (!window.confirm(`Recuperar "${item.title}"? Uma nova oportunidade será criada com os mesmos itens e valores.`)) return
+    recoverCandidate.value = item
+  }
+
+  async function recover() {
+    const item = recoverCandidate.value
+    if (!item || !context.canEdit.value || item.status !== 'lost' || recoveringId.value) return
     recoveringId.value = item.id
     try {
       const result = await opportunitiesApi.recover(context.tenantId.value, item.id)
+      recoverCandidate.value = null
       toast.success(`Negociação recuperada: ${result.data.code}`)
       context.switchToOpen()
       context.refreshOverview()
@@ -113,7 +120,7 @@ export function useOpportunityCommercialActions(context: ActionsContext) {
   }
 
   return {
-    recoveringId, recover, resendCandidate, askResendToBackoffice, resendToBackoffice,
+    recoveringId, recoverCandidate, askRecover, recover, resendCandidate, askResendToBackoffice, resendToBackoffice,
     confirmingSale, saleCandidate, askConfirmSale, confirmSale,
     lostCandidate, lostReason, markingLost, askMarkLost, markLost,
   }
