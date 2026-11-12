@@ -2,6 +2,7 @@
 import { useOpportunityKanbanPresentation } from '../composables/useOpportunityKanbanPresentation'
 import { useOpportunityKanbanDrag } from '../composables/useOpportunityKanbanDrag'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import { opportunityAgeClass, opportunityAgeLabel } from '../utils/opportunityAge'
 import type { FunnelStage, Opportunity } from '../api'
 const props = defineProps<{ stages: FunnelStage[]; items: Opportunity[]; canEdit: boolean; busyId: string | null; highlightsOnly?: boolean; highlightedIds: string[]; highlightingId?: string | null; stageStates?: Record<string, { page: number; lastPage: number; total: number; loading: boolean; error: string }> }>()
 const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; schedule: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity]; resend: [item: Opportunity]; highlight: [id: string, highlighted: boolean]; loadMore: [stageId: string]; dragging: [active: boolean] }>()
@@ -51,6 +52,13 @@ const { dragging, hover, canDrag, resetDrag, startDrag, overStage, leaveStage, d
               <p v-if="item.expected_close_at" class="mt-1 text-xs" :class="isOverdue(item) ? 'font-semibold text-rose-700' : 'text-slate-500'">
                 Previsão: {{ item.expected_close_at.slice(0, 10).split('-').reverse().join('/') }}
                 <span v-if="isOverdue(item)" class="ml-1 rounded-md bg-rose-100 px-1.5 py-0.5 text-rose-800">Atrasada</span>
+              </p>
+              <p
+                v-if="opportunityAgeLabel(item.created_at)"
+                class="mt-1 text-xs"
+                :class="opportunityAgeClass(item.created_at)"
+              >
+                {{ opportunityAgeLabel(item.created_at) }}
               </p>
             </button>
             <div class="mt-3 grid grid-cols-2 gap-2">
