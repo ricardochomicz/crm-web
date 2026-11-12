@@ -11,9 +11,11 @@ import OrderDetailsPanel from '../components/OrderDetailsPanel.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import { can } from '@/features/tenants/types'
 import { useOrdersPage } from '../composables/useOrdersPage'
+import { useOrderDeepLink } from '../composables/useOrderDeepLink'
 
 const route = useRoute()
 const selectedOrderId = ref<string | null>(null)
+const { close: closeOrderDetails } = useOrderDeepLink(selectedOrderId)
 const tenantId = computed(() => String(route.params.tenantId))
 const { tenant, paginated, total, page, lastPage, perPage, loading, error, search, status, month, dateField, consultant, team, quickView, summary, consultants, teams, statuses, setQuickView, applyFilters, clearFilters, changePage, load } = useOrdersPage(tenantId)
 const canMoveOrders = computed(() => can(tenant.value, 'orders.manage') && (tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER'))
@@ -46,7 +48,7 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
             <div><label class="mb-1 block text-xs font-semibold text-slate-600">Mês considerado pela</label><SearchSelect v-model="dateField" :options="[{ value: 'created_at', label: 'Data de criação' }, { value: 'activated_at', label: 'Data de ativação' }, { value: 'administratively_completed_at', label: 'Data de conclusão' }]" /></div>
             <template #actions><button type="button" class="secondary-button w-auto" @click="setQuickView('all')">Todos os pedidos</button></template>
         </ListFilters>
-        <AppDialog :open="!!selectedOrderId"  :title="canMoveSelectedOrder ? 'Movimentar pedido' : 'Detalhes do pedido'" size="full" @close="selectedOrderId = null">
+        <AppDialog :open="!!selectedOrderId"  :title="canMoveSelectedOrder ? 'Movimentar pedido' : 'Detalhes do pedido'" size="full" @close="closeOrderDetails">
             <OrderDetailsPanel v-if="selectedOrderId" :tenant-id="tenantId" :order-id="selectedOrderId" :can-manage="canMoveSelectedOrder" @close="selectedOrderId = null" @saved="load" />
         </AppDialog>
         <AsyncNotice :loading="loading" :error="error" @retry="load" />
