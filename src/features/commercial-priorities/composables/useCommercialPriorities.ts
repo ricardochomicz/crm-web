@@ -12,6 +12,7 @@ export function useCommercialPriorities(
   const loading = ref(false)
   const error = ref('')
   const acknowledgingId = ref<string | null>(null)
+  const acknowledgingRenewalId = ref<string | null>(null)
   let version = 0
 
   async function load() {
@@ -59,6 +60,27 @@ export function useCommercialPriorities(
     }
   }
 
+  async function acknowledgeRenewal(contractId: string) {
+    if (acknowledgingRenewalId.value || !summary.value) return
+
+    const id = tenantId.value
+    acknowledgingRenewalId.value = contractId
+
+    try {
+      await commercialPrioritiesApi.acknowledgeRenewal(id, contractId)
+      if (id === tenantId.value) {
+        const item = summary.value?.renewals.items.find((entry) => entry.id === contractId)
+        if (item) item.acknowledged = true
+      }
+    } catch (failure) {
+      error.value = failure instanceof Error
+        ? failure.message
+        : 'Não foi possível confirmar a ciência da renovação.'
+    } finally {
+      acknowledgingRenewalId.value = null
+    }
+  }
+
   watch([tenantId, enabled], () => {
     ++version
     summary.value = null
@@ -66,5 +88,14 @@ export function useCommercialPriorities(
     if (enabled.value) void load()
   }, { immediate: true })
 
-  return { summary, loading, error, acknowledgingId, load, acknowledge }
+  return {
+    summary,
+    loading,
+    error,
+    acknowledgingId,
+    acknowledgingRenewalId,
+    load,
+    acknowledge,
+    acknowledgeRenewal,
+  }
 }
