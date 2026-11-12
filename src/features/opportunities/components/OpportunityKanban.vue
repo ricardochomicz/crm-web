@@ -2,7 +2,6 @@
 import { useOpportunityKanbanPresentation } from '../composables/useOpportunityKanbanPresentation'
 import { useOpportunityKanbanDrag } from '../composables/useOpportunityKanbanDrag'
 import AppIcon from '@/components/ui/AppIcon.vue'
-import SearchSelect from '@/components/ui/SearchSelect.vue'
 import type { FunnelStage, Opportunity } from '../api'
 const props = defineProps<{ stages: FunnelStage[]; items: Opportunity[]; canEdit: boolean; busyId: string | null; highlightsOnly?: boolean; highlightedIds: string[]; highlightingId?: string | null; stageStates?: Record<string, { page: number; lastPage: number; total: number; loading: boolean; error: string }> }>()
 const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; schedule: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity]; resend: [item: Opportunity]; highlight: [id: string, highlighted: boolean]; loadMore: [stageId: string] }>()
@@ -23,7 +22,7 @@ const { dragging, hover, canDrag, resetDrag, startDrag, overStage, leaveStage, d
       <section v-for="stage in columns" :key="stage.id || 'unassigned'"
         class="flex w-80 min-h-80 shrink-0 flex-col rounded-2xl border p-3 transition-colors"
         :class="[palette(stage.name).background, palette(stage.name).border, hover === stage.id && stage.id ? 'ring-4 ring-inset ' + palette(stage.name).hover + ' border-current' : '']"
-        @dragover="overStage($event, stage.id)" @dragleave="leaveStage($event, stage.id)" @drop.stop="drop($event, stage.id)">
+        @dragenter.prevent="overStage($event, stage.id)" @dragover.prevent="overStage($event, stage.id)" @dragleave="leaveStage($event, stage.id)" @drop.stop="drop($event, stage.id)">
         <div class="mb-3 flex items-center justify-between gap-2 px-1">
           <h3 class="flex items-center gap-2 text-sm font-bold" :class="palette(stage.name).text"><span class="h-5 w-1 rounded-full" :class="palette(stage.name).accent"></span>{{ stage.name }}</h3>
           <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="palette(stage.name).badge">{{ stageStates?.[stage.id]?.total ?? items.filter(i => matchesStage(i, stage)).length }}</span>
@@ -34,19 +33,10 @@ const { dragging, hover, canDrag, resetDrag, startDrag, overStage, leaveStage, d
             class="rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             :class="[dragging === item.id ? 'opacity-50' : '', isOverdue(item) ? 'border-rose-200 bg-rose-50/40' : '']"
             @dragstart="startDrag($event, item)" @dragend="resetDrag">
-            <div v-if="canDrag(item, stage.name)" class="mb-3" @pointerdown.stop @mousedown.stop @dragstart.stop.prevent>
-              <SearchSelect
-                :model-value="item.funnel_stage_id"
-                :options="columns.filter(target => target.is_active && !/para correção/i.test(target.name)).map(target => ({ value: target.id, label: target.name }))"
-                placeholder="Mover para etapa..."
-                :disabled="!!busyId"
-                @update:model-value="target => emit('move', item.id, String(target))"
-              />
-            </div>
             <div class="mb-2 flex items-center justify-between">
               <span v-if="canDrag(item, stage.name)"
                 title="Arraste o cartão para mudar de etapa" aria-label="Arrastar oportunidade para outra etapa"
-                class="inline-flex cursor-grab select-none items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-4 py-2 text-xs font-semibold text-slate-600 active:cursor-grabbing"
+                class="inline-flex cursor-grab select-none items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-semibold text-slate-600 active:cursor-grabbing"
                 >
                 <span aria-hidden="true">⠿</span> Mover
               </span>
