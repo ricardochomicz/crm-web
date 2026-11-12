@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ProductivityResponse } from '../api'
+import ConsultantRanking from './ConsultantRanking.vue'
 defineProps<{ result: ProductivityResponse }>()
 const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 </script>
@@ -19,6 +20,7 @@ const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'cur
         <p class="mt-2 text-2xl font-bold text-slate-800">{{ metric.value }}</p>
       </div>
     </div>
+    <ConsultantRanking :rows="result.data" />
     <div class="overflow-hidden rounded-xl border border-stone-200 bg-white">
       <div class="border-b border-stone-200 px-5 py-4"><h2 class="font-semibold text-slate-800">Resultados por consultor</h2></div>
       <div class="overflow-x-auto">
