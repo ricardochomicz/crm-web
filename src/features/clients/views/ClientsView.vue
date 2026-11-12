@@ -13,6 +13,7 @@ import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { toast } from '@/services/toast'
 import { ApiError } from '@/lib/http'
 import { validateClient } from '../validation'
+import { blankClient, blankContact } from '../utils/clientFormDefaults'
 import { useClientsList } from '../composables/useClientsList'
 import { useClientMasks } from '../composables/useClientMasks'
 import { useClientAddress } from '../composables/useClientAddress'
@@ -68,27 +69,7 @@ const {
   pageRows,
   changePage,
 } = useClientsList(rows)
-const blank = (): ClientInput => ({
-  person_type: 'PJ',
-  document: '',
-  company_name: '',
-  phone: null,
-  email: null,
-  zip_code: null,
-  address: null,
-  address_number: null,
-  address_complement: null,
-  neighborhood: null,
-  city: null,
-  state: null,
-  operator_id: null,
-  classification_id: null,
-  contract_started_on: null,
-  contract_ends_on: null,
-  is_active: true,
-  seller_membership_id: null,
-  seller_reason: null,
-})
+const blank = blankClient
 const validationState = useFormValidation<keyof ClientInput>()
 const duplicate = ref<ClientTransferLookup | null>(null)
 const checkingDocument = ref(false)
@@ -136,18 +117,7 @@ const form = ref<ClientInput>(blank()),
   modal = ref(false),
   selected = ref<Client | null>(null),
   detailsInitialTab = ref<'data' | 'history'>('data')
-const contactBlank = (): ContactInput => ({
-  name: '',
-  cpf: null,
-  birth_date: null,
-  position: null,
-  phone: null,
-  email: null,
-  is_primary: false,
-  is_active: true,
-  portal_access_enabled: false,
-  notes: null,
-})
+const contactBlank = blankContact
 const contact = ref<ContactInput>(contactBlank()),
   contactEditing = ref(''),
   contactModal = ref(false),
