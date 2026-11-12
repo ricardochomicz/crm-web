@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
+import type { ChannelAuthorizationCallback, ChannelAuthorizationData } from 'pusher-js'
 import { useRouter } from 'vue-router'
 import { activityNotificationsApi, type ActivityNotification } from '../notificationsApi'
 import { request } from '@/lib/http'
@@ -102,9 +103,10 @@ function subscribe() {
       forceTLS: import.meta.env.VITE_REVERB_SCHEME === 'https',
       enabledTransports: ['ws', 'wss'],
       authorizer: (channel: { name: string }) => ({
-        authorize: async (socketId: string, callback: (error: Error | null, data: unknown) => void) => {
+        authorize: (socketId: string, callback: ChannelAuthorizationCallback) => {
+          void (async () => {
           try {
-            const result = await request('/broadcasting/auth', {
+            const result = await request<ChannelAuthorizationData>('/broadcasting/auth', {
               method: 'POST',
               body: JSON.stringify({ socket_id: socketId, channel_name: channel.name }),
             })
@@ -112,6 +114,7 @@ function subscribe() {
           } catch (cause) {
             callback(cause instanceof Error ? cause : new Error('Autorização indisponível'), null)
           }
+          })()
         },
       }),
     })
