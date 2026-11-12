@@ -1,0 +1,117 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useCommercialPriorities } from '../composables/useCommercialPriorities'
+
+const props = defineProps<{ tenantId: string; enabled: boolean }>()
+
+const tenantId = computed(() => props.tenantId)
+const enabled = computed(() => props.enabled)
+const { summary, loading, error, acknowledgingId, load, acknowledge } =
+  useCommercialPriorities(tenantId, enabled)
+
+const money = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+})
+
+const pending = computed(
+  () => summary.value?.items.filter((item) => !item.acknowledged).length ?? 0,
+)
+</script>
+
+<template>
+  <section class="space-y-4 rounded-2xl border border-orange-200 bg-white p-5 shadow-sm">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-widest text-orange-700">
+          Sua semana comercial
+        </p>
+        <h2 class="mt-1 text-xl font-bold text-slate-900">Prioridades para acompanhar</h2>
+        <p class="mt-1 text-sm text-slate-500">
+          Oportunidades da semana e em atraso, sob sua responsabilidade.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="secondary-button w-auto"
+        :disabled="loading"
+        @click="load"
+      >
+        Atualizar
+      </button>
+    </div>
+
+    <p v-if="error" role="alert" class="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+      {{ error }}
+    </p>
+    <p v-if="loading" class="py-6 text-sm text-slate-500">Carregando prioridades...</p>
+
+    <template v-else-if="summary">
+      <div class="grid gap-3 sm:grid-cols-3">
+        <div class="rounded-xl bg-stone-50 p-4">
+          <p class="text-xs text-slate-500">Linhas para fechar</p>
+          <p class="mt-2 text-2xl font-bold tabular-nums">{{ summary.total_lines }}</p>
+        </div>
+        <div class="rounded-xl bg-stone-50 p-4">
+          <p class="text-xs text-slate-500">Receita mensal potencial</p>
+          <p class="mt-2 text-2xl font-bold tabular-nums">
+            {{ money.format(Number(summary.total_monthly)) }}
+          </p>
+        </div>
+        <div class="rounded-xl bg-stone-50 p-4">
+          <p class="text-xs text-slate-500">Prioridades não revisadas hoje</p>
+          <p class="mt-2 text-2xl font-bold tabular-nums">{{ pending }}</p>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-500">
+        Valores estimados de oportunidades abertas. Não representam faturamento.
+        A ciência não conclui nem retira uma oportunidade da lista.
+      </p>
+
+      <div class="space-y-2">
+        <div
+          v-for="item in summary.items"
+          :key="item.id"
+          class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 p-3"
+        >
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
+            <p class="mt-1 text-xs text-slate-500">
+              {{ item.client_name ?? 'Cliente não informado' }}
+              · {{ item.operator_name ?? 'Operadora não informada' }}
+              · {{ item.lines }} linha(s)
+              · {{ money.format(Number(item.monthly)) }}/mês
+            </p>
+            <p class="mt-1 text-xs text-slate-500">
+              Previsão: {{ item.expected_close_at ?? 'Não informada' }}
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <RouterLink
+              :to="`/empresas/${tenantId}/oportunidades`"
+              class="text-xs font-semibold text-orange-700 hover:underline"
+            >
+              Abrir oportunidades
+            </RouterLink>
+            <span v-if="item.acknowledged" class="text-xs font-medium text-emerald-700">
+              Ciente hoje
+            </span>
+            <button
+              v-else
+              type="button"
+              class="secondary-button w-auto"
+              :disabled="!!acknowledgingId"
+              @click="acknowledge(item.id)"
+            >
+              {{ acknowledgingId === item.id ? 'Salvando...' : 'Estou ciente' }}
+            </button>
+          </div>
+        </div>
+        <p v-if="!summary.items.length" class="py-5 text-sm text-slate-500">
+          Nenhuma oportunidade prevista para esta semana ou em atraso.
+        </p>
+      </div>
+    </template>
+  </section>
+</template>
