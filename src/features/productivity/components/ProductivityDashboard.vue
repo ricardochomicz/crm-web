@@ -4,7 +4,7 @@ import ConsultantRanking from './ConsultantRanking.vue'
 import ConsultantDetailsDialog from './ConsultantDetailsDialog.vue'
 import { toRef } from 'vue'
 import { useConsultantDetails } from '../composables/useConsultantDetails'
-const props = defineProps<{ result: ProductivityResponse }>()
+const props = defineProps<{ result: ProductivityResponse; tenantId: string; from: string; to: string }>()
 const { selected, openConsultant, closeConsultant } = useConsultantDetails(toRef(() => props.result.data))
 const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 </script>
@@ -53,6 +53,6 @@ const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'cur
         </table>
       </div>
     </div>
-    <ConsultantDetailsDialog :consultant="selected" @close="closeConsultant" />
+    <ConsultantDetailsDialog :consultant="selected" :tenant-id="tenantId" :from="from" :to="to" @close="closeConsultant" />
   </div>
 </template>
