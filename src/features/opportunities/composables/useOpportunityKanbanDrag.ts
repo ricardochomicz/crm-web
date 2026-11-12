@@ -9,6 +9,7 @@ export function useOpportunityKanbanDrag(
 ) {
   const dragging = ref<string | null>(null)
   const hover = ref<string | null>(null)
+  let activeId: string | null = null
 
   function canDrag(item: Opportunity, stageName: string): boolean {
     return context.canEdit && !context.busyId && item.status === 'open'
@@ -18,6 +19,7 @@ export function useOpportunityKanbanDrag(
   function resetDrag() {
     dragging.value = null
     hover.value = null
+    activeId = null
   }
 
   function startDrag(event: DragEvent, item: Opportunity) {
@@ -25,6 +27,7 @@ export function useOpportunityKanbanDrag(
       event.preventDefault()
       return
     }
+    activeId = item.id
     dragging.value = item.id
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move'
@@ -36,7 +39,7 @@ export function useOpportunityKanbanDrag(
   function overStage(event: DragEvent, stageId: string) {
     // Browsers do not expose dataTransfer.getData() during dragover.
     // The local drag state is the authoritative source until drop.
-    if (!dragging.value || !stageId || !context.canEdit || context.busyId) return
+    if (!activeId || !stageId || !context.canEdit || context.busyId) return
     event.preventDefault()
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
     hover.value = stageId
@@ -50,7 +53,7 @@ export function useOpportunityKanbanDrag(
 
   function drop(event: DragEvent, stageId: string) {
     event.preventDefault()
-    const id = dragging.value || event.dataTransfer?.getData('text/plain')
+    const id = activeId || event.dataTransfer?.getData('text/plain')
     resetDrag()
     if (!id || !stageId || !context.canEdit || context.busyId) return
     const item = context.items.find(candidate => candidate.id === id)
