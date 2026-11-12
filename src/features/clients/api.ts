@@ -39,9 +39,9 @@ export const clientsApi={
  contact:(id:string,client:string,data:ContactInput,contact?:string)=>mutate(base(id)+'/clients/'+client+'/contacts'+(contact?'/'+contact:''),data,contact?'PATCH':'POST'),
  setOperatorClassification:(id:string,clientId:string,operatorId:number,classificationId:number)=>mutate(base(id)+'/clients/'+clientId+'/operators/'+operatorId+'/classification',{classification_id:classificationId},'PUT'),
  classifications:(id:string)=>request<{data:Classification[];meta:{can_manage:boolean}}>(base(id)+'/operator-classifications'),
- saveClassification:(id:string,data:ClassificationInput,classification?:number)=>mutate(base(id)+'/operator-classifications'+(classification?'/'+classification:''),data,classification?'PATCH':'POST'),
+ saveClassification:(id:string,data:ClassificationInput,classification?:number)=>mutate<{data:Classification}>(base(id)+'/operator-classifications'+(classification?'/'+classification:''),data,classification?'PATCH':'POST'),
  addRule:(id:string,classification:number,data:RuleInput,ruleId?:string)=>mutate(base(id)+'/operator-classifications/'+classification+'/renewal-rules'+(ruleId?'/'+ruleId:''),data,ruleId?'PATCH':'POST'),
  globalClassifications:()=>request<{data:Classification[]}>('/api/v1/admin/operator-classifications'),
- saveGlobalClassification:(data:ClassificationInput,classification?:number)=>mutate('/api/v1/admin/operator-classifications'+(classification?'/'+classification:''),data,classification?'PATCH':'POST'),
+ saveGlobalClassification:(data:ClassificationInput,classification?:number)=>mutate<{data:Classification}>('/api/v1/admin/operator-classifications'+(classification?'/'+classification:''),data,classification?'PATCH':'POST'),
  addGlobalRule:(classification:number,data:RuleInput,ruleId?:string)=>mutate('/api/v1/admin/operator-classifications/'+classification+'/renewal-rules'+(ruleId?'/'+ruleId:''),data,ruleId?'PATCH':'POST'),
 }
