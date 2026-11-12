@@ -34,7 +34,7 @@ async function save(){
   busy.value=true
   try{
     const payload={...form.value,code:form.value.name.trim(),name:form.value.name.trim()}
-    const response=await clientsApi.saveClassification(tenantId.value,payload,editing.value??undefined) as {data:Classification}
+    const response=await clientsApi.saveClassification(tenantId.value,payload,editing.value??undefined)
     const classificationId=editing.value??response.data.id
     const existing=rows.value.find(c=>c.id===classificationId)
     const ownRule=existing?.rules.find(r=>r.tenant_id===tenantId.value&&r.is_active)
