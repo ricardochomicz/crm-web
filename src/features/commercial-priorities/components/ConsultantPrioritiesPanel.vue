@@ -1,13 +1,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useCommercialPriorities } from '../composables/useCommercialPriorities'
+import ConsultantRenewalPriorities from './ConsultantRenewalPriorities.vue'
 
 const props = defineProps<{ tenantId: string; enabled: boolean }>()
 
 const tenantId = computed(() => props.tenantId)
 const enabled = computed(() => props.enabled)
-const { summary, loading, error, acknowledgingId, load, acknowledge } =
-  useCommercialPriorities(tenantId, enabled)
+const {
+  summary,
+  loading,
+  error,
+  acknowledgingId,
+  acknowledgingRenewalId,
+  load,
+  acknowledge,
+  acknowledgeRenewal,
+} = useCommercialPriorities(tenantId, enabled)
 
 const money = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -15,7 +24,8 @@ const money = new Intl.NumberFormat('pt-BR', {
 })
 
 const pending = computed(
-  () => summary.value?.items.filter((item) => !item.acknowledged).length ?? 0,
+  () => (summary.value?.items.filter((item) => !item.acknowledged).length ?? 0)
+    + (summary.value?.renewals.items.filter((item) => !item.acknowledged).length ?? 0),
 )
 </script>
 
@@ -59,7 +69,7 @@ const pending = computed(
           </p>
         </div>
         <div class="rounded-xl bg-stone-50 p-4">
-          <p class="text-xs text-slate-500">Prioridades não revisadas hoje</p>
+          <p class="text-xs text-slate-500">Pendências não revisadas hoje</p>
           <p class="mt-2 text-2xl font-bold tabular-nums">{{ pending }}</p>
         </div>
       </div>
@@ -112,6 +122,13 @@ const pending = computed(
           Nenhuma oportunidade prevista para esta semana ou em atraso.
         </p>
       </div>
+
+      <ConsultantRenewalPriorities
+        :tenant-id="tenantId"
+        :summary="summary.renewals"
+        :acknowledging-id="acknowledgingRenewalId"
+        @acknowledge="acknowledgeRenewal"
+      />
     </template>
   </section>
 </template>
