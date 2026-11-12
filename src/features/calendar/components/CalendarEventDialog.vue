@@ -175,11 +175,11 @@ async function remove() {
           <span v-if="clientsLoading" class="text-xs font-normal text-slate-500">Carregando clientes…</span>
         </label>
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Oportunidade (opcional)
-          <SearchSelect v-model="form.opportunity_id" :options="opportunityOptions" :placeholder="form.client_id ? 'Selecione a oportunidade' : 'Selecione primeiro um cliente'" :disabled="!form.client_id || opportunitiesLoading || lockedLink" />
+          <SearchSelect  :model-value="form.opportunity_id ?? null" @update:model-value="value => form.opportunity_id = String(value || '') || null" :options="opportunityOptions" :placeholder="form.client_id ? 'Selecione a oportunidade' : 'Selecione primeiro um cliente'" :disabled="!form.client_id || opportunitiesLoading || lockedLink" />
           <span v-if="opportunitiesLoading" class="text-xs font-normal text-slate-500">Carregando oportunidades…</span>
         </label>
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Responsável
-          <SearchSelect v-model="form.tenant_user_id" :options="assigneeOptions" placeholder="Eu (padrão)" :disabled="assigneesLoading || (!!event && !assigneeOptions.some(member => member.value === event.tenant_user_id))" />
+          <SearchSelect  :model-value="form.tenant_user_id ?? null" @update:model-value="value => form.tenant_user_id = String(value || '') || null" :options="assigneeOptions" placeholder="Eu (padrão)" :disabled="assigneesLoading || (!!event && !assigneeOptions.some(member => member.value === props.event?.tenant_user_id))" />
           <span v-if="assigneesLoading" class="text-xs font-normal text-slate-500">Carregando responsáveis…</span>
         </label>
         <FormField id="calendar-title" v-model="form.title" label="Título" maxlength="200" required placeholder="Ex.: Reunião com cliente" />
