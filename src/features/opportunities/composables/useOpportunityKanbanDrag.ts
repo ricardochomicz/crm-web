@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 import type { Opportunity } from '../api'
 
 type DragContext = { items: Opportunity[]; canEdit: boolean; busyId: string | null }
@@ -6,6 +6,7 @@ type DragContext = { items: Opportunity[]; canEdit: boolean; busyId: string | nu
 export function useOpportunityKanbanDrag(
   context: DragContext,
   onMove: (id: string, stageId: string) => void,
+  onDragging: (active: boolean) => void = () => {},
 ) {
   const dragging = ref<string | null>(null)
   const hover = ref<string | null>(null)
@@ -17,10 +18,12 @@ export function useOpportunityKanbanDrag(
   }
 
   function resetDrag() {
+    if (activeId) onDragging(false)
     dragging.value = null
     hover.value = null
     activeId = null
   }
+  onBeforeUnmount(resetDrag)
 
   function startDrag(event: DragEvent, item: Opportunity) {
     if (!context.canEdit || context.busyId || item.status !== 'open') {
@@ -28,6 +31,7 @@ export function useOpportunityKanbanDrag(
       return
     }
     activeId = item.id
+    onDragging(true)
     dragging.value = item.id
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move'

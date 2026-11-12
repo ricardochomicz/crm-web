@@ -54,6 +54,7 @@ function switchSection(next: 'open' | 'closed') {
     reload()
 }
 const movingId = ref<string | null>(null)
+const draggingOpportunity = ref(false)
 const resendCandidate = ref<Opportunity | null>(null)
 function askResendToBackoffice(item: Opportunity) {
   if (!canEdit.value || movingId.value || !/para correção/i.test(item.stage?.name || stages.value.find(s => s.id === item.funnel_stage_id)?.name || '')) return
@@ -207,9 +208,14 @@ async function moveStage(id: string, stageId: string) {
     // Use the persisted stage, not a stale object captured before the request.
     setStage(result.data.funnel_stage_id)
     toast.success('Etapa atualizada.')
-    // Reconcile source/destination pages with the server after the optimistic move.
-    // A stage-scoped page may now have a new record at its boundary.
-    void loadKanban()
+    const sourceStageId = previousStageId ?? stages.value.find(stage => /prospec/i.test(stage.name))?.id
+    const affectedStageIds = [...new Set([sourceStageId, result.data.funnel_stage_id].filter((value): value is string => !!value))]
+    try {
+      await stagePagination.refresh(affectedStageIds, () => tenant === tenantId.value, id)
+      total.value = stagePagination.total.value
+    } catch {
+      // The move is already persisted; keep the updated cards if reconciliation fails.
+    }
   } catch (e) {
     if (tenant === tenantId.value) {
       setStage(previousStageId)
@@ -281,13 +287,13 @@ let realtimeTimer: ReturnType<typeof setInterval> | undefined
 let realtimeMounted = false
 let refreshInFlight = false
 async function refreshFromRealtime() {
-  if (refreshInFlight || loading.value || document.hidden || movingId.value || dialogOpen.value) return
+  if (refreshInFlight || loading.value || document.hidden || movingId.value || draggingOpportunity.value || dialogOpen.value) return
   refreshInFlight = true
   try {
     const id = tenantId.value
     const current = version
     const [stageResult] = await Promise.all([opportunitiesApi.stages(id), refreshRowsSilently(id, current)])
-    if (id === tenantId.value && current === version) {
+    if (id === tenantId.value && current === version && !draggingOpportunity.value && !movingId.value) {
       stages.value = stageResult.data
       void commercialOverview.value?.refresh()
     }
@@ -309,7 +315,7 @@ async function refreshRowsSilently(id: string, current: number) {
     return
   }
   // Reuse the stage-scoped API and preserve the same visibility rules.
-  await stagePagination.reset()
+  await stagePagination.refresh(undefined, () => !draggingOpportunity.value && !movingId.value && current === version)
   if (id !== tenantId.value || current !== version || viewMode.value !== 'kanban') return
   total.value = stagePagination.total.value
 }
@@ -376,6 +382,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
         switchSection,
         kanbanRows,
         movingId,
+        draggingOpportunity,
         resendToBackoffice,
         askResendToBackoffice,
         resendCandidate,

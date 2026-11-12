@@ -24,7 +24,7 @@ function onScheduleSaved() {
   scheduling.value = null
   toast.success('Compromisso agendado na oportunidade.')
 }
-const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages, viewMode, section, recoveringId, recover, switchSection, kanbanRows, movingId, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, stageStates, loadMoreKanban, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
+const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages, viewMode, section, recoveringId, recover, switchSection, kanbanRows, movingId, draggingOpportunity, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, stageStates, loadMoreKanban, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
 useOpportunityDeepLink(tenantId, dialogOpen, open)
 const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = useOpportunityHighlights(tenantId)
 </script>
@@ -50,7 +50,7 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
     </div>
     <AsyncNotice :loading="loading" :error="error" @retry="reload" />
     <div v-if="section === 'open' && viewMode === 'kanban' && !loading && !error">
-      <OpportunityKanban :stage-states="stageStates" @load-more="loadMoreKanban" :highlights-only="showHighlightsOnly" :highlighted-ids="highlightedIds" :highlighting-id="highlightingId" @highlight="toggleHighlight" :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @schedule="item => scheduling = item" @won="askConfirmSale" @lost="askMarkLost" @resend="askResendToBackoffice" />
+      <OpportunityKanban @dragging="draggingOpportunity = $event" :stage-states="stageStates" @load-more="loadMoreKanban" :highlights-only="showHighlightsOnly" :highlighted-ids="highlightedIds" :highlighting-id="highlightingId" @highlight="toggleHighlight" :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @schedule="item => scheduling = item" @won="askConfirmSale" @lost="askMarkLost" @resend="askResendToBackoffice" />
 
     </div>
     <section v-if="(section === 'closed' || viewMode === 'list') && !loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">

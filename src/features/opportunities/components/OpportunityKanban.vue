@@ -4,7 +4,7 @@ import { useOpportunityKanbanDrag } from '../composables/useOpportunityKanbanDra
 import AppIcon from '@/components/ui/AppIcon.vue'
 import type { FunnelStage, Opportunity } from '../api'
 const props = defineProps<{ stages: FunnelStage[]; items: Opportunity[]; canEdit: boolean; busyId: string | null; highlightsOnly?: boolean; highlightedIds: string[]; highlightingId?: string | null; stageStates?: Record<string, { page: number; lastPage: number; total: number; loading: boolean; error: string }> }>()
-const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; schedule: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity]; resend: [item: Opportunity]; highlight: [id: string, highlighted: boolean]; loadMore: [stageId: string] }>()
+const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; schedule: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity]; resend: [item: Opportunity]; highlight: [id: string, highlighted: boolean]; loadMore: [stageId: string]; dragging: [active: boolean] }>()
 const { highlightedIds, stageItems, columns, matchesStage, palette, money, isOverdue } = useOpportunityKanbanPresentation(props)
 function onColumnScroll(event: Event, stageId: string) {
   const state = props.stageStates?.[stageId]
@@ -13,7 +13,7 @@ function onColumnScroll(event: Event, stageId: string) {
   if (column.scrollHeight - column.scrollTop - column.clientHeight < 160) emit('loadMore', stageId)
 }
 const { dragging, hover, canDrag, resetDrag, startDrag, overStage, leaveStage, drop } =
-  useOpportunityKanbanDrag(props, (id, stageId) => emit('move', id, stageId))
+  useOpportunityKanbanDrag(props, (id, stageId) => emit('move', id, stageId), active => emit('dragging', active))
 </script>
 <template>
   <div>
@@ -69,7 +69,7 @@ const { dragging, hover, canDrag, resetDrag, startDrag, overStage, leaveStage, d
           </article>
           <p v-if="stageStates?.[stage.id]?.loading" class="text-center text-xs text-slate-500">Carregando mais oportunidades…</p>
           <button v-if="stageStates?.[stage.id]?.error" type="button" class="text-xs text-rose-700 underline" @click="emit('loadMore', stage.id)">Tentar novamente</button>
-          <button v-if="stageStates?.[stage.id] && stageStates[stage.id].page < stageStates[stage.id].lastPage" type="button" class="w-full rounded-lg border border-stone-200 bg-white p-2 text-xs font-semibold text-slate-700 disabled:opacity-50" :disabled="stageStates[stage.id].loading" @click="emit('loadMore', stage.id)">Carregar mais nesta etapa</button>
+          <button v-if="stageStates?.[stage.id] && (stageStates[stage.id]?.page ?? 0) < (stageStates[stage.id]?.lastPage ?? 1)" type="button" class="w-full rounded-lg border border-stone-200 bg-white p-2 text-xs font-semibold text-slate-700 disabled:opacity-50" :disabled="stageStates[stage.id]?.loading" @click="emit('loadMore', stage.id)">Carregar mais nesta etapa</button>
           <p v-if="!stageItems(stage).length" class="rounded-xl border border-dashed border-stone-300 p-5 text-center text-xs text-slate-400">{{ highlightsOnly ? 'Nenhum destaque nesta etapa' : 'Arraste oportunidades para esta etapa' }}</p>
         </div>
       </section>
