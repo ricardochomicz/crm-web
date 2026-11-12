@@ -63,6 +63,16 @@ const filtered = computed(() =>
 watch(query, () => {
   active.value = 0
 })
+function onPointerDown() {
+  if (props.disabled) return
+  open.value = true
+  query.value = ''
+}
+function onInput(event: Event) {
+  if (props.disabled) return
+  query.value = (event.target as HTMLInputElement).value
+  open.value = true
+}
 function choose(option: Option) {
   if (option.disabled) return
   open.value = false
@@ -119,16 +129,8 @@ const menuRef = ref<HTMLElement | null>(null)
       aria-haspopup="listbox"
       autocomplete="off"
       class="w-full rounded-xl bg-stone-100 px-4 py-3 pr-10 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 hover:bg-stone-200/70 focus:bg-white focus:ring-2 focus:ring-orange-400"
-      @pointerdown="
-        if (!disabled) {
-          open = true
-          query = ''
-        }
-      "
-      @input="
-        query = ($event.target as HTMLInputElement).value
-        open = true
-      "
+      @pointerdown="onPointerDown"
+      @input="onInput"
     />
     <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
       >⌄</span
