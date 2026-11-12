@@ -10,7 +10,7 @@ import ClientForm from '../components/ClientForm.vue'
 import ContextActivityDialog from '@/features/calendar/components/ContextActivityDialog.vue'
 import ClientDetailsDialog from '../components/ClientDetailsDialog.vue'
 import { useClientsPage } from '../composables/useClientsPage'
-const { tenantId, tenant, rows, operators, classes, sellers, canAssignSeller, currentSellerId, loading, busy, error, canManage, canCreate, activityClient, canCreateActivity, showSellerSelect, writable, canAdd, search, operatorFilter, filtered, applyFilters, clearFilters, page, total, lastPage, pageRows, changePage, blank, validationState, duplicate, checkingDocument, transferBusy, checkDocument, requestTransfer, form, editing, modal, selected, detailsInitialTab, contactBlank, contact, contactEditing, contactModal, pendingContactClientId, documentModel, phoneModel, contactPhoneModel, cepModel, cepBusy, cepMessage, lookupCep, cancelLookup, classesForOperator, activeSeller, start, load, save, saveOperatorClassification, openHistory, details, editContact, saveContact } = useClientsPage()
+const { onActivitySaved, tenantId, tenant, rows, operators, classes, sellers, canAssignSeller, currentSellerId, loading, busy, error, canManage, canCreate, activityClient, canCreateActivity, showSellerSelect, writable, canAdd, search, operatorFilter, filtered, applyFilters, clearFilters, page, total, lastPage, pageRows, changePage, blank, validationState, duplicate, checkingDocument, transferBusy, checkDocument, requestTransfer, form, editing, modal, selected, detailsInitialTab, contactBlank, contact, contactEditing, contactModal, pendingContactClientId, documentModel, phoneModel, contactPhoneModel, cepModel, cepBusy, cepMessage, lookupCep, cancelLookup, classesForOperator, activeSeller, start, load, save, saveOperatorClassification, openHistory, details, editContact, saveContact } = useClientsPage()
 </script>
 <template>
   <AppShell :tenant="tenant" title="Clientes" subtitle="Carteira comercial e contatos">
@@ -137,7 +137,7 @@ const { tenantId, tenant, rows, operators, classes, sellers, canAssignSeller, cu
       :initial-title="activityClient ? 'Contato: ' + activityClient.company_name : ''"
       :can-write="canCreateActivity"
       @close="activityClient = null"
-      @saved="activityClient = null; toast.success('Atividade criada para o cliente.')"
+      @saved="onActivitySaved"
     />
     <ClientForm
       v-if="modal"
