@@ -49,16 +49,28 @@ const { dragging, hover, canDrag, resetDrag, startDrag, overStage, leaveStage, d
               <p class="text-sm font-semibold text-slate-800">{{ item.title }}</p>
               <p class="mt-3 text-sm text-slate-600">{{ item.client?.company_name || 'Cliente não informado' }}</p>
               <p class="mt-3 text-sm font-bold text-slate-900">{{ money(item.estimated_monthly_amount) }}/mês</p>
-              <p v-if="item.expected_close_at" class="mt-1 text-xs" :class="isOverdue(item) ? 'font-semibold text-rose-700' : 'text-slate-500'">
-                Previsão: {{ item.expected_close_at.slice(0, 10).split('-').reverse().join('/') }}
-                <span v-if="isOverdue(item)" class="ml-1 rounded-md bg-rose-100 px-1.5 py-0.5 text-rose-800">Atrasada</span>
-              </p>
               <p
-                v-if="opportunityAgeLabel(item.created_at)"
-                class="mt-1 text-xs"
-                :class="opportunityAgeClass(item.created_at)"
+                v-if="item.expected_close_at || opportunityAgeLabel(item.created_at)"
+                class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs"
               >
-                {{ opportunityAgeLabel(item.created_at) }}
+                <span
+                  v-if="item.expected_close_at"
+                  :class="isOverdue(item) ? 'font-semibold text-rose-700' : 'text-slate-500'"
+                >
+                  Previsão: {{ item.expected_close_at.slice(0, 10).split('-').reverse().join('/') }}
+                </span>
+                <span
+                  v-if="opportunityAgeLabel(item.created_at)"
+                  :class="opportunityAgeClass(item.created_at)"
+                >
+                  <span v-if="item.expected_close_at" aria-hidden="true">· </span>{{ opportunityAgeLabel(item.created_at) }}
+                </span>
+                <span
+                  v-if="isOverdue(item)"
+                  class="rounded-md bg-rose-100 px-1.5 py-0.5 text-rose-800"
+                >
+                  Atrasada
+                </span>
               </p>
             </button>
             <div class="mt-3 grid grid-cols-2 gap-2">
