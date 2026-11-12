@@ -7,7 +7,7 @@ export type OpportunityItem = {
 export type Opportunity = {
   items?: OpportunityItem[];
   parent_opportunity_id?: string | null; lost_reason?: string | null; closed_at?: string | null;
-  id: string; code: string; title: string; status: 'open' | 'won' | 'lost' | 'cancelled'
+  id: string; code: string; title: string; created_at?: string | null; status: 'open' | 'won' | 'lost' | 'cancelled'
   client_id: string; tenant_user_id: string; funnel_stage_id: string | null
   operator_id: number | null; order_type: string; order_type_id: string | null; description: string | null
   expected_close_at: string | null; estimated_monthly_amount: string
