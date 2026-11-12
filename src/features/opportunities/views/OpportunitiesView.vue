@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { toast } from '@/services/toast'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
-const scheduling = ref<{ id: string; client_id?: string | null; title: string } | null>(null)
 import AppShell from '@/components/layout/AppShell.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
@@ -17,6 +17,11 @@ import { useOpportunitiesPage } from '../composables/useOpportunitiesPage'
 import { useOpportunityDeepLink } from '../composables/useOpportunityDeepLink'
 import { useOpportunityHighlights } from '../composables/useOpportunityHighlights'
 
+const scheduling = ref<{ id: string; client_id?: string | null; title: string } | null>(null)
+function onScheduleSaved() {
+  scheduling.value = null
+  toast.success('Compromisso agendado na oportunidade.')
+}
 const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages, viewMode, section, recoveringId, recover, switchSection, kanbanRows, movingId, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, kanbanLimitReached, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
 useOpportunityDeepLink(tenantId, dialogOpen, open)
 const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = useOpportunityHighlights(tenantId)
@@ -91,7 +96,7 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
       :can-write="canEdit"
       :can-delete="false"
       @close="scheduling = null"
-      @saved="scheduling = null; toast.success('Compromisso agendado na oportunidade.')"
+      @saved="onScheduleSaved"
     />
     <AppDialog
       :open="!!resendCandidate"
