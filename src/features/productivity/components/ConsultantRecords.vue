@@ -18,6 +18,7 @@ const routeFor = (item: ConsultantRecord) => {
   if (tab.value === 'opportunities') return `${base}/oportunidades?oportunidade=${encodeURIComponent(item.id)}`
   return `${base}/pedidos?pedido=${encodeURIComponent(item.id)}`
 }
+const canOpenDetails = (item: ConsultantRecord) => tab.value !== 'opportunities' || item.status?.toLowerCase() === 'open'
 const heading = (item: ConsultantRecord) => item.title || item.customer_name || item.code || 'Registro'
 const description = (item: ConsultantRecord) => [
   item.code, item.status, item.sold_on || item.ends_at?.slice(0, 10) || item.created_at?.slice(0, 10),
@@ -41,7 +42,8 @@ const totalLabel = computed(() => `${records.value?.total ?? 0} registros`)
       <ul v-else class="divide-y divide-stone-100">
         <li v-for="item in records.data" :key="item.id" class="flex items-center justify-between gap-3 py-3">
           <div class="min-w-0"><p class="truncate text-sm font-medium text-slate-800">{{ heading(item) }}</p><p class="mt-1 text-xs text-slate-500">{{ description(item) }}</p></div>
-          <RouterLink :to="routeFor(item)" class="shrink-0 text-xs font-semibold text-orange-700 hover:underline">Ver detalhes</RouterLink>
+          <RouterLink v-if="canOpenDetails(item)" :to="routeFor(item)" class="shrink-0 text-xs font-semibold text-orange-700 hover:underline">Ver detalhes</RouterLink>
+          <span v-else class="shrink-0 text-xs text-slate-500">Negociação encerrada</span>
         </li>
       </ul>
       <div v-if="records && records.last_page > 1" class="mt-4 flex items-center justify-between gap-3 border-t pt-4 text-sm">
