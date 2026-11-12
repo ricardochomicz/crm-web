@@ -1,27 +1,18 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { tenantApi } from '@/features/tenants/api'
-import { can, type Tenant } from '@/features/tenants/types'
-import { orderTypesApi, type OrderType } from '@/features/order-types/api'
-import { productsApi, type Product } from '@/features/products/api'
-import { operatorsApi, type TenantOperator } from '@/features/operators/api'
-import { clientsApi, type Client } from '@/features/clients/api'
 import { opportunitiesApi, type Opportunity, type FunnelStage, type OpportunityFilters } from '../api'
 import { useOpportunityStagePagination } from './useOpportunityStagePagination'
 import type OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
 import { useOpportunityRealtimeSync } from './useOpportunityRealtimeSync'
+import { useOpportunityReferenceData } from './useOpportunityReferenceData'
 
 export function useOpportunitiesPage() {
     const tenantId = computed(() => String(useRoute().params.tenantId))
-const tenant = ref<Tenant>()
-const clients = ref<Client[]>([])
-const products = ref<Product[]>([])
-const operators = ref<TenantOperator[]>([])
-const orderTypes = ref<OrderType[]>([])
+const referenceData = useOpportunityReferenceData(tenantId)
+const { tenant, clients, products, operators, orderTypes, stages, canCreate, canEdit } = referenceData
 const rows = ref<Opportunity[]>([])
-const stages = ref<FunnelStage[]>([])
 const viewMode = ref<'list' | 'kanban'>('kanban')
 const section = ref<'open' | 'closed'>('open')
 const recoveringId = ref<string | null>(null)
@@ -147,8 +138,6 @@ async function confirmSale() {
     }
 }
 const editing = ref<Opportunity | null>(null)
-const canCreate = computed(() => can(tenant.value, 'opportunities.create') && !!tenant.value?.access?.allows_operational_writes)
-const canEdit = computed(() => can(tenant.value, 'opportunities.update') && !!tenant.value?.access?.allows_operational_writes)
 let version = 0
 async function load() {
   const current = ++version
@@ -226,31 +215,11 @@ async function moveStage(id: string, stageId: string) {
   }
 }
 async function setup() {
-  const id = tenantId.value
   try {
-    const t = await tenantApi.show(id)
-    if (id !== tenantId.value) return
-    tenant.value = t.data
-    const tenantOperators = await operatorsApi.tenantList(id)
-    if (id === tenantId.value) operators.value = tenantOperators.data.filter(operator => operator.selected && operator.is_active)
-    const types = await orderTypesApi.active()
-    if (id === tenantId.value) orderTypes.value = types.data
-    const stageResult = await opportunitiesApi.stages(id)
-    if (id === tenantId.value) stages.value = stageResult.data
-    if (canCreate.value || canEdit.value) {
-      const c = await clientsApi.list(id)
-      if (id === tenantId.value) clients.value = c.data
-      const productFilters = { search: '', operator_id: '', category: '', is_active: 'active' }
-      const first = await productsApi.list(id, 1, productFilters)
-      const available = [...first.data]
-      for (let page = 2; page <= first.meta.last_page; page++) {
-        if (id !== tenantId.value) return
-        const next = await productsApi.list(id, page, productFilters)
-        available.push(...next.data)
-      }
-      if (id === tenantId.value) products.value = available
-    }
-  } catch (e) { error.value = errorMessage(e) }
+    await referenceData.load()
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
 }
 function applyFilters() {
     if (filters.value.min_amount !== undefined && filters.value.max_amount !== undefined && Number(filters.value.min_amount) > Number(filters.value.max_amount)) {
@@ -304,7 +273,7 @@ useOpportunityRealtimeSync({
   refreshRows: refreshRowsSilently,
   refreshOverview: () => { void commercialOverview.value?.refresh() },
 })
-watch(tenantId, () => { section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; stages.value = []; tenant.value = undefined; clients.value = []; operators.value = []; products.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
+watch(tenantId, () => { section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; referenceData.clear(); page.value = 1; void setup(); reload() }, { immediate: true })
 watch(stages, (next, previous) => {
   if (viewMode.value === 'kanban' && next.length > 0 && previous.length === 0) reload()
 })
