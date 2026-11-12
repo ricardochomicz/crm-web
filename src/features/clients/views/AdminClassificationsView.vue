@@ -3,10 +3,8 @@ import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
-import TableActionButton from '@/components/ui/TableActionButton.vue'
-import ListFilters from '@/components/ui/ListFilters.vue'
-import ListTable from '@/components/ui/ListTable.vue'
-import SearchSelect from '@/components/ui/SearchSelect.vue'
+import ClassificationListFilters from '../components/ClassificationListFilters.vue'
+import ClassificationListTable from '../components/ClassificationListTable.vue'
 import ClassificationForm from '../components/ClassificationForm.vue'
 import ClassificationRuleForm from '../components/ClassificationRuleForm.vue'
 import { useAdminClassificationsPage } from '../composables/useAdminClassificationsPage'
@@ -37,71 +35,8 @@ const { rows, operators, loading, busy, error, form, months, editing, modal, rul
     </header>
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
     <template v-if="!loading && !error"
-      ><ListFilters
-        :columns="1"
-        :count-label="`${filtered.length} resultado(s) encontrado(s)`"
-        @search="applyFilters"
-        @clear="clearFilters"
-        ><label class="text-xs font-semibold text-slate-600"
-          >Operadora<SearchSelect
-            v-model="filter"
-            :options="[
-              { value: '', label: 'Todas as operadoras' },
-              ...operators.map((o) => ({ value: String(o.id), label: o.name })),
-            ]" /></label
-      ></ListFilters>
-      <div class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-        <ListTable min-width="650px" :busy="busy"
-          ><thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            <tr>
-              <th scope="col" class="px-5 py-4">Operadora</th>
-              <th scope="col" class="px-5 py-4">Prazo de renovação</th>
-              <th scope="col" class="px-5 py-4">Classificação</th>
-              <th scope="col" class="px-5 py-4">Regras</th>
-              <th scope="col" class="px-5 py-4 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-stone-100">
-            <tr v-for="c in pageRows" :key="c.id" class="hover:bg-stone-50/70">
-              <td class="px-5 py-4">{{ c.operator?.name }}</td>
-              <td class="px-5 py-4">{{ c.rules.find((rule) => rule.is_active && !rule.valid_until)?.minimum_months ?? c.rules.find((rule) => rule.is_active)?.minimum_months ?? "—" }} meses</td>
-              <td class="px-5 py-4 font-semibold text-slate-800">{{ c.name }}</td>
-              <td class="px-5 py-4">
-                <p v-for="r in c.rules" :key="r.id">
-                  {{ r.minimum_months }} meses · {{ r.valid_from }} até
-                  {{ r.valid_until ?? 'indeterminado' }}
-                  <TableActionButton
-                    type="button"
-                    icon="edit"
-                    :label="`Editar regra de ${c.code}`"
-                    :busy="busy"
-                    @click="editRule(c, r)"
-                  />
-                </p>
-              </td>
-              <td class="whitespace-nowrap px-5 py-4 text-right">
-                <TableActionButton
-                  icon="edit"
-                  :label="`Editar ${c.name}`"
-                  :busy="busy"
-                  @click="edit(c)"
-                />
-                <TableActionButton
-                  icon="tag"
-                  :label="`Nova regra para ${c.name}`"
-                  :busy="busy"
-                  @click="addRule(c)"
-                />
-              </td>
-            </tr>
-            <tr v-if="!filtered.length">
-              <td colspan="5" class="px-5 py-12 text-center text-slate-500">
-                Nenhuma classificação encontrada.
-              </td>
-            </tr>
-          </tbody></ListTable
-        >
-      </div>
+      ><ClassificationListFilters v-model="filter" :operators="operators" :count="filtered.length" :busy="loading || busy" @search="applyFilters" @clear="clearFilters" />
+      <ClassificationListTable :rows="pageRows" mode="admin" :busy="busy" @edit="edit" @add-rule="addRule" @edit-rule="editRule" />
       <PagePagination :page="page" :last-page="lastPage" :total="total" @change="changePage"
     /></template>
     <AppDialog
