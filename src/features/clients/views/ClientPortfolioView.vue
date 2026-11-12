@@ -9,6 +9,7 @@ import ListTable from '@/components/ui/ListTable.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import PortfolioDetailsDialog from '../components/PortfolioDetailsDialog.vue'
+import PortfolioRenewalDialog from '../components/PortfolioRenewalDialog.vue'
 import { tenantApi } from '@/features/tenants/api'
 import { operatorsApi } from '@/features/operators/api'
 import type { Tenant } from '@/features/tenants/types'
@@ -293,22 +294,11 @@ watch(tenantId, () => void initialize(), { immediate: true })
       />
     </template>
     <PortfolioDetailsDialog :open="!!selectedDetails" :record="selectedDetails" :mode="viewMode" @close="selectedDetails = null" />
-    <div v-if="renewing" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <section role="dialog" aria-modal="true" aria-labelledby="renewal-title" class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
-        <h2 id="renewal-title" class="text-xl font-semibold">Renovar contrato</h2>
-        <p class="mt-3 text-sm text-slate-600">
-          Deseja iniciar a renovação do contrato de <strong>{{ renewing.client_name }}</strong>
-          com <strong>{{ renewing.line_count }} {{ renewing.line_count === 1 ? 'linha' : 'linhas' }}</strong>?
-        </p>
-        <p class="mt-3 text-sm text-slate-500">
-          Uma nova oportunidade será criada com todas as linhas e os dados comerciais do pedido original.
-          As datas de ativação não serão copiadas.
-        </p>
-        <div class="mt-5 flex justify-end gap-2">
-          <button type="button" class="secondary-button w-auto" :disabled="savingRenewal" @click="renewing = null">Cancelar</button>
-          <button type="button" class="primary-button w-auto" :disabled="savingRenewal || !renewing.lines?.length" @click="confirmRenewal">{{ savingRenewal ? 'Criando...' : 'Criar oportunidade' }}</button>
-        </div>
-      </section>
-    </div>
+    <PortfolioRenewalDialog
+      :contract="renewing"
+      :busy="savingRenewal"
+      @close="renewing = null"
+      @confirm="confirmRenewal"
+    />
   </AppShell>
 </template>
