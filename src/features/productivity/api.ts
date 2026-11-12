@@ -1,4 +1,4 @@
-import { request } from '@/lib/http'
+import { request, mutate } from '@/lib/http'
 
 export interface ProductivityRow {
   id: string
@@ -52,9 +52,9 @@ export interface GoalConfiguration {
 
 export const productivityApi = {
   saveMonthlyTarget(tenantId: string, data: { tenant_user_id: string; month: string; amount: number }) {
-    return import('@/lib/http').then(({ mutate }) => mutate<{ data: { id: string } }>(
+    return mutate<{ data: { id: string } }>(
       `/api/v1/tenants/${encodeURIComponent(tenantId)}/consultants/productivity/monthly-target`, data, 'PUT',
-    ))
+    )
   },
   goalConfigurations(tenantId: string, filters: { from: string; to: string; consultant_id?: string }) {
     const params = new URLSearchParams(filters)
