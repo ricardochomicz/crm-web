@@ -83,6 +83,18 @@ function navigate(delta: number) {
   month.value = next
   focusedDay.value = dateKey(next)
 }
+const canCreateInMonth = computed(() => canCreate.value && scope.value === 'mine' && new Date(month.value.getFullYear(), month.value.getMonth() + 1, 0) >= new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()))
+function createFromToolbar() {
+  if (!canCreateInMonth.value) return
+  const today = new Date()
+  const day = today.getFullYear() === month.value.getFullYear() && today.getMonth() === month.value.getMonth() ? today.getDate() : 1
+  create(day)
+}
+function goToToday() {
+  const today = new Date()
+  month.value = new Date(today.getFullYear(), today.getMonth(), 1)
+  focusedDay.value = dateKey(today)
+}
 function create(day: number) {
   if (!canCreate.value || dateKey(new Date(month.value.getFullYear(), month.value.getMonth(), day)) < dateKey(new Date())) return
   selectedEvent.value = null
@@ -105,5 +117,5 @@ function saved() {
   toast.success('Agenda atualizada.')
 }
 
-return { tenantId, tenant, month, scope, events, loading, error, dialogOpen, selectedEvent, historyEvent, selectedDate, focusedDay, dayDetailsSection, now, isOverdue, statusLabel, dayEvents, dayTitle, eventTime, canCreate, canEdit, canDelete, teamAllowed, title, range, days, byDay, load, navigate, create, selectDay, edit, saved, dateKey, completedColors, eventStyles }
+return { canCreateInMonth, createFromToolbar, goToToday, tenantId, tenant, month, scope, events, loading, error, dialogOpen, selectedEvent, historyEvent, selectedDate, focusedDay, dayDetailsSection, now, isOverdue, statusLabel, dayEvents, dayTitle, eventTime, canCreate, canEdit, canDelete, teamAllowed, title, range, days, byDay, load, navigate, create, selectDay, edit, saved, dateKey, completedColors, eventStyles }
 }
