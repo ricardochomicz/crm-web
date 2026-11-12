@@ -125,6 +125,10 @@ const classesForOperator = computed(() =>
   ),
 )
 const activeSeller = (c: Client) => c.sellers?.find((s) => !s.ended_at)
+const sellerName = (client: Client): string => {
+  const sellerId = activeSeller(client)?.tenant_user_id
+  return sellers.value.find((seller) => seller.id === sellerId)?.name ?? '—'
+}
 function start(c?: Client) {
   ++lookupVersion
   duplicate.value = null
@@ -345,5 +349,5 @@ function onActivitySaved() {
   activityClient.value = null
   toast.success('Atividade criada para o cliente.')
 }
-return { transferDialogOpen, submitTransfer, onActivitySaved, tenantId, tenant, rows, operators, classes, sellers, canAssignSeller, currentSellerId, loading, busy, error, canManage, canCreate, activityClient, canCreateActivity, showSellerSelect, writable, canAdd, search, operatorFilter, filtered, applyFilters, clearFilters, page, total, lastPage, pageRows, changePage, blank, validationState, duplicate, checkingDocument, transferBusy, checkDocument, requestTransfer, form, editing, modal, selected, detailsInitialTab, contactBlank, contact, contactEditing, contactModal, pendingContactClientId, documentModel, phoneModel, contactPhoneModel, cepModel, cepBusy, cepMessage, lookupCep, cancelLookup, classesForOperator, activeSeller, start, load, save, saveOperatorClassification, openHistory, details, editContact, saveContact }
+return { transferDialogOpen, submitTransfer, onActivitySaved, tenantId, tenant, rows, operators, classes, sellers, canAssignSeller, currentSellerId, loading, busy, error, canManage, canCreate, activityClient, canCreateActivity, showSellerSelect, writable, canAdd, search, operatorFilter, filtered, applyFilters, clearFilters, page, total, lastPage, pageRows, changePage, blank, validationState, duplicate, checkingDocument, transferBusy, checkDocument, requestTransfer, form, editing, modal, selected, detailsInitialTab, contactBlank, contact, contactEditing, contactModal, pendingContactClientId, documentModel, phoneModel, contactPhoneModel, cepModel, cepBusy, cepMessage, lookupCep, cancelLookup, classesForOperator, sellerName, start, load, save, saveOperatorClassification, openHistory, details, editContact, saveContact }
 }
