@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import type { OpportunityFilters } from '../api'
 import type { OrderType } from '@/features/order-types/api'
 
@@ -19,6 +20,26 @@ const emit = defineEmits<{
 function set(key: keyof OpportunityFilters, value: string | number) {
     emit('update:modelValue', { ...props.modelValue, [key]: value })
 }
+const statusOptions = computed(() => [
+  ...(props.section === 'open' ? [{ value: 'open', label: 'Em aberto' }] : []),
+  { value: 'won', label: 'Ganhas' },
+  { value: 'lost', label: 'Perdidas' },
+  { value: 'cancelled', label: 'Canceladas' },
+  ...(props.section === 'closed' ? [{ value: 'all', label: 'Todas as encerradas' }] : []),
+])
+const typeOptions = computed(() => [
+  { value: '', label: 'Todos os tipos' },
+  ...props.types.map(type => ({ value: String(type.id), label: type.name })),
+])
+const periodOptions = computed(() => props.section === 'closed'
+  ? [{ value: 'closed', label: 'Todas as datas de encerramento' }]
+  : [
+      { value: 'current', label: 'Mês atual + atrasadas + sem previsão' },
+      { value: 'overdue', label: 'Somente atrasadas' },
+      { value: 'future', label: 'Próximos meses' },
+      { value: 'custom', label: 'Intervalo personalizado' },
+      { value: 'all', label: 'Todas as datas' },
+    ])
 const custom = computed(() => props.modelValue.period === 'custom' || (props.section === 'closed' && props.modelValue.period === 'closed'))
 const activeCount = computed(() => [
     !!props.modelValue.search?.trim(),
@@ -40,31 +61,15 @@ const activeCount = computed(() => [
         </label>
         <label class="text-xs font-semibold text-slate-600">
             Situação
-            <select :value="modelValue.status" class="field" @change="set('status', ($event.target as HTMLSelectElement).value)">
-                <option v-if="section === 'open'" value="open">Em aberto</option>
-                <option value="won">Ganhas</option>
-                <option value="lost">Perdidas</option>
-                <option value="cancelled">Canceladas</option>
-                <option v-if="section === 'closed'" value="all">Todas as encerradas</option>
-            </select>
+            <SearchSelect :model-value="modelValue.status" :options="statusOptions" @update:model-value="value => set('status', value)" />
         </label>
         <label class="text-xs font-semibold text-slate-600">
             Tipo do pedido
-            <select :value="modelValue.order_type_id" class="field" @change="set('order_type_id', ($event.target as HTMLSelectElement).value)">
-                <option value="">Todos os tipos</option>
-                <option v-for="type in types" :key="type.id" :value="type.id">{{ type.name }}</option>
-            </select>
+            <SearchSelect :model-value="modelValue.order_type_id" :options="typeOptions" @update:model-value="value => set('order_type_id', value)" />
         </label>
         <label class="text-xs font-semibold text-slate-600">
             {{ section === 'closed' ? 'Período do encerramento' : 'Período do forecast' }}
-            <select :value="modelValue.period" class="field" @change="set('period', ($event.target as HTMLSelectElement).value)">
-                <option v-if="section === 'closed'" value="closed">Todas as datas de encerramento</option>
-                <option v-if="section === 'open'" value="current">Mês atual + atrasadas + sem previsão</option>
-                <option v-if="section === 'open'" value="overdue">Somente atrasadas</option>
-                <option v-if="section === 'open'" value="future">Próximos meses</option>
-                <option v-if="section === 'open'" value="custom">Intervalo personalizado</option>
-                <option v-if="section === 'open'" value="all">Todas as datas</option>
-            </select>
+            <SearchSelect :model-value="modelValue.period" :options="periodOptions" @update:model-value="value => set('period', value)" />
         </label>
         <template v-if="custom">
             <label class="text-xs font-semibold text-slate-600">
