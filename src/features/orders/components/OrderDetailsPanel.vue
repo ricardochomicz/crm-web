@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { formatCustomerDocument } from '../utils/formatCustomerDocument'
 import { toast } from '@/services/toast'
 import { errorMessage } from '@/lib/feedback'
 import { ordersApi, type CommercialOrder } from '../api'
@@ -17,13 +18,7 @@ import { orderStatusesApi, type OrderStatus } from '@/features/order-statuses/ap
 const props = defineProps<{ tenantId: string; orderId: string; canManage?: boolean }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const order = ref<CommercialOrder | null>(null)
-const formattedDocument = computed(() => {
-  const digits = (order.value?.customer_document ?? '').replace(/\D/g, '')
-  if (digits.length === 11) return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4')
-  if (digits.length === 14)
-    return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
-  return order.value?.customer_document || 'Não informado'
-})
+const formattedDocument = computed(() => formatCustomerDocument(order.value?.customer_document))
 const activeTab = ref<'workflow' | 'documents' | 'commissions'>('workflow')
 const tenant = ref<Tenant>()
 const isCommissionManager = computed(
