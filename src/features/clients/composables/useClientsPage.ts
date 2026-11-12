@@ -338,5 +338,9 @@ watch(
   { immediate: true },
 )
 
-return { tenantId, tenant, rows, operators, classes, sellers, canAssignSeller, currentSellerId, loading, busy, error, canManage, canCreate, activityClient, canCreateActivity, showSellerSelect, writable, canAdd, search, operatorFilter, filtered, applyFilters, clearFilters, page, total, lastPage, pageRows, changePage, blank, validationState, duplicate, checkingDocument, transferBusy, checkDocument, requestTransfer, form, editing, modal, selected, detailsInitialTab, contactBlank, contact, contactEditing, contactModal, pendingContactClientId, documentModel, phoneModel, contactPhoneModel, cepModel, cepBusy, cepMessage, lookupCep, cancelLookup, classesForOperator, activeSeller, start, load, save, saveOperatorClassification, openHistory, details, editContact, saveContact }
+function onActivitySaved() {
+  activityClient.value = null
+  toast.success('Atividade criada para o cliente.')
+}
+return { onActivitySaved, tenantId, tenant, rows, operators, classes, sellers, canAssignSeller, currentSellerId, loading, busy, error, canManage, canCreate, activityClient, canCreateActivity, showSellerSelect, writable, canAdd, search, operatorFilter, filtered, applyFilters, clearFilters, page, total, lastPage, pageRows, changePage, blank, validationState, duplicate, checkingDocument, transferBusy, checkDocument, requestTransfer, form, editing, modal, selected, detailsInitialTab, contactBlank, contact, contactEditing, contactModal, pendingContactClientId, documentModel, phoneModel, contactPhoneModel, cepModel, cepBusy, cepMessage, lookupCep, cancelLookup, classesForOperator, activeSeller, start, load, save, saveOperatorClassification, openHistory, details, editContact, saveContact }
 }
