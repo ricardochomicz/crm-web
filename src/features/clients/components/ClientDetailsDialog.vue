@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import ClientContractRenewals from './ClientContractRenewals.vue'
+import ClientOrdersHistory from './ClientOrdersHistory.vue'
 import ClientContractConsolidationDialog from './ClientContractConsolidationDialog.vue'
 import ClientOperatorClassifications from './ClientOperatorClassifications.vue'
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
@@ -24,6 +25,7 @@ const emit = defineEmits<{
   consolidated: []
 }>()
 const consolidationOpen = ref(false)
+const contractsTab = ref<'orders' | 'renewals'>('orders')
 const activeTab = ref<'data' | 'operators' | 'contracts' | 'contacts' | 'sellers' | 'history'>('data')
 const historyOrigin = ref<'client' | 'opportunity' | 'commercial_order' | 'protocol'>('client')
 const clientProtocols = ref<Protocol[]>([])
@@ -39,6 +41,7 @@ const protocolStatuses: Record<string, string> = {
 }
 watch(() => props.client?.id, () => {
   consolidationOpen.value = false
+  contractsTab.value = 'orders'
   activeTab.value = props.initialTab ?? 'data'
   historyOrigin.value = 'client'
   protocolPage.value = 1
@@ -118,10 +121,37 @@ watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, p
         >
           Consolidar pedidos deste cliente
         </button>
-        <ClientContractRenewals
-          v-if="activeTab === 'contracts'"
-          :contracts="client.contract_renewals ?? []"
-        />
+        <section v-if="activeTab === 'contracts'" class="space-y-4">
+          <div class="flex flex-wrap gap-2" role="group" aria-label="Informações contratuais">
+            <button
+              type="button"
+              class="rounded-lg px-4 py-2 text-sm font-medium"
+              :class="contractsTab === 'orders' ? 'bg-orange-100 text-orange-900' : 'bg-stone-100 text-slate-700'"
+              :aria-pressed="contractsTab === 'orders'"
+              @click="contractsTab = 'orders'"
+            >
+              Histórico de pedidos
+            </button>
+            <button
+              type="button"
+              class="rounded-lg px-4 py-2 text-sm font-medium"
+              :class="contractsTab === 'renewals' ? 'bg-orange-100 text-orange-900' : 'bg-stone-100 text-slate-700'"
+              :aria-pressed="contractsTab === 'renewals'"
+              @click="contractsTab = 'renewals'"
+            >
+              Renovações
+            </button>
+          </div>
+          <ClientOrdersHistory
+            v-if="contractsTab === 'orders'"
+            :tenant-id="tenantId"
+            :client-id="client.id"
+          />
+          <ClientContractRenewals
+            v-else
+            :contracts="client.contract_renewals ?? []"
+          />
+        </section>
         <div v-if="activeTab === 'contacts'">
           <button v-if="writable" class="mb-4 rounded-lg border px-3 py-2" @click="emit('edit-contact')">
             + Pessoa de contato
