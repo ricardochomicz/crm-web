@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import ClientContractRenewals from './ClientContractRenewals.vue'
+import ClientContractConsolidationDialog from './ClientContractConsolidationDialog.vue'
 import ClientOperatorClassifications from './ClientOperatorClassifications.vue'
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
 import { protocolApi, type Protocol } from '@/features/after-sales/api'
@@ -21,6 +22,7 @@ const emit = defineEmits<{
   'save-operator-classification': [operatorId: number, classificationId: number]
   'edit-contact': [contact?: Contact]
 }>()
+const consolidationOpen = ref(false)
 const activeTab = ref<'data' | 'operators' | 'contracts' | 'contacts' | 'sellers' | 'history'>('data')
 const historyOrigin = ref<'client' | 'opportunity' | 'commercial_order' | 'protocol'>('client')
 const clientProtocols = ref<Protocol[]>([])
@@ -35,6 +37,7 @@ const protocolStatuses: Record<string, string> = {
   resolved: 'Resolvido', cancelled: 'Cancelado', reopened: 'Reaberto',
 }
 watch(() => props.client?.id, () => {
+  consolidationOpen.value = false
   activeTab.value = props.initialTab ?? 'data'
   historyOrigin.value = 'client'
   protocolPage.value = 1
@@ -106,11 +109,14 @@ watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, p
           </p>
         </div>
         <ClientOperatorClassifications v-if="activeTab === 'operators'" :client="client" :classes="classes" :writable="writable" :busy="busy" @save="(operatorId, classificationId) => emit('save-operator-classification', operatorId, classificationId)" />
-        <RouterLink
+        <button
           v-if="activeTab === 'contracts' && writable"
-          :to="`/empresas/${tenantId}/clientes/${client.id}/consolidar`"
-          class="secondary-button mb-4 inline-flex"
-        >Consolidar pedidos deste cliente</RouterLink>
+          type="button"
+          class="secondary-button mb-4 inline-flex w-auto"
+          @click="consolidationOpen = true"
+        >
+          Consolidar pedidos deste cliente
+        </button>
         <ClientContractRenewals
           v-if="activeTab === 'contracts'"
           :contracts="client.contract_renewals ?? []"
@@ -203,4 +209,12 @@ watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, p
         </div>
         </div>
       </AppDialog>
+  <ClientContractConsolidationDialog
+    :open="consolidationOpen && !!client"
+    :tenant-id="tenantId"
+    :client-id="client?.id ?? null"
+    :client-name="client?.company_name"
+    @close="consolidationOpen = false"
+    @consolidated="emit('close')"
+  />
 </template>
