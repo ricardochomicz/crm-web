@@ -51,11 +51,17 @@ function requestClose() {
       :class="
         drawer
           ? 'fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-full max-w-2xl rounded-none'
-          : size === 'full' ? 'm-auto h-[min(94dvh,1000px)] max-h-[94dvh] w-[calc(100%-1.5rem)] max-w-[1500px] rounded-3xl' : size === 'wide' ? 'm-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-5xl rounded-3xl' : 'm-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg rounded-3xl'
+          : size === 'full'
+            ? 'm-auto h-[min(94dvh,1000px)] max-h-[94dvh] w-[calc(100%-1.5rem)] max-w-[1500px] rounded-3xl'
+            : size === 'wide'
+              ? 'm-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-5xl rounded-3xl'
+              : 'm-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg rounded-3xl'
       "
       @cancel.prevent="requestClose"
     >
-      <header class="shrink-0 flex items-start justify-between gap-5 border-b border-stone-100 px-6 py-5 sm:px-8">
+      <header
+        class="shrink-0 flex items-start justify-between gap-5 border-b border-stone-100 px-6 py-5 sm:px-8"
+      >
         <div>
           <h2 :id="titleId" class="text-xl font-semibold tracking-tight">{{ title }}</h2>
           <p v-if="description" :id="descriptionId" class="mt-3 text-sm leading-6 text-slate-500">
@@ -73,6 +79,11 @@ function requestClose() {
         </button>
       </header>
       <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-5 sm:px-8"><slot /></div>
-      <div v-if="$slots.footer" class="shrink-0 border-t border-stone-200 bg-white px-6 py-4 sm:px-8"><slot name="footer" /></div></dialog
+      <div
+        v-if="$slots.footer"
+        class="shrink-0 border-t border-stone-200 bg-white px-6 py-4 sm:px-8"
+      >
+        <slot name="footer" />
+      </div></dialog
   ></Teleport>
 </template>
