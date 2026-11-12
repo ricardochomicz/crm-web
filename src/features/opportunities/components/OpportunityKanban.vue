@@ -12,7 +12,7 @@ function onColumnScroll(event: Event, stageId: string) {
   const column = event.target as HTMLElement
   if (column.scrollHeight - column.scrollTop - column.clientHeight < 160) emit('loadMore', stageId)
 }
-const { dragging, hover, canDrag, pointerDown } =
+const { dragging, hover, canDrag, resetDrag, startDrag, overStage, leaveStage, drop } =
   useOpportunityKanbanDrag(props, (id, stageId) => emit('move', id, stageId))
 </script>
 <template>
@@ -22,17 +22,17 @@ const { dragging, hover, canDrag, pointerDown } =
       <section v-for="stage in columns" :key="stage.id || 'unassigned'"
         class="flex w-80 min-h-80 shrink-0 flex-col rounded-2xl border p-3 transition-colors"
         :class="[palette(stage.name).background, palette(stage.name).border, hover === stage.id && stage.id ? 'ring-4 ring-inset ' + palette(stage.name).hover + ' border-current' : '']"
-        :data-kanban-stage="stage.id">
+        @dragover="overStage($event, stage.id)" @dragleave="leaveStage($event, stage.id)" @drop.prevent.stop="drop($event, stage.id)">
         <div class="mb-3 flex items-center justify-between gap-2 px-1">
           <h3 class="flex items-center gap-2 text-sm font-bold" :class="palette(stage.name).text"><span class="h-5 w-1 rounded-full" :class="palette(stage.name).accent"></span>{{ stage.name }}</h3>
           <span class="rounded-full px-2.5 py-1 text-xs font-semibold" :class="palette(stage.name).badge">{{ stageStates?.[stage.id]?.total ?? items.filter(i => matchesStage(i, stage)).length }}</span>
         </div>
         <div class="min-h-64 max-h-[calc(100vh-310px)] space-y-3 overflow-y-auto overscroll-contain pr-1 pb-6 [scrollbar-width:thin]" @scroll.passive="onColumnScroll($event, stage.id)">
           <article v-for="item in stageItems(stage)" :key="item.id"
-            :draggable="false"
+            :draggable="canDrag(item, stage.name)"
             class="rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             :class="[dragging === item.id ? 'opacity-50' : '', isOverdue(item) ? 'border-rose-200 bg-rose-50/40' : '']"
-            @pointerdown="pointerDown($event, item, stage.name)">
+            @dragstart="startDrag($event, item)" @dragend="resetDrag">
             <div class="mb-2 flex items-center justify-between">
               <span v-if="canDrag(item, stage.name)"
                 title="Arraste o cartão para mudar de etapa" aria-label="Arrastar oportunidade para outra etapa"
