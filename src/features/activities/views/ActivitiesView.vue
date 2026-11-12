@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useActivityDeepLink } from '../composables/useActivityDeepLink'
 import AppShell from '@/components/layout/AppShell.vue'
@@ -11,6 +11,7 @@ import SearchSelect from '@/components/ui/SearchSelect.vue'
 import CalendarEventHistoryDialog from '@/features/calendar/components/CalendarEventHistoryDialog.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import { calendarApi } from '@/features/calendar/api'
+import { subscribeActivityChanged } from '@/features/calendar/activityEvents'
 import type { CalendarEvent } from '@/features/calendar/types'
 import { tenantApi } from '@/features/tenants/api'
 import { can, type Tenant } from '@/features/tenants/types'
@@ -45,6 +46,7 @@ const visible = computed(() => events.value)
 const overview = ref({ total: 0, pending: 0, overdue: 0, completed: 0, cancelled: 0 })
 const overviewLoading = ref(false)
 const overviewError = ref('')
+let unsubscribeActivityChanged: (() => void) | undefined
 let overviewVersion = 0
 async function loadOverview() {
   const current = ++overviewVersion
@@ -76,6 +78,19 @@ async function load() {
   } catch (e) { if (current === version) error.value = errorMessage(e) }
   finally { if (current === version) loading.value = false }
 }
+onMounted(() => {
+  unsubscribeActivityChanged = subscribeActivityChanged(id => {
+    if (id === tenantId) {
+      void load()
+      void loadOverview()
+    }
+  })
+})
+onUnmounted(() => {
+  unsubscribeActivityChanged?.()
+  version++
+  overviewVersion++
+})
 watch([scope, filter, appliedSearch], () => {
   if (page.value !== 1) page.value = 1
   else void load()
@@ -93,10 +108,9 @@ async function complete(event: CalendarEvent) {
   try {
     await calendarApi.update(tenantId, event.id, { status: 'completed' })
     toast.success('Tarefa concluída.')
-    await Promise.all([load(), loadOverview()])
   } catch (e) { toast.error(errorMessage(e)) }
 }
-function saved() { activityLink.close(); toast.success('Atividade salva.'); void load(); void loadOverview() }
+function saved() { activityLink.close(); toast.success('Atividade salva.') }
 </script>
 
 <template>
