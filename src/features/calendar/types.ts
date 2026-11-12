@@ -6,6 +6,7 @@ export interface CalendarEvent {
   tenant_user_id: string
   client_id: string | null
   opportunity_id: string | null
+  protocol_id?: string | null
   opportunity_title?: string | null
   client_name?: string | null
   title: string
@@ -20,6 +21,7 @@ export interface CalendarEvent {
 export interface CalendarEventInput {
   tenant_user_id?: string | null
   opportunity_id?: string | null
+  protocol_id?: string | null
   client_id?: string | null
   title: string
   description: string | null
