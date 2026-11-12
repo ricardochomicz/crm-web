@@ -11,7 +11,6 @@ import SearchSelect from '@/components/ui/SearchSelect.vue'
 import CalendarEventHistoryDialog from '@/features/calendar/components/CalendarEventHistoryDialog.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import { calendarApi } from '@/features/calendar/api'
-import { publishActivityChanged } from '@/features/calendar/activityEvents'
 import type { CalendarEvent } from '@/features/calendar/types'
 import { tenantApi } from '@/features/tenants/api'
 import { can, type Tenant } from '@/features/tenants/types'
@@ -93,12 +92,11 @@ async function complete(event: CalendarEvent) {
   if (!canEdit.value || scope.value !== 'mine' || event.status !== 'pending') return
   try {
     await calendarApi.update(tenantId, event.id, { status: 'completed' })
-    publishActivityChanged(tenantId)
     toast.success('Tarefa concluída.')
     await Promise.all([load(), loadOverview()])
   } catch (e) { toast.error(errorMessage(e)) }
 }
-function saved() { activityLink.close(); publishActivityChanged(tenantId); toast.success('Atividade salva.'); void load(); void loadOverview() }
+function saved() { activityLink.close(); toast.success('Atividade salva.'); void load(); void loadOverview() }
 </script>
 
 <template>
