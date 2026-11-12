@@ -54,7 +54,7 @@ const error = ref('')
 const dialogTab = ref<'details' | 'history'>('details')
 const dialogOpen = ref(false)
 const {
-  recoveringId, recover, resendCandidate, askResendToBackoffice, resendToBackoffice,
+  recoveringId, recoverCandidate, askRecover, recover, resendCandidate, askResendToBackoffice, resendToBackoffice,
   confirmingSale, saleCandidate, askConfirmSale, confirmSale,
   lostCandidate, lostReason, markingLost, askMarkLost, markLost,
 } = useOpportunityCommercialActions({
@@ -239,6 +239,8 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
         viewMode,
         section,
         recoveringId,
+        recoverCandidate,
+        askRecover,
         recover,
         switchSection,
         kanbanRows,
