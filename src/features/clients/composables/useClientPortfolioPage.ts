@@ -37,23 +37,6 @@ export function useClientPortfolioPage() {
   const loading = ref(true)
   const error = ref('')
 
-  const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
-  const statuses: Record<PortfolioContract['status'], string> = {
-    classification_required: 'Sem classificação',
-    rule_required: 'Prazo não definido',
-    activation_data_required: 'Verificar ativações',
-    overdue: 'Prazo vencido',
-    upcoming: 'Renovação próxima',
-    waiting: 'Em vigência',
-    policy_pending: 'Regra pendente',
-  }
-
-  function formatDate(value: string | null): string {
-    if (!value) return '—'
-    const [year, month, day] = value.split('-')
-    return `${day}/${month}/${year}`
-  }
-
   let requestVersion = 0
 
   async function load() {
@@ -186,9 +169,6 @@ export function useClientPortfolioPage() {
     perPage,
     loading,
     error,
-    currency,
-    statuses,
-    formatDate,
     load,
     applyFilters,
     clearFilters,
