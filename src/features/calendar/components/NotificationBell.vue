@@ -69,8 +69,10 @@ function disconnect() {
   version++
   if (fallback) clearInterval(fallback)
   fallback = undefined
-  echo?.disconnect()
-  echo = null
+  if (echo) {
+    try { echo.disconnect() } catch (cause) { console.warn('Falha ao encerrar conexão de notificações', cause) }
+    echo = null
+  }
 }
 function connect() {
   disconnect()
@@ -86,6 +88,9 @@ function subscribe() {
   const key = import.meta.env.VITE_REVERB_APP_KEY
   if (!key || !membershipId.value || echo) return
   try {
+    // Echo expects a Pusher instance in `client`, not the Pusher constructor.
+    // Let Echo construct the client using the registered Pusher implementation.
+    (window as Window & { Pusher?: typeof Pusher }).Pusher = Pusher
     echo = new Echo({
       broadcaster: 'reverb',
       key,
@@ -94,7 +99,6 @@ function subscribe() {
       wssPort: Number(import.meta.env.VITE_REVERB_PORT || 443),
       forceTLS: import.meta.env.VITE_REVERB_SCHEME === 'https',
       enabledTransports: ['ws', 'wss'],
-      client: Pusher,
       authorizer: (channel: { name: string }) => ({
         authorize: async (socketId: string, callback: (error: Error | null, data: unknown) => void) => {
           try {
@@ -111,9 +115,12 @@ function subscribe() {
     })
     echo.private(`tenant.${props.tenantId}.member.${membershipId.value}.notifications`)
       .listen('.activity.notification.changed', () => { void refresh() })
-  } catch {
-    echo?.disconnect()
-    echo = null
+  } catch (cause) {
+    console.warn('Não foi possível iniciar as notificações em tempo real', cause)
+    if (echo) {
+      try { echo.disconnect() } catch { /* Polling remains available. */ }
+      echo = null
+    }
   }
 }
 watch(() => props.tenantId, connect)
