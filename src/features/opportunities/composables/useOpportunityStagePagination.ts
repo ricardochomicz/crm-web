@@ -65,7 +65,17 @@ export function useOpportunityStagePagination(
   }
 
   function updateStage(id: string, stageId: string | null) {
-    items.value = items.value.map(item => item.id === id ? { ...item, funnel_stage_id: stageId } : item)
+    const item = items.value.find(candidate => candidate.id === id)
+    if (!item || item.funnel_stage_id === stageId) return
+    const previousId = item.funnel_stage_id
+    items.value = items.value.map(candidate => candidate.id === id ? { ...candidate, funnel_stage_id: stageId } : candidate)
+    const previousStage = previousId ? states.value[previousId] : undefined
+    const nextStage = stageId ? states.value[stageId] : undefined
+    states.value = {
+      ...states.value,
+      ...(previousStage && previousId ? { [previousId]: { ...previousStage, total: Math.max(0, previousStage.total - 1) } } : {}),
+      ...(nextStage && stageId ? { [stageId]: { ...nextStage, total: nextStage.total + 1 } } : {}),
+    }
   }
 
   return { items, states, state, total, loading, reset, loadMore, updateStage }
