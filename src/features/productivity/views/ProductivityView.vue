@@ -10,7 +10,7 @@ import { useTenantDashboard } from '@/features/tenants/composables/useTenantDash
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId ?? ''))
 const { tenant } = useTenantDashboard(tenantId)
-const { from, to, consultantId, data, loading, error, consultants, search, clear } = useProductivity(tenantId)
+const { from, to, appliedPeriod, consultantId, data, loading, error, consultants, search, clear } = useProductivity(tenantId)
 </script>
 
 <template>
@@ -19,7 +19,7 @@ const { from, to, consultantId, data, loading, error, consultants, search, clear
       <ProductivityFilters v-model:from="from" v-model:to="to" v-model:consultant-id="consultantId" :consultants="consultants" :loading="loading" @search="search" @clear="clear" />
       <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
       <p v-if="loading" class="text-sm text-slate-500">Carregando indicadores…</p>
-      <ProductivityDashboard v-else-if="data" :result="data" :tenant-id="tenantId" :from="from" :to="to" />
+      <ProductivityDashboard v-else-if="data" :result="data" :tenant-id="tenantId" :from="appliedPeriod.from" :to="appliedPeriod.to" />
     </div>
   </AppShell>
 </template>
