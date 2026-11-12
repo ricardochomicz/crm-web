@@ -2,6 +2,7 @@
 import PagePagination from '@/components/ui/PagePagination.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormActions from '@/components/ui/FormActions.vue'
+import ClassificationForm from '../components/ClassificationForm.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
@@ -22,23 +23,7 @@ const { tenant, tenantId, operators, loading, error, busy, filter, writable, fil
 <PagePagination :page="page" :last-page="lastPage" :total="total" :busy="loading || busy" @change="changePage" />
 </template>
 <AppDialog :open="modal" :title="editing ? 'Editar classificação' : 'Nova classificação'" :busy="busy" @close="modal = false">
-  <form class="space-y-4" @submit.prevent="save">
-    <label class="block space-y-2 text-sm font-semibold text-slate-700">Operadora
-      <SearchSelect v-model="form.operator_id" :options="operators.map(o => ({ value: o.id, label: o.name }))" :disabled="busy" />
-    </label>
-    <label class="block space-y-2 text-sm font-semibold text-slate-700">Classificação
-      <input v-model="form.name" required maxlength="150" class="field" placeholder="Ex.: Ouro" :disabled="busy" />
-    </label>
-    <label class="block space-y-2 text-sm font-semibold text-slate-700">Tempo em meses
-      <input v-model.number="months" type="number" min="1" step="1" required class="field" :disabled="busy" />
-    </label>
-    <label class="flex items-center gap-2 text-sm text-slate-700">
-      <input v-model="form.is_active" type="checkbox" :disabled="busy" /> Ativa
-    </label>
-    <div class="border-t border-stone-100 pt-4">
-      <FormActions :busy="busy" @cancel="modal = false" />
-    </div>
-  </form>
+  <ClassificationForm v-model:form="form" v-model:months="months" :operators="operators" :busy="busy" @submit="save" @cancel="modal = false" />
 </AppDialog>
 <AppDialog :open="ruleFor !== null" :title="`Regra de renovação · ${ruleFor?.code ?? ''}`" :busy="busy" @close="ruleFor = null">
   <form class="space-y-4" @submit.prevent="saveRule">
