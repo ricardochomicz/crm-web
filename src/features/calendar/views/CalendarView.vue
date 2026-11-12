@@ -11,6 +11,7 @@ import { can, type Tenant } from '@/features/tenants/types'
 import { calendarApi } from '../api'
 import { subscribeActivityChanged } from '../activityEvents'
 import type { CalendarEvent } from '../types'
+import { completedColors, eventStyles, dateKey, isEventOverdue, eventStatusLabel } from '../utils/calendarPresentation'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
 
@@ -39,29 +40,8 @@ onUnmounted(() => {
   unsubscribeActivityChanged?.()
   requestVersion++
 })
-function isOverdue(event: CalendarEvent): boolean {
-  return event.status === 'pending' && new Date(event.ends_at).getTime() < now.value
-}
-function statusLabel(event: CalendarEvent): string {
-  if (event.status === 'completed') return 'Concluído'
-  if (event.status === 'cancelled') return 'Cancelado'
-  return isOverdue(event) ? 'Atrasado' : 'Pendente'
-}
-const completedColors: Record<CalendarEvent['type'], string> = {
-  meeting: 'bg-blue-50/50 text-blue-800 hover:bg-blue-100',
-  call: 'bg-emerald-50/50 text-emerald-800 hover:bg-emerald-100',
-  visit: 'bg-orange-50/50 text-orange-800 hover:bg-orange-100',
-  task: 'bg-violet-50/50 text-violet-800 hover:bg-violet-100',
-  reminder: 'bg-slate-100/50 text-slate-700 hover:bg-slate-200',
-}
-
-const eventStyles: Record<CalendarEvent['type'], { label: string; color: string; dot: string }> = {
-  meeting: { label: 'Reunião', color: 'bg-blue-50 text-blue-800 hover:bg-blue-100', dot: 'bg-blue-500' },
-  call: { label: 'Ligação', color: 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100', dot: 'bg-emerald-500' },
-  visit: { label: 'Visita', color: 'bg-orange-50 text-orange-800 hover:bg-orange-100', dot: 'bg-orange-500' },
-  task: { label: 'Tarefa', color: 'bg-violet-50 text-violet-800 hover:bg-violet-100', dot: 'bg-violet-500' },
-  reminder: { label: 'Lembrete', color: 'bg-slate-100 text-slate-700 hover:bg-slate-200', dot: 'bg-slate-400' },
-}
+const isOverdue = (event: CalendarEvent) => isEventOverdue(event, now.value)
+const statusLabel = (event: CalendarEvent) => eventStatusLabel(event, now.value)
 const dayEvents = computed(() => [...(byDay.value.get(focusedDay.value) ?? [])].sort((a, b) => a.starts_at.localeCompare(b.starts_at)))
 const dayTitle = computed(() => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full' }).format(new Date(`${focusedDay.value}T12:00:00`)))
 const eventTime = (value: string) => new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' }).format(new Date(value))
