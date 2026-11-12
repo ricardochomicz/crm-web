@@ -48,8 +48,8 @@ const activeCount = computed(() => [
     props.section === 'closed' ? false : props.modelValue.period !== 'current',
     props.modelValue.period === 'custom' && !!props.modelValue.date_from,
     props.modelValue.period === 'custom' && !!props.modelValue.date_to,
-    props.modelValue.min_amount !== undefined && props.modelValue.min_amount !== '',
-    props.modelValue.max_amount !== undefined && props.modelValue.max_amount !== '',
+    props.modelValue.min_amount !== undefined,
+    props.modelValue.max_amount !== undefined,
 ].filter(Boolean).length)
 </script>
 
@@ -61,15 +61,15 @@ const activeCount = computed(() => [
         </label>
         <label class="text-xs font-semibold text-slate-600">
             Situação
-            <SearchSelect :model-value="modelValue.status" :options="statusOptions" @update:model-value="value => set('status', value)" />
+            <SearchSelect :model-value="modelValue.status ?? null" :options="statusOptions" @update:model-value="value => set('status', value)" />
         </label>
         <label class="text-xs font-semibold text-slate-600">
             Tipo do pedido
-            <SearchSelect :model-value="modelValue.order_type_id" :options="typeOptions" @update:model-value="value => set('order_type_id', value)" />
+            <SearchSelect :model-value="modelValue.order_type_id ?? null" :options="typeOptions" @update:model-value="value => set('order_type_id', value)" />
         </label>
         <label class="text-xs font-semibold text-slate-600">
             {{ section === 'closed' ? 'Período do encerramento' : 'Período do forecast' }}
-            <SearchSelect :model-value="modelValue.period" :options="periodOptions" @update:model-value="value => set('period', value)" />
+            <SearchSelect :model-value="modelValue.period ?? null" :options="periodOptions" @update:model-value="value => set('period', value)" />
         </label>
         <template v-if="custom">
             <label class="text-xs font-semibold text-slate-600">
