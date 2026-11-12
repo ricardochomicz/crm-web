@@ -36,7 +36,8 @@ const canCreateActivity = computed(() => can(tenant.value, 'calendar.create') &&
 const form = ref<ProtocolInput>({ code: '', client_id: '', title: '', category: '', priority: 'normal', description: '', assigned_to_tenant_user_id: currentMemberId.value || null, due_at: null })
 const slaPreset = ref('')
 const slaOptions = [{ value: '', label: 'Selecionar prazo SLA' }, { value: '24h', label: '24 horas corridas' }, { value: '48h', label: '48 horas corridas' }, { value: '5business', label: '5 dias úteis (sem feriados)' }, { value: 'custom', label: 'Prazo personalizado' }]
-function applySla(value: string) {
+function applySla(value: string | number) {
+  value = String(value)
   slaPreset.value = value
   if (!value || value === 'custom') { form.value.due_at = null; return }
   const deadline = new Date()
