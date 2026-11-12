@@ -62,62 +62,62 @@ function date(value: string): string {
     </div>
 
     <div v-if="expanded" id="consultant-renewal-details" class="space-y-3">
-    <p
-      v-if="summary.truncated"
-      role="status"
-      class="rounded-lg bg-amber-50 p-3 text-xs text-amber-800"
-    >
-      A lista é parcial devido ao volume de contratos. Consulte a carteira para ver todos.
-    </p>
+      <p
+        v-if="summary.truncated"
+        role="status"
+        class="rounded-lg bg-amber-50 p-3 text-xs text-amber-800"
+      >
+        A lista é parcial devido ao volume de contratos. Consulte a carteira para ver todos.
+      </p>
 
-    <div
-      v-for="item in summary.items"
-      :key="item.id"
-      class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 p-3"
-    >
-      <div class="min-w-0">
-        <p class="text-sm font-semibold text-slate-900">
-          {{ item.client_name ?? 'Cliente não informado' }}
-        </p>
-        <p class="mt-1 text-xs text-slate-500">
-          {{ item.operator_name ?? 'Operadora não informada' }}
-          · {{ item.lines }} linha(s)
-          · {{ money.format(Number(item.monthly)) }}/mês
-        </p>
-        <p
-          class="mt-1 text-xs font-medium"
-          :class="item.status === 'overdue' ? 'text-rose-700' : 'text-amber-700'"
-        >
-          {{ item.status === 'overdue' ? 'Prazo vencido' : 'Renovação próxima' }}
-          · {{ date(item.renewal_date) }}
-        </p>
+      <div
+        v-for="item in summary.items"
+        :key="item.id"
+        class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 p-3"
+      >
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-slate-900">
+            {{ item.client_name ?? 'Cliente não informado' }}
+          </p>
+          <p class="mt-1 text-xs text-slate-500">
+            {{ item.operator_name ?? 'Operadora não informada' }}
+            · {{ item.lines }} linha(s)
+            · {{ money.format(Number(item.monthly)) }}/mês
+          </p>
+          <p
+            class="mt-1 text-xs font-medium"
+            :class="item.status === 'overdue' ? 'text-rose-700' : 'text-amber-700'"
+          >
+            {{ item.status === 'overdue' ? 'Prazo vencido' : 'Renovação próxima' }}
+            · {{ date(item.renewal_date) }}
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <RouterLink
+            :to="`/empresas/${tenantId}/carteira`"
+            class="text-xs font-semibold text-orange-700 hover:underline"
+          >
+            Ver carteira
+          </RouterLink>
+          <span v-if="item.acknowledged" class="text-xs font-medium text-emerald-700">
+            Ciente hoje
+          </span>
+          <button
+            v-else
+            type="button"
+            class="secondary-button w-auto"
+            :disabled="!!acknowledgingId || !!acknowledgingAll || busy"
+            @click="emit('acknowledge', item.id)"
+          >
+            {{ acknowledgingId === item.id ? 'Salvando...' : 'Estou ciente' }}
+          </button>
+        </div>
       </div>
 
-      <div class="flex items-center gap-3">
-        <RouterLink
-          :to="`/empresas/${tenantId}/carteira`"
-          class="text-xs font-semibold text-orange-700 hover:underline"
-        >
-          Ver carteira
-        </RouterLink>
-        <span v-if="item.acknowledged" class="text-xs font-medium text-emerald-700">
-          Ciente hoje
-        </span>
-        <button
-          v-else
-          type="button"
-          class="secondary-button w-auto"
-          :disabled="!!acknowledgingId || !!acknowledgingAll || busy"
-          @click="emit('acknowledge', item.id)"
-        >
-          {{ acknowledgingId === item.id ? 'Salvando...' : 'Estou ciente' }}
-        </button>
-      </div>
-    </div>
-
-    <p v-if="!summary.items.length" class="py-4 text-sm text-slate-500">
-      Nenhuma renovação pendente identificada na sua carteira.
-    </p>
+      <p v-if="!summary.items.length" class="py-4 text-sm text-slate-500">
+        Nenhuma renovação pendente identificada na sua carteira.
+      </p>
     </div>
   </section>
 </template>
