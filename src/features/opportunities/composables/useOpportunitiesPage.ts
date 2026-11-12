@@ -85,6 +85,7 @@ const filters = ref<OpportunityFilters>(defaultFilters())
 const applied = ref<OpportunityFilters>(defaultFilters())
 const stagePagination = useOpportunityStagePagination(tenantId, stages, applied)
 const kanbanRows = stagePagination.items
+const stageStates = stagePagination.states
 const page = ref(1)
 const total = ref(0)
 const lastPage = ref(1)
@@ -206,6 +207,9 @@ async function moveStage(id: string, stageId: string) {
     // Use the persisted stage, not a stale object captured before the request.
     setStage(result.data.funnel_stage_id)
     toast.success('Etapa atualizada.')
+    // Reconcile source/destination pages with the server after the optimistic move.
+    // A stage-scoped page may now have a new record at its boundary.
+    void loadKanban()
   } catch (e) {
     if (tenant === tenantId.value) {
       setStage(previousStageId)
@@ -376,7 +380,7 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
         askResendToBackoffice,
         resendCandidate,
         commercialOverview,
-        stagePagination,
+        stageStates,
         loadMoreKanban,
         filters,
         applied,
