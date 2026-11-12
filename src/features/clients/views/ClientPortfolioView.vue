@@ -38,6 +38,7 @@ const {
   selectedDetails,
   savingRenewal,
   openRenewal,
+  closeRenewal,
   confirmRenewal,
   router,
 } = useClientPortfolioPage()
@@ -95,7 +96,7 @@ const {
     <PortfolioRenewalDialog
       :contract="renewing"
       :busy="savingRenewal"
-      @close="renewing = null"
+      @close="closeRenewal"
       @confirm="confirmRenewal"
     />
   </AppShell>
