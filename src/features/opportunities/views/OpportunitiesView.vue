@@ -4,13 +4,15 @@ import { toast } from '@/services/toast'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import AppShell from '@/components/layout/AppShell.vue'
-import AppDialog from '@/components/ui/AppDialog.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import OpportunityFiltersPanel from '../components/OpportunityFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import OpportunityDialog from '../components/OpportunityDialog.vue'
+import OpportunitySaleDialog from '../components/OpportunitySaleDialog.vue'
+import OpportunityLostDialog from '../components/OpportunityLostDialog.vue'
+import OpportunityResendDialog from '../components/OpportunityResendDialog.vue'
 import OpportunityKanban from '../components/OpportunityKanban.vue'
 import OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
 import { useOpportunitiesPage } from '../composables/useOpportunitiesPage'
@@ -98,60 +100,9 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
       @close="scheduling = null"
       @saved="onScheduleSaved"
     />
-    <AppDialog
-      :open="!!resendCandidate"
-      title="Reenviar pedido ao Backoffice"
-      description="Confira as informações antes de confirmar o reenvio."
-      :busy="!!movingId"
-      @close="resendCandidate = null"
-    >
-      <div v-if="resendCandidate" class="space-y-5">
-        <div class="rounded-xl border border-stone-200 bg-stone-50 p-4">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Oportunidade</p>
-          <p class="mt-2 font-semibold text-slate-900">{{ resendCandidate.title }}</p>
-          <p class="mt-1 text-xs text-slate-500">{{ resendCandidate.code }}</p>
-          <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
-            <div><p class="text-slate-500">Cliente</p><p class="mt-1 font-medium text-slate-800">{{ resendCandidate.client?.company_name || '—' }}</p></div>
-            <div><p class="text-slate-500">Valor mensal</p><p class="mt-1 font-semibold text-slate-900">{{ money(resendCandidate.estimated_monthly_amount) }}</p></div>
-          </div>
-        </div>
-        <div class="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
-          O pedido existente será atualizado com os planos e valores corrigidos e retornará ao status <strong>TRIAGEM</strong>. O reenvio será registrado no histórico do pedido e da oportunidade.
-        </div>
-        <p class="text-xs text-slate-500">Pedidos com linhas já ativadas exigem revisão do Backoffice e não podem ser reenviados por este fluxo.</p>
-        <div class="flex flex-wrap justify-end gap-2 border-t border-stone-100 pt-4">
-          <button type="button" class="secondary-button w-auto" :disabled="!!movingId" @click="resendCandidate = null">Cancelar</button>
-          <button type="button" class="primary-button w-auto" :disabled="!!movingId" @click="resendToBackoffice">{{ movingId ? 'Reenviando…' : 'Confirmar reenvio' }}</button>
-        </div>
-      </div>
-    </AppDialog>
-    <div v-if="lostCandidate" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4" role="presentation" @click.self="!markingLost && (lostCandidate = null)">
-      <form role="dialog" aria-modal="true" aria-labelledby="mark-lost-title" class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @submit.prevent="markLost">
-        <h2 id="mark-lost-title" class="text-lg font-semibold text-slate-900">Registrar venda perdida</h2>
-        <p class="mt-2 text-sm text-slate-600">Oportunidade: <strong>{{ lostCandidate.title }}</strong>. O registro permanecerá no histórico comercial.</p>
-        <label class="mt-4 block text-sm font-semibold text-slate-700" for="lost-reason">Motivo da perda *</label>
-        <textarea id="lost-reason" v-model="lostReason" class="field mt-2 min-h-24 w-full" required minlength="3" maxlength="200" placeholder="Ex.: cliente optou pela concorrência" />
-        <div class="mt-6 flex justify-end gap-2">
-          <button type="button" class="secondary-button w-auto" :disabled="markingLost" @click="lostCandidate = null">Cancelar</button>
-          <button type="submit" class="primary-button w-auto" :disabled="markingLost || lostReason.trim().length < 3">{{ markingLost ? 'Registrando…' : 'Confirmar perda' }}</button>
-        </div>
-      </form>
-    </div>
-    <div v-if="saleCandidate" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4" role="presentation" @click.self="!confirmingSale && (saleCandidate = null)">
-      <section role="dialog" aria-modal="true" aria-labelledby="confirm-sale-title" class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
-        <h2 id="confirm-sale-title" class="text-lg font-semibold text-slate-900">Confirmar venda</h2>
-        <p class="mt-2 text-sm text-slate-600">Deseja converter a oportunidade <strong>{{ saleCandidate.title }}</strong> em pedido comercial?</p>
-        <div class="mt-4 rounded-xl bg-stone-50 p-4 text-sm">
-          <p><strong>Cliente:</strong> {{ saleCandidate.client?.company_name ?? '—' }}</p>
-          <p class="mt-2"><strong>Valor mensal:</strong> {{ money(saleCandidate.estimated_monthly_amount) }}</p>
-          <p class="mt-2 text-xs text-slate-500">Os itens serão copiados para um pedido em rascunho. A oportunidade será marcada como ganha e sairá da visualização padrão.</p>
-        </div>
-        <div class="mt-6 flex justify-end gap-2">
-          <button type="button" class="secondary-button w-auto" :disabled="confirmingSale" @click="saleCandidate = null">Cancelar</button>
-          <button type="button" class="primary-button w-auto" :disabled="confirmingSale" @click="confirmSale">{{ confirmingSale ? 'Confirmando…' : 'Confirmar e gerar pedido' }}</button>
-        </div>
-      </section>
-    </div>
+    <OpportunityResendDialog :opportunity="resendCandidate" :busy="!!movingId" :money="money" @close="resendCandidate = null" @confirm="resendToBackoffice" />
+    <OpportunityLostDialog :opportunity="lostCandidate" :busy="markingLost" :reason="lostReason" @update:reason="lostReason = $event" @close="lostCandidate = null" @confirm="markLost" />
+    <OpportunitySaleDialog :opportunity="saleCandidate" :busy="confirmingSale" :money="money" @close="saleCandidate = null" @confirm="confirmSale" />
     <OpportunityDialog :initial-tab="dialogTab" :open="dialogOpen" :tenant-id="tenantId" :opportunity="editing" :clients="clients" :products="products" :operators="operators" :order-types="orderTypes" @close="dialogOpen = false" @saved="saved" />
   </AppShell>
 </template>
