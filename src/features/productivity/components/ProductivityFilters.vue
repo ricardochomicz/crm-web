@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import ListFilters from '@/components/ui/ListFilters.vue'
+
 defineProps<{
   from: string
   to: string
@@ -17,17 +19,18 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <form class="flex flex-wrap items-end gap-3 rounded-xl border border-stone-200 bg-white p-4" @submit.prevent="emit('search')">
-    <label class="text-sm text-slate-700">De
-      <input :value="from" type="date" class="mt-1 block rounded-lg border border-stone-300 px-3 py-2" @input="emit('update:from', ($event.target as HTMLInputElement).value)" />
-    </label>
-    <label class="text-sm text-slate-700">Até
-      <input :value="to" type="date" class="mt-1 block rounded-lg border border-stone-300 px-3 py-2" @input="emit('update:to', ($event.target as HTMLInputElement).value)" />
-    </label>
-    <label class="text-sm text-slate-700">Consultor
-      <SearchSelect :model-value="consultantId" class="mt-1" :options="[{ value: '', label: 'Todos os consultores' }, ...consultants.map(person => ({ value: person.id, label: person.name }))]" placeholder="Todos os consultores" @update:model-value="emit('update:consultantId', String($event))" />
-    </label>
-    <button type="submit" class="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" :disabled="loading">Buscar</button>
-    <button type="button" class="rounded-lg border border-stone-300 px-4 py-2 text-sm" :disabled="loading" @click="emit('clear')">Limpar filtros</button>
-  </form>
+  <ListFilters :busy="loading" :columns="3" title="Filtros de produtividade" @search="emit('search')" @clear="emit('clear')">
+    <div>
+      <label for="productivity-from" class="mb-1 block text-xs font-semibold text-slate-600">De</label>
+      <input id="productivity-from" :value="from" type="date" class="field w-full" @input="emit('update:from', ($event.target as HTMLInputElement).value)" />
+    </div>
+    <div>
+      <label for="productivity-to" class="mb-1 block text-xs font-semibold text-slate-600">Até</label>
+      <input id="productivity-to" :value="to" type="date" class="field w-full" @input="emit('update:to', ($event.target as HTMLInputElement).value)" />
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-semibold text-slate-600">Consultor</label>
+      <SearchSelect :model-value="consultantId" :options="[{ value: '', label: 'Todos os consultores' }, ...consultants.map(person => ({ value: person.id, label: person.name }))]" placeholder="Todos os consultores" @update:model-value="emit('update:consultantId', String($event))" />
+    </div>
+  </ListFilters>
 </template>
