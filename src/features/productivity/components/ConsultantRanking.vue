@@ -4,6 +4,7 @@ import type { ProductivityRow } from '../api'
 import { rankingMetrics, useConsultantRanking } from '../composables/useConsultantRanking'
 
 const props = defineProps<{ rows: ProductivityRow[] }>()
+const emit = defineEmits<{ select: [id: string] }>()
 const { metric, ranked, maximum } = useConsultantRanking(toRef(props, 'rows'))
 const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 const formatValue = (row: ProductivityRow) => metric.value === 'monthly_amount'
@@ -30,7 +31,7 @@ const formatValue = (row: ProductivityRow) => metric.value === 'monthly_amount'
         <span class="w-7 shrink-0 text-center text-sm font-bold text-slate-500">{{ person.position }}º</span>
         <div class="min-w-0 flex-1">
           <div class="mb-1 flex items-center justify-between gap-3 text-sm">
-            <span class="truncate font-medium text-slate-800" :title="person.name">{{ person.name }}</span>
+            <button type="button" class="truncate text-left font-medium text-slate-800 hover:text-orange-700 hover:underline focus-visible:outline-2 focus-visible:outline-orange-600" :title="`Ver detalhes de ${person.name}`" @click="emit('select', person.id)">{{ person.name }}</button>
             <span class="shrink-0 font-semibold tabular-nums text-slate-800">{{ formatValue(person) }}</span>
           </div>
           <div class="h-2 overflow-hidden rounded-full bg-stone-100">
