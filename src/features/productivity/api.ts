@@ -9,9 +9,10 @@ export interface ProductivityRow {
   open_opportunities: number
   orders: number
   monthly_amount: number
+  monthly_target: number | null
 }
 
-export type ProductivityTotals = Omit<ProductivityRow, 'id' | 'name'>
+export type ProductivityTotals = Omit<ProductivityRow, 'id' | 'name' | 'monthly_target'>
 export interface ProductivityResponse {
   data: ProductivityRow[]
   totals: ProductivityTotals
@@ -50,6 +51,11 @@ export interface GoalConfiguration {
 }
 
 export const productivityApi = {
+  saveMonthlyTarget(tenantId: string, data: { tenant_user_id: string; month: string; amount: number }) {
+    return import('@/lib/http').then(({ mutate }) => mutate<{ data: { id: string } }>(
+      `/api/v1/tenants/${encodeURIComponent(tenantId)}/consultants/productivity/monthly-target`, data, 'PUT',
+    ))
+  },
   goalConfigurations(tenantId: string, filters: { from: string; to: string; consultant_id?: string }) {
     const params = new URLSearchParams(filters)
     return request<{ data: GoalConfiguration[] }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/consultants/productivity/goals?${params}`)
