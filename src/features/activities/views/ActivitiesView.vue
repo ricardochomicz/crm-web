@@ -21,6 +21,8 @@ import { toast } from '@/services/toast'
 const route = useRoute()
 const tenantId = String(route.params.tenantId)
 const activityLink = useActivityDeepLink(computed(() => tenantId))
+const activityLinkLoading = activityLink.loading
+const activityLinkError = activityLink.error
 const tenant = ref<Tenant>()
 const events = ref<CalendarEvent[]>([])
 const loading = ref(false)
@@ -120,8 +122,8 @@ function saved() { activityLink.close(); publishActivityChanged(tenantId); toast
       <div><label class="mb-1 block text-xs font-semibold text-slate-600">Situação</label><SearchSelect v-model="filter" :options="[{ value: 'all', label: 'Todas as situações' }, { value: 'pending', label: 'Pendentes' }, { value: 'overdue', label: 'Atrasadas' }, { value: 'completed', label: 'Concluídas' }, { value: 'cancelled', label: 'Canceladas' }]" /></div>
       <div v-if="canTeam"><label class="mb-1 block text-xs font-semibold text-slate-600">Visualização</label><SearchSelect v-model="scope" :options="[{ value: 'mine', label: 'Minhas atividades' }, { value: 'team', label: 'Atividades da equipe' }]" /></div>
     </ListFilters>
-    <p v-if="activityLink.loading.value" class="mb-3 text-sm text-slate-500">Abrindo atividade…</p>
-    <p v-if="activityLink.error.value" role="alert" class="mb-3 text-sm text-red-700">Não foi possível abrir a atividade: {{ activityLink.error.value }}</p>
+    <p v-if="activityLinkLoading" class="mb-3 text-sm text-slate-500">Abrindo atividade…</p>
+    <p v-if="activityLinkError" role="alert" class="mb-3 text-sm text-red-700">Não foi possível abrir a atividade: {{ activityLink.error.value }}</p>
     <AsyncNotice :loading="loading" :error="error" label="Carregando atividades…" @retry="load" />
     <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <ListTable min-width="750px">
