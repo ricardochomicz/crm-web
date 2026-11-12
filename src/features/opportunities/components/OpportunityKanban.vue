@@ -1,40 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useOpportunityKanbanPresentation } from '../composables/useOpportunityKanbanPresentation'
+import { useOpportunityKanbanDrag } from '../composables/useOpportunityKanbanDrag'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import type { FunnelStage, Opportunity } from '../api'
 const props = defineProps<{ stages: FunnelStage[]; items: Opportunity[]; canEdit: boolean; busyId: string | null; highlightsOnly?: boolean; highlightedIds: string[]; highlightingId?: string | null }>()
 const emit = defineEmits<{ move: [id: string, stageId: string]; edit: [item: Opportunity]; history: [item: Opportunity]; schedule: [item: Opportunity]; won: [item: Opportunity]; lost: [item: Opportunity]; resend: [item: Opportunity]; highlight: [id: string, highlighted: boolean] }>()
-const dragging = ref<string | null>(null)
-const hover = ref<string | null>(null)
 const { highlightedIds, stageItems, columns, matchesStage, palette, money, isOverdue } = useOpportunityKanbanPresentation(props)
-function startDrag(event: DragEvent, item: Opportunity) {
-  if (!props.canEdit || props.busyId || item.status !== 'open') return
-  dragging.value = item.id
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('text/plain', item.id)
-  }
-}
-function overStage(event: DragEvent, stageId: string) {
-  if (!props.canEdit || props.busyId) return
-  event.preventDefault()
-  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
-  hover.value = stageId
-}
-function leaveStage(event: DragEvent, stageId: string) {
-  const current = event.currentTarget as HTMLElement | null
-  const next = event.relatedTarget as Node | null
-  if (hover.value === stageId && (!next || !current?.contains(next))) hover.value = null
-}
-function drop(event: DragEvent, stageId: string) {
-  event.preventDefault()
-  const draggedId = event.dataTransfer?.getData('text/plain') || dragging.value
-  hover.value = null
-  dragging.value = null
-  const item = props.items.find(candidate => candidate.id === draggedId)
-  if (item && stageId && item.funnel_stage_id !== stageId && props.canEdit && !props.busyId) emit('move', item.id, stageId)
-}
+const { dragging, hover, canDrag, resetDrag, startDrag, overStage, leaveStage, drop } =
+  useOpportunityKanbanDrag(props, (id, stageId) => emit('move', id, stageId))
 </script>
 <template>
   <div>
@@ -50,12 +23,12 @@ function drop(event: DragEvent, stageId: string) {
         </div>
         <div class="min-h-64 max-h-[calc(100vh-310px)] space-y-3 overflow-y-auto overscroll-contain pr-1 pb-6 [scrollbar-width:thin]">
           <article v-for="item in stageItems(stage)" :key="item.id"
-            :draggable="canEdit && item.status === 'open' && !busyId && !/para correção/i.test(stage.name)"
+            :draggable="canDrag(item, stage.name)"
             class="rounded-xl border border-stone-200 bg-white p-4 shadow-sm transition hover:shadow-md"
             :class="[dragging === item.id ? 'opacity-50' : '', isOverdue(item) ? 'border-rose-200 bg-rose-50/40' : '']"
-            @dragstart="startDrag($event, item)" @dragend="dragging = null; hover = null">
+            @dragstart="startDrag($event, item)" @dragend="resetDrag">
             <div class="mb-2 flex items-center justify-between">
-              <span v-if="canEdit && item.status === 'open' && !busyId && !/para correção/i.test(stage.name)"
+              <span v-if="canDrag(item, stage.name)"
                 title="Arraste o cartão para mudar de etapa" aria-label="Arrastar oportunidade para outra etapa"
                 class="inline-flex cursor-grab select-none items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-4 py-2 text-xs font-semibold text-slate-600 active:cursor-grabbing"
                 >
