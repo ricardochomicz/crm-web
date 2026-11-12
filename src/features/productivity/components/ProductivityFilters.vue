@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 defineProps<{
   from: string
   to: string
@@ -24,10 +25,7 @@ const emit = defineEmits<{
       <input :value="to" type="date" class="mt-1 block rounded-lg border border-stone-300 px-3 py-2" @input="emit('update:to', ($event.target as HTMLInputElement).value)" />
     </label>
     <label class="text-sm text-slate-700">Consultor
-      <select :value="consultantId" class="mt-1 block rounded-lg border border-stone-300 px-3 py-2" @change="emit('update:consultantId', ($event.target as HTMLSelectElement).value)">
-        <option value="">Todos</option>
-        <option v-for="person in consultants" :key="person.id" :value="person.id">{{ person.name }}</option>
-      </select>
+      <SearchSelect :model-value="consultantId" class="mt-1" :options="[{ value: '', label: 'Todos os consultores' }, ...consultants.map(person => ({ value: person.id, label: person.name }))]" placeholder="Todos os consultores" @update:model-value="emit('update:consultantId', String($event))" />
     </label>
     <button type="submit" class="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" :disabled="loading">Buscar</button>
     <button type="button" class="rounded-lg border border-stone-300 px-4 py-2 text-sm" :disabled="loading" @click="emit('clear')">Limpar filtros</button>
