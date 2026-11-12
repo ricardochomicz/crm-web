@@ -18,20 +18,27 @@ export function useOpportunityRealtimeSync(context: SyncContext) {
   let unsubscribe: (() => void) | undefined
   let timer: ReturnType<typeof setInterval> | undefined
   let refreshing = false
+  let mounted = false
+  let refreshGeneration = 0
+
+  const canApply = (tenant: string, version: number, generation: number) =>
+    mounted && generation === refreshGeneration && tenant === context.tenantId.value &&
+    version === context.version() && !context.loading.value &&
+    !context.draggingOpportunity.value && !context.movingId.value && !context.dialogOpen.value
 
   async function refresh() {
     if (refreshing || context.loading.value || document.hidden ||
       context.movingId.value || context.draggingOpportunity.value || context.dialogOpen.value) return
     refreshing = true
+    const tenant = context.tenantId.value
+    const version = context.version()
+    const generation = refreshGeneration
     try {
-      const tenant = context.tenantId.value
-      const version = context.version()
       const [stageResult] = await Promise.all([
         opportunitiesApi.stages(tenant),
         context.refreshRows(tenant, version),
       ])
-      if (tenant === context.tenantId.value && version === context.version() &&
-        !context.draggingOpportunity.value && !context.movingId.value) {
+      if (canApply(tenant, version, generation)) {
         context.stages.value = stageResult.data
         context.refreshOverview()
       }
@@ -43,18 +50,24 @@ export function useOpportunityRealtimeSync(context: SyncContext) {
   }
 
   function reconnect() {
+    ++refreshGeneration
+    if (!mounted) return
     unsubscribe?.()
     unsubscribe = subscribeOrders(context.tenantId.value, () => { void refresh() })
   }
 
   onMounted(() => {
+    mounted = true
     reconnect()
     window.addEventListener('focus', refresh)
     document.addEventListener('visibilitychange', refresh)
     timer = setInterval(refresh, 60000)
   })
   onUnmounted(() => {
+    mounted = false
+    ++refreshGeneration
     unsubscribe?.()
+    unsubscribe = undefined
     if (timer) clearInterval(timer)
     window.removeEventListener('focus', refresh)
     document.removeEventListener('visibilitychange', refresh)
