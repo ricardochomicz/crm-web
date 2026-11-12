@@ -32,6 +32,8 @@ export type OpportunityFilters = {
     min_amount?: number
     max_amount?: number
     page?: number
+    funnel_stage_id?: string
+    include_unassigned?: boolean
 }
 export type CommercialMetric = { count: number; monthly: string }
 export type CommercialOverview = {
