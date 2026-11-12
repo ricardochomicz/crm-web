@@ -1,6 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { opportunitiesApi, type Opportunity, type FunnelStage, type OpportunityFilters } from '../api'
+import { opportunitiesApi, type Opportunity } from '../api'
 import { useOpportunityStagePagination } from './useOpportunityStagePagination'
 import type OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
 import { errorMessage } from '@/lib/feedback'
@@ -59,6 +59,7 @@ async function load() {
   await list.load()
 }
 async function loadKanban() {
+  list.invalidate()
   const current = ++version
   loading.value = true
   error.value = ''
@@ -123,7 +124,7 @@ useOpportunityRealtimeSync({
   refreshRows: refreshRowsSilently,
   refreshOverview: () => { void commercialOverview.value?.refresh() },
 })
-watch(tenantId, () => { section.value = 'open'; list.resetSection('open'); viewMode.value = 'kanban'; referenceData.clear(); page.value = 1; void setup(); reload() }, { immediate: true })
+watch(tenantId, () => { ++version; list.invalidate(); section.value = 'open'; list.resetSection('open'); viewMode.value = 'kanban'; referenceData.clear(); page.value = 1; void setup(); reload() }, { immediate: true })
 watch(stages, (next, previous) => {
   if (viewMode.value === 'kanban' && next.length > 0 && previous.length === 0) reload()
 })
