@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useCommercialPriorities } from '../composables/useCommercialPriorities'
 import ConsultantRenewalPriorities from './ConsultantRenewalPriorities.vue'
+import { opportunityAgeClass, opportunityAgeLabel } from '@/features/opportunities/utils/opportunityAge'
 
 const props = defineProps<{ tenantId: string; enabled: boolean }>()
 
@@ -133,6 +134,13 @@ const pending = computed(
             </p>
             <p class="mt-1 text-xs text-slate-500">
               Previsão: {{ formatDate(item.expected_close_at) }}
+              <span
+                v-if="opportunityAgeLabel(item.created_at)"
+                class="ml-2 inline-block"
+                :class="opportunityAgeClass(item.created_at)"
+              >
+                · {{ opportunityAgeLabel(item.created_at) }}
+              </span>
             </p>
           </div>
           <div class="flex items-center gap-2">
