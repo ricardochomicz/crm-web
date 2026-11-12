@@ -5,6 +5,7 @@ import Pusher from 'pusher-js'
 import { useRouter } from 'vue-router'
 import { activityNotificationsApi, type ActivityNotification } from '../notificationsApi'
 import { request } from '@/lib/http'
+import { subscribeActivityChanged } from '../activityEvents'
 
 const router = useRouter()
 const props = defineProps<{ tenantId: string }>()
@@ -17,6 +18,7 @@ const error = ref('')
 let version = 0
 let echo: Echo<'reverb'> | null = null
 let fallback: ReturnType<typeof setInterval> | undefined
+let unsubscribeActivityChanged: (() => void) | undefined
 
 async function refresh() {
   const current = ++version
@@ -124,8 +126,16 @@ function subscribe() {
   }
 }
 watch(() => props.tenantId, connect)
-onMounted(connect)
-onUnmounted(disconnect)
+onMounted(() => {
+  connect()
+  unsubscribeActivityChanged = subscribeActivityChanged(tenantId => {
+    if (tenantId === props.tenantId) void refresh()
+  })
+})
+onUnmounted(() => {
+  unsubscribeActivityChanged?.()
+  disconnect()
+})
 </script>
 
 <template>
