@@ -37,7 +37,8 @@ export function useOpportunityKanbanDrag(
   }
 
   function overStage(event: DragEvent, stageId: string) {
-    if (!context.canEdit || context.busyId || !dragging.value || !stageId) return
+    const draggedId = dragging.value || event.dataTransfer?.getData('text/plain')
+    if (!context.canEdit || context.busyId || !draggedId || !stageId) return
     event.preventDefault()
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
     hover.value = stageId
@@ -51,7 +52,7 @@ export function useOpportunityKanbanDrag(
 
   function drop(event: DragEvent, stageId: string) {
     event.preventDefault()
-    const draggedId = dragging.value
+    const draggedId = dragging.value || event.dataTransfer?.getData('text/plain')
     resetDrag()
     if (!draggedId || !stageId || !context.canEdit || context.busyId) return
     const item = context.items.find(candidate => candidate.id === draggedId)
