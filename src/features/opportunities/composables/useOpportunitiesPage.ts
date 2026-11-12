@@ -74,6 +74,10 @@ async function resendToBackoffice() {
 }
 const commercialOverview = ref<InstanceType<typeof OpportunityCommercialOverview> | null>(null)
 const kanbanLimitReached = ref(false)
+const kanbanPage = ref(0)
+const kanbanLastPage = ref(1)
+const loadingMoreKanban = ref(false)
+const kanbanHasMore = computed(() => kanbanPage.value < kanbanLastPage.value)
 const defaultFilters = (area: 'open' | 'closed' = 'open'): OpportunityFilters => ({
     search: '',
     status: area === 'closed' ? 'all' : 'open',
@@ -163,20 +167,46 @@ async function load() {
 }
 async function loadKanban() {
   const current = ++version
-  loading.value = true; error.value = ''
+  loading.value = true
+  error.value = ''
+  kanbanPage.value = 0
+  kanbanLastPage.value = 1
+  kanbanRows.value = []
+  kanbanLimitReached.value = false
   try {
-    const items: Opportunity[] = []
-    let next = 1; let pages = 1
-    do {
-      const result = await opportunitiesApi.list(tenantId.value, { ...applied.value, page: next })
-      if (current !== version) return
-      items.push(...result.data); pages = result.last_page; next++
-    } while (next <= pages && next <= 20)
-    kanbanLimitReached.value = next <= pages
-    kanbanRows.value = items
-    total.value = items.length
-  } catch (e) { if (current === version) error.value = errorMessage(e) }
-  finally { if (current === version) loading.value = false }
+    const result = await opportunitiesApi.list(tenantId.value, { ...applied.value, page: 1 })
+    if (current !== version) return
+    kanbanRows.value = result.data
+    kanbanPage.value = result.current_page
+    kanbanLastPage.value = result.last_page
+    total.value = result.total
+    perPage.value = result.per_page
+  } catch (e) {
+    if (current === version) error.value = errorMessage(e)
+  } finally {
+    if (current === version) loading.value = false
+  }
+}
+
+async function loadMoreKanban() {
+  if (loading.value || loadingMoreKanban.value || !kanbanHasMore.value || error.value || viewMode.value !== 'kanban') return
+  const current = version
+  const tenant = tenantId.value
+  const nextPage = kanbanPage.value + 1
+  loadingMoreKanban.value = true
+  try {
+    const result = await opportunitiesApi.list(tenant, { ...applied.value, page: nextPage })
+    if (current !== version || tenant !== tenantId.value || viewMode.value !== 'kanban') return
+    const seen = new Set(kanbanRows.value.map(item => item.id))
+    kanbanRows.value = [...kanbanRows.value, ...result.data.filter(item => !seen.has(item.id))]
+    kanbanPage.value = result.current_page
+    kanbanLastPage.value = result.last_page
+    total.value = result.total
+  } catch (e) {
+    if (current === version) toast.error('Não foi possível carregar mais oportunidades: ' + errorMessage(e))
+  } finally {
+    loadingMoreKanban.value = false
+  }
 }
 function reload() { if (viewMode.value === 'kanban') void loadKanban(); else void load() }
 async function changeView(mode: 'list' | 'kanban') {
@@ -304,20 +334,24 @@ async function refreshRowsSilently(id: string) {
     perPage.value = result.per_page
     return
   }
+  // Refresh only the pages already loaded; never download the whole board on a timer.
+  const requestedPages = Math.max(1, kanbanPage.value)
   const items: Opportunity[] = []
-  let next = 1
   let pages = 1
-  do {
+  let serverTotal = 0
+  for (let next = 1; next <= requestedPages; next++) {
     const result = await opportunitiesApi.list(id, { ...applied.value, page: next })
-    if (id !== tenantId.value) return
+    if (id !== tenantId.value || viewMode.value !== 'kanban') return
     items.push(...result.data)
     pages = result.last_page
-    next++
-  } while (next <= pages && next <= 20)
-  if (id !== tenantId.value) return
+    serverTotal = result.total
+    if (next >= pages) break
+  }
+  if (id !== tenantId.value || viewMode.value !== 'kanban') return
   kanbanRows.value = items
-  total.value = items.length
-  kanbanLimitReached.value = next <= pages
+  kanbanPage.value = Math.min(requestedPages, pages)
+  kanbanLastPage.value = pages
+  total.value = serverTotal
 }
 function reconnectRealtime() {
   unsubscribeRealtime?.()
@@ -383,6 +417,9 @@ const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 
         resendCandidate,
         commercialOverview,
         kanbanLimitReached,
+        kanbanHasMore,
+        loadingMoreKanban,
+        loadMoreKanban,
         filters,
         applied,
         page,
