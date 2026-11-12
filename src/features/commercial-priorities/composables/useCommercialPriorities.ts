@@ -13,6 +13,7 @@ export function useCommercialPriorities(
   const error = ref('')
   const acknowledgingId = ref<string | null>(null)
   const acknowledgingRenewalId = ref<string | null>(null)
+  const acknowledgingAll = ref<'opportunities' | 'renewals' | null>(null)
   let version = 0
 
   async function load() {
@@ -40,7 +41,7 @@ export function useCommercialPriorities(
   }
 
   async function acknowledge(opportunityId: string) {
-    if (acknowledgingId.value || !summary.value) return
+    if (acknowledgingId.value || acknowledgingAll.value || !summary.value) return
 
     const id = tenantId.value
     acknowledgingId.value = opportunityId
@@ -61,7 +62,7 @@ export function useCommercialPriorities(
   }
 
   async function acknowledgeRenewal(contractId: string) {
-    if (acknowledgingRenewalId.value || !summary.value) return
+    if (acknowledgingRenewalId.value || acknowledgingAll.value || !summary.value) return
 
     const id = tenantId.value
     acknowledgingRenewalId.value = contractId
@@ -81,6 +82,30 @@ export function useCommercialPriorities(
     }
   }
 
+  async function acknowledgeAll(type: 'opportunities' | 'renewals') {
+    if (acknowledgingAll.value || acknowledgingId.value || acknowledgingRenewalId.value) return
+
+    const id = tenantId.value
+    acknowledgingAll.value = type
+    error.value = ''
+
+    try {
+      await commercialPrioritiesApi.acknowledgeAll(id, type)
+      if (id === tenantId.value) {
+        const items = type === 'renewals'
+          ? summary.value?.renewals.items
+          : summary.value?.items
+        items?.forEach((item) => { item.acknowledged = true })
+      }
+    } catch (failure) {
+      error.value = failure instanceof Error
+        ? failure.message
+        : 'Não foi possível confirmar todas as prioridades.'
+    } finally {
+      acknowledgingAll.value = null
+    }
+  }
+
   watch([tenantId, enabled], () => {
     ++version
     summary.value = null
@@ -94,6 +119,8 @@ export function useCommercialPriorities(
     error,
     acknowledgingId,
     acknowledgingRenewalId,
+    acknowledgingAll,
+    acknowledgeAll,
     load,
     acknowledge,
     acknowledgeRenewal,
