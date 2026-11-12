@@ -11,6 +11,7 @@ import ContextActivityDialog from '@/features/calendar/components/ContextActivit
 import ClientDetailsDialog from '../components/ClientDetailsDialog.vue'
 import ClientContactDialog from '../components/ClientContactDialog.vue'
 import ClientTransferDialog from '../components/ClientTransferDialog.vue'
+import ClientTransferApprovals from '../components/ClientTransferApprovals.vue'
 import { useClientsPage } from '../composables/useClientsPage'
 const { transferDialogOpen, submitTransfer, onActivitySaved, tenantId, tenant, operators, classes, sellers, canAssignSeller, loading, busy, error, activityClient, canCreateActivity, showSellerSelect, writable, canAdd, search, operatorFilter, filtered, applyFilters, clearFilters, page, total, lastPage, pageRows, changePage, validationState, duplicate, checkingDocument, transferBusy, checkDocument, requestTransfer, form, editing, modal, selected, detailsInitialTab, contact, contactModal, pendingContactClientId, documentModel, phoneModel, contactPhoneModel, cepModel, cepBusy, cepMessage, lookupCep, classesForOperator, activeSeller, start, load, save, saveOperatorClassification, openHistory, details, editContact, saveContact } = useClientsPage()
 </script>
