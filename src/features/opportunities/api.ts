@@ -54,7 +54,7 @@ export type OpportunityPage = { data: Opportunity[]; current_page: number; last_
 const base = (tenantId: string) => '/api/v1/tenants/' + encodeURIComponent(tenantId) + '/opportunities'
 export const opportunitiesApi = {
   list: (tenantId: string, filters: OpportunityFilters) =>
-    request<OpportunityPage>(base(tenantId) + '?' + new URLSearchParams(Object.entries(filters).filter(([, value]) => value !== undefined && value !== '').map(([key, value]) => [key, String(value)])).toString()),
+    request<OpportunityPage>(base(tenantId) + '?' + new URLSearchParams(Object.entries(filters).filter(([, value]) => value !== undefined && value !== '').map(([key, value]) => [key, typeof value === 'boolean' ? (value ? '1' : '0') : String(value)])).toString()),
   funnelOverview: (tenantId: string) => request<{ data: FunnelOverview }>(base(tenantId) + '/funnel-overview'),
   highlights: (tenantId: string) => request<{ data: string[] }>(base(tenantId) + '/highlights'),
   setHighlight: (tenantId: string, id: string, highlighted: boolean) =>
