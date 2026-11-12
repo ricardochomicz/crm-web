@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { onUnmounted, watch } from 'vue'
 import type { ProductivityRow } from '../api'
+import ConsultantRecords from './ConsultantRecords.vue'
 
-const props = defineProps<{ consultant: ProductivityRow | null }>()
+const props = defineProps<{ consultant: ProductivityRow | null; tenantId: string; from: string; to: string }>()
 const emit = defineEmits<{ close: [] }>()
 const currency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 const number = (value: number) => new Intl.NumberFormat('pt-BR').format(value)
@@ -42,7 +43,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
             <p class="mt-2 text-xl font-bold tabular-nums text-slate-900">{{ metric.value }}</p>
           </div>
         </div>
-        <footer class="border-t border-stone-200 px-6 py-4 text-xs text-slate-500">Valores consolidados para este consultor. O detalhamento de registros será disponibilizado em uma próxima etapa.</footer>
+        <ConsultantRecords :tenant-id="tenantId" :consultant-id="consultant.id" :from="from" :to="to" />
+        <footer class="border-t border-stone-200 px-6 py-4 text-xs text-slate-500">Indicadores e registros referentes ao período selecionado.</footer>
       </section>
     </div>
   </Teleport>
