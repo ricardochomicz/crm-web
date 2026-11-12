@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { calendarApi } from '@/features/calendar/api'
+import { subscribeActivityChanged } from '@/features/calendar/activityEvents'
 import { useRoute } from 'vue-router'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import { can, canViewTeam, canViewTeams, type Tenant } from '@/features/tenants/types'
@@ -16,6 +17,7 @@ const futureAppointments = ref<number | null>(null)
 const taskAlerts = ref<{ overdue: number; due_soon: number } | null>(null)
 let requestVersion = 0
 let refreshTimer: ReturnType<typeof setInterval> | undefined
+let unsubscribeActivityChanged: (() => void) | undefined
 function dateTime(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join('-') + 'T' + [pad(date.getHours()), pad(date.getMinutes()), pad(date.getSeconds())].join(':')
@@ -58,10 +60,17 @@ function onNotificationChange(event: Event) {
 }
 onMounted(() => {
   window.addEventListener('activity-notifications:changed', onNotificationChange)
+  unsubscribeActivityChanged = subscribeActivityChanged(tenantId => {
+    if (tenantId === props.tenant?.id) {
+      void refreshTaskAlerts()
+      void refreshAppointmentCount()
+    }
+  })
   refreshTimer = setInterval(() => { void refreshAppointmentCount(); void refreshTaskAlerts() }, 60000)
 })
 onUnmounted(() => {
   window.removeEventListener('activity-notifications:changed', onNotificationChange)
+  unsubscribeActivityChanged?.()
   if (refreshTimer) clearInterval(refreshTimer)
   requestVersion++
   taskRequestVersion++
