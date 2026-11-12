@@ -4,6 +4,7 @@ import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
 import AppCurrencyField from '@/components/ui/AppCurrencyField.vue'
 import { computed, ref, watch } from 'vue'
+import { blankOpportunity, opportunityLineCount, opportunityTotal, parseOpportunityNumbers, MAX_OPPORTUNITY_ITEMS } from '../utils/opportunityForm'
 import { tenantApi } from '@/features/tenants/api'
 import type { Tenant } from '@/features/tenants/types'
 import AppDialog from '@/components/ui/AppDialog.vue'
@@ -101,13 +102,9 @@ const typeName = (id: string) => props.orderTypes.find(type => type.id === id)?.
 const batchQuantity = ref(1)
 const batchMonthly = ref(0)
 const batchError = ref('')
-const maxItems = 200
-const lineCount = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0))
-const blank = (): OpportunityInput => ({
-  code: '', title: '', client_id: '', order_type_id: '', operator_id: null,
-  description: null, expected_close_at: null,
-  estimated_monthly_amount: 0, estimated_one_time_amount: 0, items: [],
-})
+const maxItems = MAX_OPPORTUNITY_ITEMS
+const lineCount = computed(() => opportunityLineCount(form.value.items))
+const blank = blankOpportunity
 const form = ref<OpportunityInput>(blank())
 watch(() => [props.open, props.tenantId, form.value.client_id] as const, async ([isOpen, tenantId, clientId]) => {
   const current = ++contactRequestVersion
@@ -124,15 +121,15 @@ watch(() => [props.open, props.tenantId, form.value.client_id] as const, async (
     if (current === contactRequestVersion) loadingClientContacts.value = false
   }
 })
-const totalMonthly = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.monthly_unit_amount || 0) * Number(item.quantity || 0), 0))
-const totalOnce = computed(() => form.value.items.reduce((sum, item) => sum + Number(item.one_time_unit_amount || 0) * Number(item.quantity || 0), 0))
+const totalMonthly = computed(() => opportunityTotal(form.value.items, 'monthly_unit_amount'))
+const totalOnce = computed(() => opportunityTotal(form.value.items, 'one_time_unit_amount'))
 function generateCode(): string {
   const now = new Date()
   const stamp = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0'), String(now.getHours()).padStart(2, '0'), String(now.getMinutes()).padStart(2, '0'), String(now.getSeconds()).padStart(2, '0')].join('')
   return 'OP-' + stamp + '-' + Math.random().toString(36).slice(2, 6).toUpperCase()
 }
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-const parsedNumbers = computed(() => pastedNumbers.value.split(/[\s,;]+/).map(value => value.replace(/\D/g, '')).filter(Boolean))
+const parsedNumbers = computed(() => parseOpportunityNumbers(pastedNumbers.value))
 function openImport() {
   pastedNumbers.value = ''
   batchProductId.value = ''
