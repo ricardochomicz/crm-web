@@ -34,7 +34,6 @@ export function useOpportunityListFilters(
   let version = 0
 
   function invalidate() { return ++version }
-  function currentVersion() { return version }
 
   async function load() {
     const current = invalidate()
@@ -49,9 +48,9 @@ export function useOpportunityListFilters(
       lastPage.value = result.last_page
       perPage.value = result.per_page
     } catch (e) {
-      if (current === version) error.value = errorMessage(e)
+      if (current === version && tenant === tenantId.value) error.value = errorMessage(e)
     } finally {
-      if (current === version) loading.value = false
+      if (current === version && tenant === tenantId.value) loading.value = false
     }
   }
 
@@ -77,18 +76,25 @@ export function useOpportunityListFilters(
   }
 
   function resetSection(next: Section) {
+    invalidate()
+    rows.value = []
+    total.value = 0
+    lastPage.value = 1
+    perPage.value = 20
+    error.value = ''
     page.value = 1
     filters.value = defaultOpportunityFilters(next)
     applied.value = { ...filters.value }
   }
 
   function changePage(next: number) {
+    if (!Number.isInteger(next) || next < 1 || next > lastPage.value || next === page.value) return
     page.value = next
     void load()
   }
 
   return {
     rows, filters, applied, page, total, lastPage, perPage, loading, error,
-    load, invalidate, currentVersion, applyFilters, clearFilters, resetSection, changePage,
+    load, invalidate, applyFilters, clearFilters, resetSection, changePage,
   }
 }
