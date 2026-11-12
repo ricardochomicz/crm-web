@@ -32,10 +32,11 @@ function date(value: string | null): string {
     </div>
 
     <div class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-      <ListTable min-width="780px">
+      <ListTable min-width="900px">
         <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
           <tr>
             <th class="p-4">Pedido</th>
+            <th class="p-4">Tipo do pedido</th>
             <th class="p-4">Operadora</th>
             <th class="p-4">Linhas</th>
             <th class="p-4">Ativação média</th>
@@ -47,6 +48,7 @@ function date(value: string | null): string {
         <tbody class="divide-y divide-stone-100">
           <tr v-for="contract in contracts" :key="contract.order_id">
             <td class="p-4 font-medium">{{ contract.order_code ?? contract.order_id.slice(0, 8) }}</td>
+            <td class="p-4">{{ contract.order_type ?? '—' }}</td>
             <td class="p-4">{{ contract.operator_name ?? '—' }}</td>
             <td class="p-4">{{ contract.line_count }}</td>
             <td class="p-4">{{ date(contract.average_activation_date) }}</td>
