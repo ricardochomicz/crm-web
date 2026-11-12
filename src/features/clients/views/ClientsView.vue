@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import PagePagination from '@/components/ui/PagePagination.vue'
-import ListFilters from '@/components/ui/ListFilters.vue'
-import ListTable from '@/components/ui/ListTable.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
-import TableActionButton from '@/components/ui/TableActionButton.vue'
-import SearchSelect from '@/components/ui/SearchSelect.vue'
 import ClientForm from '../components/ClientForm.vue'
+import ClientsListFilters from '../components/ClientsListFilters.vue'
+import ClientsListTable from '../components/ClientsListTable.vue'
 import ContextActivityDialog from '@/features/calendar/components/ContextActivityDialog.vue'
 import ClientDetailsDialog from '../components/ClientDetailsDialog.vue'
 import ClientContactDialog from '../components/ClientContactDialog.vue'
@@ -37,82 +35,24 @@ const { transferDialogOpen, submitTransfer, onActivitySaved, tenantId, tenant, o
     />
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
     <template v-if="!loading && !error">
-      <ListFilters
-        :columns="2"
-        :count-label="`${filtered.length} cliente(s) encontrado(s)`"
+      <ClientsListFilters
+        v-model:search="search"
+        v-model:operator-filter="operatorFilter"
+        :operators="operators"
+        :count="filtered.length"
         @search="applyFilters"
         @clear="clearFilters"
-      >
-        <label class="text-xs font-semibold text-slate-600"
-          >Buscar cliente
-          <input
-            v-model="search"
-            type="search"
-            class="field"
-            placeholder="Nome, documento ou e-mail"
-          />
-        </label>
-        <label class="text-xs font-semibold text-slate-600"
-          >Operadora
-          <SearchSelect
-            v-model="operatorFilter"
-            :options="[
-              { value: '', label: 'Todas as operadoras' },
-              ...operators.map((o) => ({ value: String(o.id), label: o.name })),
-            ]"
-          />
-        </label>
-      </ListFilters>
-      <section class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-        <ListTable min-width="700px"
-          ><thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            <tr>
-              <th class="p-4">Cliente</th>
-              <th class="p-4">Documento</th>
-              <th class="p-4">Operadora</th>
-              <th class="p-4">Classificação</th>
-              <th class="p-4">Vendedor</th>
-              <th class="p-4">Ações</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-stone-100">
-            <tr v-for="c in pageRows" :key="c.id" class="hover:bg-stone-50/70">
-              <td class="p-4 font-semibold">{{ c.company_name }}</td>
-              <td class="p-4">{{ c.document }}</td>
-              <td class="p-4">{{ c.operator?.name ?? '—' }}</td>
-              <td class="p-4">{{ c.classification?.code ?? '—' }}</td>
-              <td class="p-4">
-                {{ sellerName(c) }}
-              </td>
-              <td class="p-4">
-                <div class="flex gap-2">
-                  <TableActionButton
-                    icon="eye"
-                    :label="`Ver detalhes de ${c.company_name}`"
-                    @click="details(c.id)"
-                  /><TableActionButton
-                    icon="message-square"
-                    :label="`Histórico de ${c.company_name}`"
-                    @click="openHistory(c.id)"
-                  /><TableActionButton
-                    v-if="canCreateActivity"
-                    icon="calendar"
-                    :label="`Criar atividade para ${c.company_name}`"
-                    @click="activityClient = c"
-                  /><TableActionButton
-                    v-if="writable"
-                    icon="edit"
-                    :label="`Editar ${c.company_name}`"
-                    @click="start(c)"
-                  />
-                </div>
-              </td>
-            </tr></tbody
-        ></ListTable>
-        <p v-if="!filtered.length" class="p-5 text-center text-sm text-slate-500">
-          Nenhum cliente encontrado.
-        </p>
-      </section>
+      />
+      <ClientsListTable
+        :rows="pageRows"
+        :seller-name="sellerName"
+        :can-create-activity="canCreateActivity"
+        :writable="writable"
+        @details="details"
+        @history="openHistory"
+        @activity="activityClient = $event"
+        @edit="start"
+      />
       <PagePagination
         :page="page"
         :last-page="lastPage"
