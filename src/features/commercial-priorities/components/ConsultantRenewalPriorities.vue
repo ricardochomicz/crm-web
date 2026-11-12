@@ -74,7 +74,7 @@ function date(value: string): string {
 
       <div class="flex items-center gap-3">
         <RouterLink
-          :to="`/empresas/${tenantId}/carteira-contratos`"
+          :to="`/empresas/${tenantId}/carteira`"
           class="text-xs font-semibold text-orange-700 hover:underline"
         >
           Ver carteira
