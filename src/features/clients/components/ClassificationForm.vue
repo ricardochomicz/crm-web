@@ -4,7 +4,7 @@ import FormActions from '@/components/ui/FormActions.vue'
 import type { ClassificationInput } from '../api'
 const form = defineModel<ClassificationInput>('form', { required: true })
 const months = defineModel<number | null>('months', { required: true })
-defineProps<{ operators: { id: number; name: string }[]; busy: boolean }>()
+withDefaults(defineProps<{ operators: { id: number; name: string }[]; busy: boolean; showDescription?: boolean; maxMonths?: number }>(), { showDescription: false })
 const emit = defineEmits<{ submit: []; cancel: [] }>()
 </script>
 <template>
@@ -16,7 +16,10 @@ const emit = defineEmits<{ submit: []; cancel: [] }>()
       <input v-model="form.name" required maxlength="150" class="field" placeholder="Ex.: Ouro" :disabled="busy" />
     </label>
     <label class="block space-y-2 text-sm font-semibold text-slate-700">Tempo em meses
-      <input v-model.number="months" type="number" min="1" step="1" required class="field" :disabled="busy" />
+      <input v-model.number="months" type="number" min="1" :max="maxMonths" step="1" required class="field" :disabled="busy" />
+    </label>
+    <label v-if="showDescription" class="block space-y-2 text-sm font-semibold text-slate-700">Descrição
+      <input v-model="form.description" class="field" :disabled="busy" />
     </label>
     <label class="flex items-center gap-2 text-sm text-slate-700">
       <input v-model="form.is_active" type="checkbox" :disabled="busy" /> Ativa
