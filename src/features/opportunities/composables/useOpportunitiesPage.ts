@@ -106,7 +106,8 @@ async function refreshRowsSilently(id: string, current: number) {
   const params = { ...applied.value, page: page.value }
   if (viewMode.value === 'list') {
     const result = await opportunitiesApi.list(id, params)
-    if (id !== tenantId.value || current !== version || viewMode.value !== 'list') return
+    if (id !== tenantId.value || current !== version || viewMode.value !== 'list' ||
+      draggingOpportunity.value || movingId.value || dialogOpen.value) return
     rows.value = result.data
     total.value = result.total
     lastPage.value = result.last_page
@@ -114,8 +115,10 @@ async function refreshRowsSilently(id: string, current: number) {
     return
   }
   // Reuse the stage-scoped API and preserve the same visibility rules.
-  await stagePagination.refresh(undefined, () => !draggingOpportunity.value && !movingId.value && current === version)
-  if (id !== tenantId.value || current !== version || viewMode.value !== 'kanban') return
+  await stagePagination.refresh(undefined, () => id === tenantId.value && viewMode.value === 'kanban' &&
+    !draggingOpportunity.value && !movingId.value && !dialogOpen.value && current === version)
+  if (id !== tenantId.value || current !== version || viewMode.value !== 'kanban' ||
+    draggingOpportunity.value || movingId.value || dialogOpen.value) return
   total.value = stagePagination.total.value
 }
 useOpportunityRealtimeSync({
