@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useActivityDeepLink } from '../composables/useActivityDeepLink'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
@@ -17,7 +18,9 @@ import { can, type Tenant } from '@/features/tenants/types'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
 
-const tenantId = String(useRoute().params.tenantId)
+const route = useRoute()
+const tenantId = String(route.params.tenantId)
+const activityLink = useActivityDeepLink(computed(() => tenantId))
 const tenant = ref<Tenant>()
 const events = ref<CalendarEvent[]>([])
 const loading = ref(false)
@@ -26,8 +29,8 @@ const scope = ref<'mine' | 'team'>('mine')
 const filter = ref<'pending' | 'overdue' | 'completed' | 'all'>('pending')
 const search = ref('')
 const appliedSearch = ref('')
-const dialogOpen = ref(false)
-const selected = ref<CalendarEvent | null>(null)
+const dialogOpen = activityLink.dialogOpen
+const selected = activityLink.selected
 const historyEvent = ref<CalendarEvent | null>(null)
 const now = ref(Date.now())
 const page = ref(1)
@@ -93,7 +96,7 @@ async function complete(event: CalendarEvent) {
     await Promise.all([load(), loadOverview()])
   } catch (e) { toast.error(errorMessage(e)) }
 }
-function saved() { dialogOpen.value = false; publishActivityChanged(tenantId); toast.success('Atividade salva.'); void load(); void loadOverview() }
+function saved() { activityLink.close(); publishActivityChanged(tenantId); toast.success('Atividade salva.'); void load(); void loadOverview() }
 </script>
 
 <template>
@@ -117,6 +120,8 @@ function saved() { dialogOpen.value = false; publishActivityChanged(tenantId); t
       <div><label class="mb-1 block text-xs font-semibold text-slate-600">Situação</label><SearchSelect v-model="filter" :options="[{ value: 'all', label: 'Todas as situações' }, { value: 'pending', label: 'Pendentes' }, { value: 'overdue', label: 'Atrasadas' }, { value: 'completed', label: 'Concluídas' }, { value: 'cancelled', label: 'Canceladas' }]" /></div>
       <div v-if="canTeam"><label class="mb-1 block text-xs font-semibold text-slate-600">Visualização</label><SearchSelect v-model="scope" :options="[{ value: 'mine', label: 'Minhas atividades' }, { value: 'team', label: 'Atividades da equipe' }]" /></div>
     </ListFilters>
+    <p v-if="activityLink.loading.value" class="mb-3 text-sm text-slate-500">Abrindo atividade…</p>
+    <p v-if="activityLink.error.value" role="alert" class="mb-3 text-sm text-red-700">Não foi possível abrir a atividade: {{ activityLink.error.value }}</p>
     <AsyncNotice :loading="loading" :error="error" label="Carregando atividades…" @retry="load" />
     <section v-if="!loading && !error" class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
       <ListTable min-width="750px">
@@ -138,6 +143,6 @@ function saved() { dialogOpen.value = false; publishActivityChanged(tenantId); t
     </section>
     <PagePagination v-if="!loading && !error" :page="page" :last-page="pagination.last_page" :total="pagination.total" :per-page="pagination.per_page" @change="changePage" />
     <CalendarEventHistoryDialog :open="!!historyEvent" :tenant-id="tenantId" :event-id="historyEvent?.id ?? null" :title="historyEvent?.title" @close="historyEvent = null" />
-    <CalendarEventDialog :open="dialogOpen" :tenant-id="tenantId" :event="selected" :date="''" :default-type="'task'" :can-write="(canEdit && !!selected) || (canCreate && !selected)" :can-delete="canDelete" @close="dialogOpen = false" @saved="saved" />
+    <CalendarEventDialog :open="dialogOpen" :tenant-id="tenantId" :event="selected" :date="''" :default-type="'task'" :can-write="(canEdit && !!selected) || (canCreate && !selected)" :can-delete="canDelete" @close="activityLink.close()" @saved="saved" />
   </AppShell>
 </template>
