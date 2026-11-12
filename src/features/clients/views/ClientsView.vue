@@ -9,6 +9,7 @@ import SearchSelect from '@/components/ui/SearchSelect.vue'
 import ClientForm from '../components/ClientForm.vue'
 import ContextActivityDialog from '@/features/calendar/components/ContextActivityDialog.vue'
 import ClientDetailsDialog from '../components/ClientDetailsDialog.vue'
+import ClientContactDialog from '../components/ClientContactDialog.vue'
 import { useClientsPage } from '../composables/useClientsPage'
 const { onActivitySaved, tenantId, tenant, operators, classes, sellers, canAssignSeller, loading, busy, error, activityClient, canCreateActivity, showSellerSelect, writable, canAdd, search, operatorFilter, filtered, applyFilters, clearFilters, page, total, lastPage, pageRows, changePage, validationState, duplicate, checkingDocument, transferBusy, checkDocument, requestTransfer, form, editing, modal, selected, detailsInitialTab, contact, contactModal, pendingContactClientId, documentModel, phoneModel, contactPhoneModel, cepModel, cepBusy, cepMessage, lookupCep, classesForOperator, activeSeller, start, load, save, saveOperatorClassification, openHistory, details, editContact, saveContact } = useClientsPage()
 </script>
@@ -163,45 +164,14 @@ const { onActivitySaved, tenantId, tenant, operators, classes, sellers, canAssig
       @cancel="modal = false"
       @save="save"
     />
-    <Teleport to="body">
-    <div
-      v-if="contactModal"
-      class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
-    >
-      <form
-        class="w-full max-w-2xl max-h-[94dvh] overflow-y-auto space-y-3 rounded-2xl bg-white p-6"
-        @submit.prevent="saveContact"
-      >
-        <h2 class="text-xl font-semibold">{{ pendingContactClientId ? 'Responsável pela empresa (obrigatório)' : 'Pessoa de contato' }}</h2>
-        <p v-if="pendingContactClientId" class="text-sm text-amber-800">Para concluir o cadastro do cliente, informe o responsável principal.</p>
-        <label class="block text-sm"
-          >Nome<input v-model="contact.name" required class="field" /></label
-        ><div class="grid gap-3 sm:grid-cols-2">
-          <label class="block text-sm">CPF (opcional)<input :value="contact.cpf ?? ''" @input="contact.cpf = ($event.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 11) || null" inputmode="numeric" maxlength="11" placeholder="Somente números" class="field" /></label>
-          <label class="block text-sm">Data de nascimento (opcional)<input v-model="contact.birth_date" type="date" class="field" /></label>
-        </div><label class="block text-sm">Cargo<input v-model="contact.position" :required="!!pendingContactClientId" class="field" /></label
-        ><label class="block text-sm"
-          >Telefone<input
-            v-model="contactPhoneModel"
-            class="field"
-            inputmode="tel"
-            maxlength="15" /></label
-        ><label class="block text-sm"
-          >E-mail<input v-model="contact.email" type="email" class="field" /></label
-        ><label class="flex gap-2 text-sm"
-          ><input v-model="contact.is_primary" type="checkbox" />Contato principal</label
-        ><label class="flex gap-2 text-sm"
-          ><input v-model="contact.is_active" type="checkbox" />Ativo</label
-        ><label class="flex gap-2 text-sm"
-          ><input v-model="contact.portal_access_enabled" type="checkbox" :disabled="!contact.is_active || !contact.email" />Autorizar acesso ao Portal do Cliente por este e-mail</label
-        ><p class="text-xs text-slate-500">Habilite somente após confirmar que o e-mail pertence à pessoa autorizada a consultar os pedidos da empresa.</p>
-        <div class="flex justify-end gap-2">
-          <button v-if="!pendingContactClientId" type="button" class="rounded-lg border px-4 py-2" @click="contactModal = false">
-            Cancelar</button
-          ><button type="submit" class="primary-button w-auto" :disabled="busy">Salvar</button>
-        </div>
-      </form>
-    </div>
-    </Teleport>
+    <ClientContactDialog
+      :open="contactModal"
+      :busy="busy"
+      :required-contact="!!pendingContactClientId"
+      :contact="contact"
+      v-model:phone-model="contactPhoneModel"
+      @close="contactModal = false"
+      @save="saveContact"
+    />
   </AppShell>
 </template>
