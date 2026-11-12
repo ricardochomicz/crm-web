@@ -65,6 +65,10 @@ const validationState = useFormValidation<keyof ClientInput>()
 const duplicate = ref<ClientTransferLookup | null>(null)
 const checkingDocument = ref(false)
 const transferBusy = ref(false)
+const transferDialogOpen = ref(false)
+function requestTransfer() {
+  if (duplicate.value?.client_id && !transferBusy.value) transferDialogOpen.value = true
+}
 let lookupVersion = 0
 
 async function checkDocument() {
@@ -83,21 +87,19 @@ async function checkDocument() {
   }
 }
 
-async function requestTransfer() {
+async function submitTransfer(reason: string) {
   if (!duplicate.value?.client_id || transferBusy.value) return
+  const clientId = duplicate.value.client_id
+  const id = tenantId.value
   transferBusy.value = true
   try {
-    const reason = window.prompt('Informe o motivo da solicitação de transferência (mínimo de 10 caracteres):')
-    if (!reason) return
-    if (reason.trim().length < 10) {
-      toast.error('Informe uma justificativa com pelo menos 10 caracteres.')
-      return
-    }
-    await clientsApi.requestTransfer(tenantId.value, duplicate.value.client_id, reason.trim())
-    toast.success('Solicitação enviada para aprovação do supervisor.')
+    await clientsApi.requestTransfer(id, clientId, reason.trim())
+    if (id !== tenantId.value) return
+    transferDialogOpen.value = false
     modal.value = false
+    toast.success('Solicitação enviada para aprovação do supervisor.')
   } catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Não foi possível solicitar a transferência.')
+    if (id === tenantId.value) toast.error(e instanceof Error ? e.message : 'Não foi possível solicitar a transferência.')
   } finally {
     transferBusy.value = false
   }
@@ -330,6 +332,7 @@ watch(
   () => {
     selected.value = null
     modal.value = false
+    transferDialogOpen.value = false
     pendingContactClientId.value = null
     contactModal.value = false
     cancelLookup()
@@ -342,5 +345,5 @@ function onActivitySaved() {
   activityClient.value = null
   toast.success('Atividade criada para o cliente.')
 }
-return { onActivitySaved, tenantId, tenant, rows, operators, classes, sellers, canAssignSeller, currentSellerId, loading, busy, error, canManage, canCreate, activityClient, canCreateActivity, showSellerSelect, writable, canAdd, search, operatorFilter, filtered, applyFilters, clearFilters, page, total, lastPage, pageRows, changePage, blank, validationState, duplicate, checkingDocument, transferBusy, checkDocument, requestTransfer, form, editing, modal, selected, detailsInitialTab, contactBlank, contact, contactEditing, contactModal, pendingContactClientId, documentModel, phoneModel, contactPhoneModel, cepModel, cepBusy, cepMessage, lookupCep, cancelLookup, classesForOperator, activeSeller, start, load, save, saveOperatorClassification, openHistory, details, editContact, saveContact }
+return { transferDialogOpen, submitTransfer, onActivitySaved, tenantId, tenant, rows, operators, classes, sellers, canAssignSeller, currentSellerId, loading, busy, error, canManage, canCreate, activityClient, canCreateActivity, showSellerSelect, writable, canAdd, search, operatorFilter, filtered, applyFilters, clearFilters, page, total, lastPage, pageRows, changePage, blank, validationState, duplicate, checkingDocument, transferBusy, checkDocument, requestTransfer, form, editing, modal, selected, detailsInitialTab, contactBlank, contact, contactEditing, contactModal, pendingContactClientId, documentModel, phoneModel, contactPhoneModel, cepModel, cepBusy, cepMessage, lookupCep, cancelLookup, classesForOperator, activeSeller, start, load, save, saveOperatorClassification, openHistory, details, editContact, saveContact }
 }
