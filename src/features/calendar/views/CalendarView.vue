@@ -9,6 +9,7 @@ import CalendarEventDialog from '../components/CalendarEventDialog.vue'
 import { tenantApi } from '@/features/tenants/api'
 import { can, type Tenant } from '@/features/tenants/types'
 import { calendarApi } from '../api'
+import { subscribeActivityChanged } from '../activityEvents'
 import type { CalendarEvent } from '../types'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
@@ -28,8 +29,16 @@ const focusedDay = ref('')
 const dayDetailsSection = ref<HTMLElement | null>(null)
 const now = ref(Date.now())
 let clock: ReturnType<typeof setInterval> | undefined
-onMounted(() => { clock = setInterval(() => { now.value = Date.now() }, 30_000) })
-onUnmounted(() => { if (clock) clearInterval(clock) })
+let unsubscribeActivityChanged: (() => void) | undefined
+onMounted(() => {
+  clock = setInterval(() => { now.value = Date.now() }, 30_000)
+  unsubscribeActivityChanged = subscribeActivityChanged(id => { if (id === tenantId) void load() })
+})
+onUnmounted(() => {
+  if (clock) clearInterval(clock)
+  unsubscribeActivityChanged?.()
+  requestVersion++
+})
 function isOverdue(event: CalendarEvent): boolean {
   return event.status === 'pending' && new Date(event.ends_at).getTime() < now.value
 }
@@ -120,7 +129,6 @@ function edit(event: CalendarEvent) {
 function saved() {
   dialogOpen.value = false
   toast.success('Agenda atualizada.')
-  void load()
 }
 </script>
 <template>
