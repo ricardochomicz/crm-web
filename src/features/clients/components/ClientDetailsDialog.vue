@@ -21,6 +21,7 @@ const emit = defineEmits<{
   close: []
   'save-operator-classification': [operatorId: number, classificationId: number]
   'edit-contact': [contact?: Contact]
+  consolidated: []
 }>()
 const consolidationOpen = ref(false)
 const activeTab = ref<'data' | 'operators' | 'contracts' | 'contacts' | 'sellers' | 'history'>('data')
@@ -215,6 +216,6 @@ watch([() => props.client?.id, () => props.tenantId, activeTab, historyOrigin, p
     :client-id="client?.id ?? null"
     :client-name="client?.company_name"
     @close="consolidationOpen = false"
-    @consolidated="emit('close')"
+    @consolidated="emit('consolidated')"
   />
 </template>
