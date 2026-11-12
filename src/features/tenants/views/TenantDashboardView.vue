@@ -107,8 +107,8 @@ const attention = computed(() => overview.value ? [
         <div class="flex items-center gap-2">
           <label class="sr-only" for="dashboard-period">Período</label>
           <SearchSelect
-            id="dashboard-period"
-            v-model="period"
+            :model-value="period"
+            @update:model-value="value => { if (value === 'month' || value === 'quarter') period = value }"
             :options="[
               { value: 'month', label: 'Este mês' },
               { value: 'quarter', label: 'Este trimestre' },
