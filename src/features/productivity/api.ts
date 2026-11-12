@@ -37,7 +37,23 @@ export interface ConsultantRecordsPage {
   total: number
 }
 
+export interface GoalConfiguration {
+  id: string
+  operator_id: number
+  order_type: string
+  metric: 'QUANTITY' | 'REVENUE'
+  target_scope: 'COMPANY' | 'CONSULTANT'
+  responsible_membership_id: string | null
+  starts_on: string
+  ends_on: string | null
+  tiers: { minimum: number; percentage: number }[]
+}
+
 export const productivityApi = {
+  goalConfigurations(tenantId: string, filters: { from: string; to: string; consultant_id?: string }) {
+    const params = new URLSearchParams(filters)
+    return request<{ data: GoalConfiguration[] }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/consultants/productivity/goals?${params}`)
+  },
   records(tenantId: string, filters: { from: string; to: string; consultant_id: string; type: ConsultantRecordType; page: number }) {
     const params = new URLSearchParams(Object.entries(filters).map(([key, value]) => [key, String(value)]))
     return request<ConsultantRecordsPage>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/consultants/productivity/records?${params}`)
