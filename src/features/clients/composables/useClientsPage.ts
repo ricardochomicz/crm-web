@@ -5,7 +5,8 @@ import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { toast } from '@/services/toast'
 import { ApiError } from '@/lib/http'
 import { validateClient } from '../validation'
-import { blankClient, blankContact } from '../utils/clientFormDefaults'
+import { blankClient } from '../utils/clientFormDefaults'
+import { useClientContacts } from './useClientContacts'
 import { useClientsList } from '../composables/useClientsList'
 import { useClientMasks } from '../composables/useClientMasks'
 import { useClientAddress } from '../composables/useClientAddress'
@@ -16,8 +17,6 @@ import {
   clientsApi,
   type Client,
   type ClientInput,
-  type Contact,
-  type ContactInput,
   type Classification,
   type Seller,
   type ClientTransferLookup,
@@ -110,11 +109,22 @@ const form = ref<ClientInput>(blank()),
   modal = ref(false),
   selected = ref<Client | null>(null),
   detailsInitialTab = ref<'data' | 'history'>('data')
-const contactBlank = blankContact
-const contact = ref<ContactInput>(contactBlank()),
-  contactEditing = ref(''),
-  contactModal = ref(false),
-  pendingContactClientId = ref<string | null>(null)
+const {
+  contactBlank,
+  contact,
+  contactEditing,
+  contactModal,
+  pendingContactClientId,
+  editContact,
+  saveContact,
+} = useClientContacts({
+  tenantId,
+  selected,
+  busy,
+  reloadClients: load,
+  showDetails: details,
+  resetDetailsTab: () => { detailsInitialTab.value = 'data' },
+})
 
 const { documentModel, phoneModel, contactPhoneModel } = useClientMasks(form, contact)
 const { cepModel, cepBusy, cepMessage, lookupCep, cancelLookup } = useClientAddress(form)
@@ -277,58 +287,6 @@ async function details(id: string) {
     detailsInitialTab.value = 'data'
   } catch (e) {
     toast.error(e instanceof Error ? e.message : 'Erro ao carregar cliente.')
-  }
-}
-function editContact(c?: Contact) {
-  contactEditing.value = c?.id ?? ''
-  contact.value = c
-    ? {
-        name: c.name,
-        cpf: c.cpf,
-        birth_date: c.birth_date,
-        position: c.position,
-        phone: c.phone,
-        email: c.email,
-        is_primary: c.is_primary,
-        is_active: c.is_active,
-        portal_access_enabled: c.portal_access_enabled ?? false,
-        notes: c.notes,
-      }
-    : contactBlank()
-  contactModal.value = true
-}
-async function saveContact() {
-  if (!selected.value || busy.value) return
-  busy.value = true
-  try {
-    await clientsApi.contact(
-      tenantId.value,
-      selected.value.id,
-      { ...contact.value, phone: digits(contact.value.phone, 11) || null },
-      contactEditing.value || undefined,
-    )
-    const clientId = selected.value.id
-    const updated = (await clientsApi.show(tenantId.value, clientId)).data
-    if (pendingContactClientId.value && updated.contact_pending) {
-      toast.error('Cadastre um contato principal ativo com nome, cargo e telefone ou e-mail.')
-      return
-    }
-    const wasRequiredContact = !!pendingContactClientId.value
-    pendingContactClientId.value = null
-    contactModal.value = false
-    if (wasRequiredContact) {
-      selected.value = null
-      detailsInitialTab.value = 'data'
-      toast.success('Pessoa de contato salva. Cadastro do cliente concluído.')
-      await load()
-    } else {
-      toast.success('Contato salvo.')
-      await details(clientId)
-    }
-  } catch (e) {
-    toast.error(e instanceof Error ? e.message : 'Erro ao salvar contato.')
-  } finally {
-    busy.value = false
   }
 }
 watch(
