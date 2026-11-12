@@ -131,6 +131,7 @@ const { transferDialogOpen, submitTransfer, onActivitySaved, tenantId, tenant, o
         @close="selected = null"
         @save-operator-classification="saveOperatorClassification"
         @edit-contact="editContact"
+        @consolidated="load"
       />
     </template>
     <ContextActivityDialog
