@@ -99,11 +99,11 @@ describe('stage pagination request concurrency', () => {
     vi.mocked(opportunitiesApi.list).mockReset()
     const tenant = ref('tenant-a')
     const pagination = useOpportunityStagePagination(tenant, ref(stages), ref<OpportunityFilters>({ status: 'open' }))
-    let reject!: (reason: Error) => void
-    vi.mocked(opportunitiesApi.list).mockImplementation(() => new Promise((_resolve, fail) => { reject = fail }))
+    const pending: Array<(reason: Error) => void> = []
+    vi.mocked(opportunitiesApi.list).mockImplementation(() => new Promise((_resolve, fail) => { pending.push(fail) }))
     const request = pagination.reset()
     tenant.value = 'tenant-b'
-    reject(new Error('Old tenant unavailable'))
+    pending.forEach(reject => reject(new Error('Old tenant unavailable')))
     await request
     expect(Object.values(pagination.states.value).every(state => !state.error)).toBe(true)
   })
