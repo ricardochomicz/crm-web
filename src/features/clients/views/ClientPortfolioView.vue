@@ -256,7 +256,7 @@ watch(tenantId, () => void initialize(), { immediate: true })
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
-            <tr v-for="contract in visibleRows" :key="contract.contract_id ?? contract.order_id" class="hover:bg-stone-50/70">
+            <tr v-for="contract in visibleRows" :key="contract.contract_id ?? contract.order_id ?? contract.client_name" class="hover:bg-stone-50/70">
               <td class="p-4">
                 <span class="font-semibold text-slate-800">{{ contract.client_name }}</span>
 
