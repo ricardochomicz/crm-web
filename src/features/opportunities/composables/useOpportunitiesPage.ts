@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { tenantApi } from '@/features/tenants/api'
 import { can, type Tenant } from '@/features/tenants/types'
@@ -11,7 +11,7 @@ import { useOpportunityStagePagination } from './useOpportunityStagePagination'
 import type OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
-import { subscribeOrders } from '@/services/realtime/orders'
+import { useOpportunityRealtimeSync } from './useOpportunityRealtimeSync'
 
 export function useOpportunitiesPage() {
     const tenantId = computed(() => String(useRoute().params.tenantId))
@@ -282,27 +282,6 @@ async function open(item: Opportunity | null = null, tab: 'details' | 'history' 
   dialogOpen.value = true
 }
 function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); reload(); void commercialOverview.value?.refresh() }
-let unsubscribeRealtime: (() => void) | undefined
-let realtimeTimer: ReturnType<typeof setInterval> | undefined
-let realtimeMounted = false
-let refreshInFlight = false
-async function refreshFromRealtime() {
-  if (refreshInFlight || loading.value || document.hidden || movingId.value || draggingOpportunity.value || dialogOpen.value) return
-  refreshInFlight = true
-  try {
-    const id = tenantId.value
-    const current = version
-    const [stageResult] = await Promise.all([opportunitiesApi.stages(id), refreshRowsSilently(id, current)])
-    if (id === tenantId.value && current === version && !draggingOpportunity.value && !movingId.value) {
-      stages.value = stageResult.data
-      void commercialOverview.value?.refresh()
-    }
-  } catch {
-    // Keep the existing board on temporary connection/API errors.
-  } finally {
-    refreshInFlight = false
-  }
-}
 async function refreshRowsSilently(id: string, current: number) {
   const params = { ...applied.value, page: page.value }
   if (viewMode.value === 'list') {
@@ -319,26 +298,13 @@ async function refreshRowsSilently(id: string, current: number) {
   if (id !== tenantId.value || current !== version || viewMode.value !== 'kanban') return
   total.value = stagePagination.total.value
 }
-function reconnectRealtime() {
-  unsubscribeRealtime?.()
-  unsubscribeRealtime = subscribeOrders(tenantId.value, () => { void refreshFromRealtime() })
-}
-function refreshOnFocus() { void refreshFromRealtime() }
-onMounted(() => {
-  realtimeMounted = true
-  reconnectRealtime()
-  window.addEventListener('focus', refreshOnFocus)
-  document.addEventListener('visibilitychange', refreshOnFocus)
-  realtimeTimer = setInterval(refreshOnFocus, 60000)
+useOpportunityRealtimeSync({
+  tenantId, stages, loading, movingId, draggingOpportunity, dialogOpen,
+  version: () => version,
+  refreshRows: refreshRowsSilently,
+  refreshOverview: () => { void commercialOverview.value?.refresh() },
 })
-onUnmounted(() => {
-  realtimeMounted = false
-  unsubscribeRealtime?.()
-  if (realtimeTimer) clearInterval(realtimeTimer)
-  window.removeEventListener('focus', refreshOnFocus)
-  document.removeEventListener('visibilitychange', refreshOnFocus)
-})
-watch(tenantId, () => { if (realtimeMounted) reconnectRealtime(); section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; stages.value = []; tenant.value = undefined; clients.value = []; operators.value = []; products.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
+watch(tenantId, () => { section.value = 'open'; filters.value = defaultFilters(); applied.value = defaultFilters(); viewMode.value = 'kanban'; stages.value = []; tenant.value = undefined; clients.value = []; operators.value = []; products.value = []; orderTypes.value = []; page.value = 1; void setup(); reload() }, { immediate: true })
 watch(stages, (next, previous) => {
   if (viewMode.value === 'kanban' && next.length > 0 && previous.length === 0) reload()
 })
