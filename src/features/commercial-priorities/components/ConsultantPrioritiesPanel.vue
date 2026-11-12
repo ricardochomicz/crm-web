@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useCommercialPriorities } from '../composables/useCommercialPriorities'
 import ConsultantRenewalPriorities from './ConsultantRenewalPriorities.vue'
 
@@ -13,10 +13,18 @@ const {
   error,
   acknowledgingId,
   acknowledgingRenewalId,
+  acknowledgingAll,
+  acknowledgeAll,
   load,
   acknowledge,
   acknowledgeRenewal,
 } = useCommercialPriorities(tenantId, enabled)
+
+const opportunitiesExpanded = ref(false)
+
+const opportunityPending = computed(
+  () => summary.value?.items.filter((item) => !item.acknowledged).length ?? 0,
+)
 
 const money = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -79,7 +87,30 @@ const pending = computed(
         A ciência não conclui nem retira uma oportunidade da lista.
       </p>
 
-      <div class="space-y-2">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 pt-4">
+        <button
+          type="button"
+          class="flex items-center gap-2 text-left text-sm font-semibold text-slate-800"
+          :aria-expanded="opportunitiesExpanded"
+          aria-controls="consultant-opportunity-details"
+          @click="opportunitiesExpanded = !opportunitiesExpanded"
+        >
+          <span>{{ opportunitiesExpanded ? '▾' : '▸' }}</span>
+          Oportunidades ({{ summary.total_opportunities }})
+          <span class="text-xs font-normal text-slate-500">{{ opportunityPending }} não revisada(s)</span>
+        </button>
+        <button
+          v-if="opportunityPending"
+          type="button"
+          class="secondary-button w-auto"
+          :disabled="!!acknowledgingAll || !!acknowledgingId || !!acknowledgingRenewalId"
+          @click="acknowledgeAll('opportunities')"
+        >
+          {{ acknowledgingAll === 'opportunities' ? 'Confirmando...' : 'Ciente de todas' }}
+        </button>
+      </div>
+
+      <div v-if="opportunitiesExpanded" id="consultant-opportunity-details" class="space-y-2">
         <div
           v-for="item in summary.items"
           :key="item.id"
@@ -127,7 +158,10 @@ const pending = computed(
         :tenant-id="tenantId"
         :summary="summary.renewals"
         :acknowledging-id="acknowledgingRenewalId"
+        :acknowledging-all="acknowledgingAll"
+        :busy="!!acknowledgingId || !!acknowledgingRenewalId"
         @acknowledge="acknowledgeRenewal"
+        @acknowledge-all="acknowledgeAll('renewals')"
       />
     </template>
   </section>
