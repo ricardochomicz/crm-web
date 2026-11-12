@@ -71,7 +71,7 @@ function effectiveRule(classification: Classification): RenewalRule | undefined 
           </td>
         </tr>
         <tr v-if="!rows.length">
-          <td :colspan="mode === 'admin' ? 5 : 5" class="px-5 py-12 text-center text-sm text-slate-500">
+          <td colspan="5" class="px-5 py-12 text-center text-sm text-slate-500">
             Nenhuma classificação encontrada.
           </td>
         </tr>
