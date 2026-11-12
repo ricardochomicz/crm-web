@@ -41,6 +41,8 @@ export function useClientPortfolioPage() {
   const initializing = ref(false)
 
   async function load() {
+    if (initializing.value) return
+
     const version = ++requestVersion
     const id = tenantId.value
     loading.value = true
@@ -59,9 +61,10 @@ export function useClientPortfolioPage() {
           ? { renewal_state: mode === 'renewing' ? 'in_progress' as const : 'available' as const }
           : {}),
       }
-      let response = mode === 'contracts'
-        ? await clientsApi.consolidatedPortfolio(id, params)
-        : await clientsApi.portfolio(id, params)
+      let response =
+        mode === 'contracts'
+          ? await clientsApi.consolidatedPortfolio(id, params)
+          : await clientsApi.portfolio(id, params)
 
       if (version !== requestVersion || id !== tenantId.value) return
       if (mode === 'contracts' && response.meta.total === 0 && !hasCheckedLegacy.value) {
@@ -78,7 +81,8 @@ export function useClientPortfolioPage() {
       lastPage.value = response.meta.last_page
     } catch (failure) {
       if (version !== requestVersion || id !== tenantId.value) return
-      error.value = failure instanceof Error ? failure.message : 'Não foi possível carregar a carteira.'
+      error.value =
+        failure instanceof Error ? failure.message : 'Não foi possível carregar a carteira.'
     } finally {
       if (version === requestVersion && id === tenantId.value) loading.value = false
     }
@@ -120,7 +124,8 @@ export function useClientPortfolioPage() {
       operators.value = operatorsResponse.data
     } catch (failure) {
       if (version !== initializationVersion) return
-      error.value = failure instanceof Error ? failure.message : 'Erro ao carregar dados da empresa.'
+      error.value =
+        failure instanceof Error ? failure.message : 'Erro ao carregar dados da empresa.'
       loading.value = false
       return
     } finally {
