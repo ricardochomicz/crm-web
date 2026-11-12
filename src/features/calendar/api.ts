@@ -11,6 +11,9 @@ export interface CalendarEventHistoryEntry {
 
 const base = (tenantId: string) => `/api/v1/tenants/${encodeURIComponent(tenantId)}/calendar/events`
 export const calendarApi = {
+  show(tenantId: string, eventId: string) {
+    return request<{ data: CalendarEvent }>(`${base(tenantId)}/${encodeURIComponent(eventId)}`)
+  },
   history(tenantId: string, eventId: string) {
     return request<{ data: CalendarEventHistoryEntry[] }>(`${base(tenantId)}/${encodeURIComponent(eventId)}/history`)
   },
