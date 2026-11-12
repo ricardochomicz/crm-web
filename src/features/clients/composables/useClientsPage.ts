@@ -13,6 +13,15 @@ import { digits } from '@/lib/masks'
 import { useFormValidation } from '@/composables/useFormValidation'
 import { can } from '@/features/tenants/types'
 import {
+  clientsApi,
+  type Client,
+  type ClientInput,
+  type Contact,
+  type ContactInput,
+  type Classification,
+  type Seller,
+  type ClientTransferLookup,
+} from '../api'
 import type { Tenant } from '@/features/tenants/types'
 
 export function useClientsPage() {
