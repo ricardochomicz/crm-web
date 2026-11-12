@@ -44,6 +44,12 @@ export const commercialPrioritiesApi = {
     request<{ data: CommercialPrioritySummary }>(
       `/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-priorities`,
     ),
+  acknowledgeAll: (tenantId: string, type: 'opportunities' | 'renewals') =>
+    mutate<{ data: { acknowledged: number } }>(
+      `/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-priorities/acknowledge-all`,
+      { type },
+      'PUT',
+    ),
   acknowledgeRenewal: (tenantId: string, contractId: string) =>
     mutate<{ data: { acknowledged: boolean } }>(
       `/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-priorities/renewals/${encodeURIComponent(contractId)}/acknowledge`,
