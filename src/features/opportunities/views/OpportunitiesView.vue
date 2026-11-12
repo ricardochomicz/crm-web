@@ -1,11 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
-import { toast } from '@/services/toast'
-import { opportunitiesApi } from '../api'
-import { errorMessage } from '@/lib/feedback'
-const showHighlightsOnly = ref(false)
 const scheduling = ref<{ id: string; client_id?: string | null; title: string } | null>(null)
 import AppShell from '@/components/layout/AppShell.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
@@ -19,43 +15,11 @@ import OpportunityKanban from '../components/OpportunityKanban.vue'
 import OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
 import { useOpportunitiesPage } from '../composables/useOpportunitiesPage'
 import { useOpportunityDeepLink } from '../composables/useOpportunityDeepLink'
+import { useOpportunityHighlights } from '../composables/useOpportunityHighlights'
 
 const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages, viewMode, section, recoveringId, recover, switchSection, kanbanRows, movingId, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, kanbanLimitReached, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
 useOpportunityDeepLink(tenantId, dialogOpen, open)
-const highlightedIds = ref<string[]>([])
-const highlightingId = ref<string | null>(null)
-let highlightRequestVersion = 0
-
-watch(tenantId, async id => {
-  const current = ++highlightRequestVersion
-  highlightedIds.value = []
-  showHighlightsOnly.value = false
-  if (!id) return
-  try {
-    const result = await opportunitiesApi.highlights(id)
-    if (current === highlightRequestVersion) highlightedIds.value = result.data
-  } catch (error) {
-    if (current === highlightRequestVersion) toast.error('Não foi possível carregar os destaques: ' + errorMessage(error))
-  }
-}, { immediate: true })
-
-async function toggleHighlight(id: string, highlighted: boolean) {
-  if (highlightingId.value) return
-  highlightingId.value = id
-  const tenant = tenantId.value
-  try {
-    await opportunitiesApi.setHighlight(tenant, id, highlighted)
-    if (tenant === tenantId.value) {
-      highlightedIds.value = highlighted
-        ? [...new Set([...highlightedIds.value, id])]
-        : highlightedIds.value.filter(value => value !== id)
-    }
-  } catch (error) {
-    toast.error('Não foi possível salvar o destaque: ' + errorMessage(error))
-  } finally {
-    highlightingId.value = null
-  }
-}
+const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = useOpportunityHighlights(tenantId)
 </script>
 <template>
   <AppShell :tenant="tenant" title="Oportunidades" subtitle="Negociações comerciais e acompanhamento">
