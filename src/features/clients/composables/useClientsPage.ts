@@ -5,6 +5,7 @@ import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { toast } from '@/services/toast'
 import { useClientContacts } from './useClientContacts'
 import { useClientForm } from './useClientForm'
+import { useClientDetails } from './useClientDetails'
 import { useClientsList } from '../composables/useClientsList'
 import { useClientMasks } from '../composables/useClientMasks'
 import { useClientAddress } from '../composables/useClientAddress'
@@ -53,8 +54,7 @@ export function useClientsPage() {
     pageRows,
     changePage,
   } = useClientsList(rows)
-  const selected = ref<Client | null>(null)
-  const detailsInitialTab = ref<'data' | 'history'>('data')
+  const { selected, detailsInitialTab, details, openHistory, resetDetails } = useClientDetails(tenantId)
   const {
     contactBlank,
     contact,
@@ -164,22 +164,10 @@ export function useClientsPage() {
     }
   }
 
-  async function openHistory(id: string) {
-    await details(id)
-    if (selected.value?.id === id) detailsInitialTab.value = 'history'
-  }
-  async function details(id: string) {
-    try {
-      selected.value = (await clientsApi.show(tenantId.value, id)).data
-      detailsInitialTab.value = 'data'
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao carregar cliente.')
-    }
-  }
   watch(
     tenantId,
     () => {
-      selected.value = null
+      resetDetails()
       modal.value = false
       resetLookup()
       pendingContactClientId.value = null
