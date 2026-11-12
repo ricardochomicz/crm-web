@@ -43,6 +43,15 @@ function show() {
   open.value = true
   void nextTick(() => input.value?.focus())
 }
+function onInput() {
+  if (props.disabled) return
+  open.value = true
+  active.value = 0
+}
+function onFocusOut(event: FocusEvent) {
+  const container = event.currentTarget as HTMLElement | null
+  if (!container?.contains(event.relatedTarget as Node | null)) close()
+}
 function choose(option: Option) {
   model.value = option.id
   query.value = option.name
@@ -82,12 +91,7 @@ function keydown(event: KeyboardEvent) {
     <label :for="id" class="block text-sm font-semibold text-slate-700">{{ label }}</label>
     <div
       class="relative"
-      @focusout="
-        (event) => {
-          if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null))
-            close()
-        }
-      "
+      @focusout="onFocusOut"
     >
       <div class="relative">
         <input
@@ -105,10 +109,7 @@ function keydown(event: KeyboardEvent) {
           :aria-controls="id + '-options'"
           :aria-activedescendant="open && filtered[active] ? id + '-option-' + active : undefined"
           @focus="show"
-          @input="
-            open = true
-            active = 0
-          "
+          @input="onInput"
           @keydown="keydown"
         />
         <button
