@@ -137,7 +137,7 @@ const {
     </ListFilters>
     <p v-if="activityLinkLoading" class="mb-3 text-sm text-slate-500">Abrindo atividade…</p>
     <p v-if="activityLinkError" role="alert" class="mb-3 text-sm text-red-700">
-      Não foi possível abrir a atividade: {{ activityLink.error.value }}
+      Não foi possível abrir a atividade: {{ activityLinkError }}
     </p>
     <AsyncNotice :loading="loading" :error="error" label="Carregando atividades…" @retry="load" />
     <section
@@ -247,7 +247,7 @@ const {
       :default-type="'task'"
       :can-write="(canEdit && !!selected) || (canCreate && !selected)"
       :can-delete="canDelete"
-      @close="activityLink.close()"
+      @close="dialogOpen = false"
       @saved="saved"
     />
   </AppShell>
