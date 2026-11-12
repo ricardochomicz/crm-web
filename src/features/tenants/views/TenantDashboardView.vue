@@ -4,6 +4,8 @@ import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import DashboardMetricCard from '../components/DashboardMetricCard.vue'
+import ConsultantPrioritiesPanel from '@/features/commercial-priorities/components/ConsultantPrioritiesPanel.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { useTenantDashboard } from '../composables/useTenantDashboard'
 import { opportunitiesApi, type CommercialOverview, type FunnelOverview } from '@/features/opportunities/api'
 import { errorMessage } from '@/lib/feedback'
@@ -104,12 +106,23 @@ const attention = computed(() => overview.value ? [
         </div>
         <div class="flex items-center gap-2">
           <label class="sr-only" for="dashboard-period">Período</label>
-          <select id="dashboard-period" v-model="period" class="rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:outline-2 focus:outline-orange-500">
-            <option value="month">Este mês</option><option value="quarter">Este trimestre</option>
-          </select>
+          <SearchSelect
+            id="dashboard-period"
+            v-model="period"
+            :options="[
+              { value: 'month', label: 'Este mês' },
+              { value: 'quarter', label: 'Este trimestre' },
+            ]"
+          />
           <button type="button" class="rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-slate-900 transition hover:bg-[#243154]" aria-label="Atualizar dashboard" @click="refresh">↻</button>
         </div>
       </header>
+
+      <ConsultantPrioritiesPanel
+        v-if="tenant.role === 'CONSULTANT' && canSee"
+        :tenant-id="tenantId"
+        :enabled="!loading"
+      />
 
       <section v-if="!canSee" class="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-slate-600">Os indicadores comerciais não estão disponíveis para seu perfil.</section>
       <template v-else>
