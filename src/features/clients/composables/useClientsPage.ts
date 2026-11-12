@@ -1,38 +1,46 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { tenantApi } from '@/features/tenants/api'
-import { operatorsApi, type TenantOperator } from '@/features/operators/api'
 import { toast } from '@/services/toast'
 import { useClientContacts } from './useClientContacts'
 import { useClientForm } from './useClientForm'
 import { useClientDetails } from './useClientDetails'
+import { useClientsData } from './useClientsData'
 import { useClientsList } from '../composables/useClientsList'
 import { useClientMasks } from '../composables/useClientMasks'
 import { useClientAddress } from '../composables/useClientAddress'
 import { can } from '@/features/tenants/types'
-import {
-  clientsApi,
-  type Client,
-  type Classification,
-  type Seller,
-} from '../api'
-import type { Tenant } from '@/features/tenants/types'
+import { clientsApi, type Client } from '../api'
 
 export function useClientsPage() {
   const route = useRoute(),
     tenantId = computed(() => String(route.params.tenantId))
-  const tenant = ref<Tenant>(),
-    rows = ref<Client[]>([]),
-    operators = ref<TenantOperator[]>([]),
-    classes = ref<Classification[]>([]),
-    sellers = ref<Seller[]>([])
-  const canAssignSeller = ref(false),
-    currentSellerId = ref<string | null>(null)
-  const loading = ref(true),
-    busy = ref(false),
-    error = ref(''),
-    canManage = ref(false),
-    canCreate = ref(false)
+  const {
+    tenant,
+    rows,
+    operators,
+    classes,
+    sellers,
+    canAssignSeller,
+    currentSellerId,
+    loading,
+    error,
+    canManage,
+    canCreate,
+    load,
+    invalidate,
+  } = useClientsData({
+    tenantId,
+    hasPendingContact: () => !!pendingContactClientId.value || contactModal.value,
+    onPendingContact: async (client) => {
+      const currentTenantId = tenantId.value
+      const loaded = await details(client.id)
+      if (!loaded || currentTenantId !== tenantId.value) return
+      pendingContactClientId.value = client.id
+      editContact()
+      contact.value.is_primary = true
+    },
+  })
+  const busy = ref(false)
   const activityClient = ref<Client | null>(null)
   const canCreateActivity = computed(() => can(tenant.value, 'calendar.create') && !!tenant.value?.access?.allows_operational_writes)
   const showSellerSelect = computed(
@@ -114,41 +122,6 @@ export function useClientsPage() {
     const sellerId = activeSeller(client)?.tenant_user_id
     return sellers.value.find((seller) => seller.id === sellerId)?.name ?? '—'
   }
-  async function load() {
-    const id = tenantId.value
-    loading.value = true
-    error.value = ''
-    try {
-      const [t, list, op, cl, opts] = await Promise.all([
-        tenantApi.show(id),
-        clientsApi.list(id),
-        operatorsApi.available(),
-        clientsApi.classifications(id),
-        clientsApi.options(id),
-      ])
-      if (id !== tenantId.value) return
-      tenant.value = t.data
-      rows.value = list.data
-      const pending = list.data.find((client) => client.contact_pending)
-      if (pending && !pendingContactClientId.value && !contactModal.value && list.meta.can_create) {
-        pendingContactClientId.value = pending.id
-        selected.value = (await clientsApi.show(id, pending.id)).data
-        editContact()
-        contact.value.is_primary = true
-      }
-      canManage.value = list.meta.can_manage
-      canCreate.value = list.meta.can_create
-      operators.value = op.data.map((o) => ({ ...o, selected: true }))
-      classes.value = cl.data
-      sellers.value = opts.data.sellers
-      canAssignSeller.value = opts.data.can_assign_seller
-      currentSellerId.value = opts.data.current_seller_id
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Erro ao carregar clientes.'
-    } finally {
-      if (id === tenantId.value) loading.value = false
-    }
-  }
   async function saveOperatorClassification(operatorId: number, classificationId: number) {
     if (!selected.value || busy.value) return
     busy.value = true
@@ -167,6 +140,7 @@ export function useClientsPage() {
   watch(
     tenantId,
     () => {
+      invalidate()
       resetDetails()
       modal.value = false
       resetLookup()
