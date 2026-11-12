@@ -146,22 +146,23 @@ function addBatch() {
   batchError.value = ''
   const numbers = parsedNumbers.value
   const product = filteredProducts.value.find(p => p.id === batchProductId.value && p.is_active)
-  if (!selectedBatchType.value) { batchError.value = 'Selecione o tipo das linhas.'; return }
-  if (selectedBatchType.value.requires_number && !numbers.length) { batchError.value = 'Cole pelo menos um número.'; return }
-  if (!selectedBatchType.value.requires_number && (!Number.isInteger(Number(batchQuantity.value)) || Number(batchQuantity.value) < 1)) { batchError.value = 'Informe a quantidade de linhas novas.'; return }
-  const count = !selectedBatchType.value.requires_number ? Number(batchQuantity.value) : numbers.length
+  const batchType = selectedBatchType.value
+  if (!batchType) { batchError.value = 'Selecione o tipo das linhas.'; return }
+  if (batchType.requires_number && !numbers.length) { batchError.value = 'Cole pelo menos um número.'; return }
+  if (!batchType.requires_number && (!Number.isInteger(Number(batchQuantity.value)) || Number(batchQuantity.value) < 1)) { batchError.value = 'Informe a quantidade de linhas novas.'; return }
+  const count = !batchType.requires_number ? Number(batchQuantity.value) : numbers.length
   if (!product) { batchError.value = 'Selecione um plano ativo.'; return }
   if (!Number.isFinite(Number(batchMonthly.value)) || Number(batchMonthly.value) < 0) { batchError.value = 'Valor mensal inválido.'; return }
   if (count + form.value.items.length > maxItems) { batchError.value = 'Limite de 200 itens por oportunidade.'; return }
   const seen = new Set(form.value.items.map(item => (item.line_number ?? '').replace(/\D/g, '')).filter(Boolean))
-  for (const number of selectedBatchType.value.requires_number ? numbers : []) {
+  for (const number of batchType.requires_number ? numbers : []) {
     if (![10, 11].includes(number.length)) { batchError.value = 'Número inválido: ' + number; return }
     if (seen.has(number)) { batchError.value = 'Número duplicado: ' + number; return }
     seen.add(number)
   }
   form.value.items.push(...Array.from({ length: count }, (_, index) => ({
     order_type_id: batchTypeId.value,
-    product_id: product.id, line_number: selectedBatchType.value.requires_number ? numbers[index] : null, description: product.name,
+    product_id: product.id, line_number: batchType.requires_number ? (numbers[index] ?? null) : null, description: product.name,
     quantity: 1, monthly_unit_amount: Number(batchMonthly.value),
     one_time_unit_amount: 0, notes: null,
   })))
