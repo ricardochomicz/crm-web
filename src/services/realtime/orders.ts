@@ -68,3 +68,31 @@ export function subscribeOrders(tenantId: string, callback: Listener): () => voi
     }
   }
 }
+
+const commercialSubscriptions = new Map<string, { listeners: Set<Listener>; channel: ReturnType<Echo<'reverb'>['private']> }>()
+
+/** Shared Echo connection, independent tenant channels and reference-counted listeners. */
+export function subscribeCommercialRealtime(tenantId: string, callback: Listener): () => void {
+  const client = connection()
+  if (!client || !tenantId) return () => {}
+
+  let subscription = commercialSubscriptions.get(tenantId)
+  if (!subscription) {
+    const channel = client.private('tenant.' + tenantId + '.commercial')
+    subscription = { channel, listeners: new Set<Listener>() }
+    const current = subscription
+    channel.listen('.commercial.changed', () => current.listeners.forEach(fn => fn()))
+    commercialSubscriptions.set(tenantId, subscription)
+  }
+  subscription.listeners.add(callback)
+
+  return () => {
+    const current = commercialSubscriptions.get(tenantId)
+    if (!current) return
+    current.listeners.delete(callback)
+    if (current.listeners.size === 0) {
+      client.leave('tenant.' + tenantId + '.commercial')
+      commercialSubscriptions.delete(tenantId)
+    }
+  }
+}
