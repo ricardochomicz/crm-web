@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import AppSearchInput from '@/components/ui/AppSearchInput.vue'
 import type { OpportunityFilters } from '../api'
 import type { OrderType } from '@/features/order-types/api'
 
@@ -57,7 +58,7 @@ const activeCount = computed(() => [
     <ListFilters collapsible initially-collapsed :active-count="activeCount" :busy="busy" :columns="2" :count-label="`${count} oportunidade(s) encontrada(s)`" @search="emit('search')" @clear="emit('clear')">
         <label class="text-xs font-semibold text-slate-600">
             Buscar oportunidade ou cliente
-            <input :value="modelValue.search" class="field" type="search" placeholder="Código, título, nome, CPF ou CNPJ" @input="set('search', ($event.target as HTMLInputElement).value)" />
+            <AppSearchInput :model-value="modelValue.search ?? ''" placeholder="Código, título, nome, CPF ou CNPJ" @update:model-value="set('search', $event)" />
         </label>
         <label class="text-xs font-semibold text-slate-600">
             Situação
