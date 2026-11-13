@@ -4,6 +4,7 @@ import AppDialog from '@/components/ui/AppDialog.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import CalendarAssigneeField from './CalendarAssigneeField.vue'
 import CalendarEventLinks from './CalendarEventLinks.vue'
+import CalendarEventScheduleFields from './CalendarEventScheduleFields.vue'
 import FormField from '@/components/ui/FormField.vue'
 import FormActions from '@/components/ui/FormActions.vue'
 import { calendarApi } from '../api'
@@ -195,11 +196,11 @@ async function remove() {
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Tipo
           <SearchSelect v-model="form.type" :options="types" placeholder="Selecione o tipo" required />
         </label>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <FormField id="calendar-start" v-model="form.starts_at" label="Início" type="datetime-local" required />
-          <FormField id="calendar-end" v-model="form.ends_at" label="Término" type="datetime-local" required />
-        </div>
-        <label class="flex items-center gap-2 text-sm text-slate-700"><input v-model="form.all_day" type="checkbox" /> Dia inteiro</label>
+        <CalendarEventScheduleFields
+          v-model:starts-at="form.starts_at"
+          v-model:ends-at="form.ends_at"
+          v-model:all-day="form.all_day"
+        />
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block space-y-2 text-sm font-semibold text-slate-700">Situação
             <SearchSelect v-model="form.status" :options="statuses" placeholder="Selecione a situação" required />
