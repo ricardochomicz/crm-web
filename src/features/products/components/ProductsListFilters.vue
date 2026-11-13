@@ -12,7 +12,7 @@ const props = defineProps<{
   total: number
   busy?: boolean
   operators: { id: number; name: string }[]
-  categories: [string, string][]
+  categories: string[][]
 }>()
 const emit = defineEmits<{ search: []; clear: [] }>()
 const operatorOptions = computed(() => [
