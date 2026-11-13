@@ -10,6 +10,7 @@ import { useOpportunityReferenceData } from './useOpportunityReferenceData'
 import { useOpportunityCommercialActions } from './useOpportunityCommercialActions'
 import { useOpportunityStageMovement } from './useOpportunityStageMovement'
 import { useOpportunityListFilters } from './useOpportunityListFilters'
+import { displayOpportunityOrderType, formatOpportunityMoney } from '../utils/opportunityDisplay'
 
 export function useOpportunitiesPage() {
     const tenantId = computed(() => String(useRoute().params.tenantId))
@@ -132,28 +133,8 @@ watch(stages, (next, previous) => {
   if (viewMode.value === 'kanban' && next.length > 0 && previous.length === 0) reload()
 })
 
-function displayOrderType(item: Opportunity): string {
-  const value: unknown = item.order_type
-  if (value && typeof value === 'object') {
-    const type = value as { name?: unknown }
-    return typeof type.name === 'string' ? type.name : '—'
-  }
-  if (item.order_type_id) {
-    const type = orderTypes.value.find(type => type.id === item.order_type_id)
-    if (type) return type.name
-  }
-  if (typeof value === 'string') {
-    if (value.startsWith('{')) {
-      try {
-        const parsed: unknown = JSON.parse(value)
-        if (parsed && typeof parsed === 'object' && 'name' in parsed && typeof parsed.name === 'string') return parsed.name
-      } catch { /* Legacy text type */ }
-    }
-    return value
-  }
-  return '—'
-}
-const money = (value: string) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+const displayOrderType = (item: Opportunity) => displayOpportunityOrderType(item, orderTypes.value)
+const money = formatOpportunityMoney
 
     return {
         tenantId,
