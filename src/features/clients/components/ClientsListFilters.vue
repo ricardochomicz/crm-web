@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import AppSearchInput from '@/components/ui/AppSearchInput.vue'
 
 const props = defineProps<{
   search: string
@@ -35,13 +36,8 @@ const operatorOptions = computed(() => [
   >
     <label class="text-xs font-semibold text-slate-600">
       Buscar cliente
-      <input
-        :value="search"
-        type="search"
-        class="field"
-        placeholder="Nome, documento ou e-mail"
-        @input="emit('update:search', ($event.target as HTMLInputElement).value)"
-      />
+      <AppSearchInput :model-value="search" placeholder="Nome, documento ou e-mail"
+        @update:model-value="emit('update:search', $event)" />
     </label>
     <label class="text-xs font-semibold text-slate-600">
       Operadora
