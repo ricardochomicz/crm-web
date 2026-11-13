@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useCommercialRadar } from '../composables/useCommercialRadar'
+import { useCommercialRadarMembers } from '../composables/useCommercialRadarMembers'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import type { CommercialRadarItem } from '../radarApi'
 
 const props = defineProps<{ tenantId: string; enabled: boolean }>()
 const tenantId = computed(() => props.tenantId)
 const enabled = computed(() => props.enabled)
-const { radar, loading, error, load } = useCommercialRadar(tenantId, enabled)
+const { options, selectedMemberId, loading: membersLoading, error: membersError } =
+  useCommercialRadarMembers(tenantId, enabled)
+const { radar, loading, error, load } = useCommercialRadar(tenantId, enabled, selectedMemberId)
 
 const selectedType = ref<'all' | CommercialRadarItem['type']>('all')
 const visibleItems = computed(() => radar.value?.items.filter((item) =>
@@ -37,13 +41,26 @@ function destination(item: CommercialRadarItem): string {
       <div>
         <p class="text-xs font-semibold uppercase tracking-widest text-orange-700">Radar comercial</p>
         <h2 class="mt-1 text-lg font-semibold text-slate-900">Ações que precisam de atenção</h2>
-        <p class="mt-1 text-xs text-slate-500">Oportunidades, atividades e ativações sob sua responsabilidade.</p>
+        <p class="mt-1 text-xs text-slate-500">Oportunidades, atividades e ativações por responsável autorizado.</p>
       </div>
-      <button type="button" class="secondary-button w-auto" :disabled="loading" @click="load">
+      <div class="flex w-full flex-wrap items-end gap-3 sm:w-auto">
+        <label class="block min-w-56 flex-1 text-xs font-medium text-slate-600">
+          Consultor
+          <SearchSelect
+            v-model="selectedMemberId"
+            class="mt-1"
+            :options="options"
+            :disabled="membersLoading || !enabled"
+            placeholder="Selecione um consultor"
+          />
+        </label>
+        <button type="button" class="secondary-button w-auto" :disabled="loading" @click="load">
         {{ loading ? 'Atualizando…' : 'Atualizar' }}
-      </button>
+        </button>
+      </div>
     </div>
 
+    <p v-if="membersError" role="alert" class="mt-3 text-sm text-rose-700">{{ membersError }}</p>
     <p v-if="error" role="alert" class="mt-4 text-sm text-rose-700">
       {{ error }}
       <button type="button" class="underline" @click="load">Tentar novamente</button>
