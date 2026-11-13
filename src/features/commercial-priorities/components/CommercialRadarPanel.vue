@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useCommercialRadar } from '../composables/useCommercialRadar'
 import type { CommercialRadarItem } from '../radarApi'
 
@@ -7,6 +7,17 @@ const props = defineProps<{ tenantId: string; enabled: boolean }>()
 const tenantId = computed(() => props.tenantId)
 const enabled = computed(() => props.enabled)
 const { radar, loading, error, load } = useCommercialRadar(tenantId, enabled)
+
+const selectedType = ref<'all' | CommercialRadarItem['type']>('all')
+const visibleItems = computed(() => radar.value?.items.filter((item) =>
+  selectedType.value === 'all' || item.type === selectedType.value,
+) ?? [])
+const typeOptions = [
+  { value: 'all', label: 'Todos' },
+  { value: 'opportunity', label: 'Oportunidades' },
+  { value: 'activity', label: 'Atividades' },
+  { value: 'order', label: 'Pedidos' },
+] as const
 
 function destination(item: CommercialRadarItem): string {
   const base = '/empresas/' + encodeURIComponent(props.tenantId)
@@ -43,9 +54,24 @@ function destination(item: CommercialRadarItem): string {
         <span class="rounded-lg bg-rose-50 px-3 py-2 text-rose-700">{{ radar.summary.urgent }} urgentes</span>
         <span class="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">{{ radar.summary.high }} alta prioridade</span>
       </div>
-      <div v-if="radar.items.length" class="mt-4 space-y-2">
+      <div class="mt-4 flex flex-wrap gap-2" role="group" aria-label="Filtrar prioridades por tipo">
+        <button
+          v-for="option in typeOptions"
+          :key="option.value"
+          type="button"
+          :aria-pressed="selectedType === option.value"
+          class="rounded-lg border px-3 py-2 text-xs font-semibold transition"
+          :class="selectedType === option.value
+            ? 'border-orange-500 bg-orange-50 text-orange-800'
+            : 'border-stone-200 bg-white text-slate-600 hover:border-orange-300'"
+          @click="selectedType = option.value"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+      <div v-if="visibleItems.length" class="mt-4 space-y-2">
         <RouterLink
-          v-for="item in radar.items.slice(0, 6)"
+          v-for="item in visibleItems.slice(0, 6)"
           :key="item.type + '-' + item.id"
           :to="destination(item)"
           class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 p-3 transition hover:border-orange-300 focus-visible:outline-2 focus-visible:outline-orange-600"
@@ -61,11 +87,11 @@ function destination(item: CommercialRadarItem): string {
             {{ item.priority === 'urgent' ? 'Urgente' : 'Alta' }}
           </span>
         </RouterLink>
-        <p v-if="radar.items.length > 6" class="text-xs text-slate-500">
-          Exibindo 6 de {{ radar.summary.total }} prioridades.
+        <p v-if="visibleItems.length > 6" class="text-xs text-slate-500">
+          Exibindo 6 de {{ visibleItems.length }} prioridades deste filtro.
         </p>
       </div>
-      <p v-else class="mt-4 text-sm text-slate-500">Nenhuma pendência crítica identificada.</p>
+      <p v-else class="mt-4 text-sm text-slate-500">Nenhuma pendência encontrada para este filtro.</p>
     </template>
   </section>
 </template>
