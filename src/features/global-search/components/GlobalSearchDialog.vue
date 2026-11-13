@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, useId, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppDialog from '@/components/ui/AppDialog.vue'
+import GlobalSearchResult from './GlobalSearchResult.vue'
 import { useGlobalSearch } from '../composables/useGlobalSearch'
 import { useGlobalSearchRecent } from '../composables/useGlobalSearchRecent'
 import type { GlobalSearchCategory, GlobalSearchItem } from '../api/globalSearchApi'
@@ -91,12 +92,9 @@ function optionId(item: GlobalSearchItem) {
           <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Acessados recentemente</h3>
           <button type="button" class="text-xs font-semibold text-orange-700 hover:underline" @click="clear">Limpar histórico</button>
         </div>
-        <button v-for="item in visibleRecent" :key="item.type + item.id" type="button"
-          class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-orange-50" @click="choose(item)">
-          <span class="min-w-0 flex-1"><span class="block truncate text-sm font-semibold text-slate-800">{{ item.title }}</span>
-            <span class="block truncate text-xs text-slate-500">{{ item.subtitle }}</span></span>
-          <span class="text-xs text-slate-400">{{ categories.find(entry => entry.key === item.type)?.label }}</span>
-        </button>
+        <GlobalSearchResult v-for="item in visibleRecent" :key="item.type + item.id"
+          :item="item" :category-label="categories.find(entry => entry.key === item.type)?.label"
+          @select="choose(item)" />
         <p v-if="!visibleRecent.length" class="text-sm text-slate-500">Digite pelo menos 2 caracteres para pesquisar.</p>
       </div>
       <p v-else-if="loading" role="status" class="text-sm text-slate-500">Pesquisando...</p>
@@ -105,16 +103,11 @@ function optionId(item: GlobalSearchItem) {
         aria-label="Resultados da busca" class="max-h-[55dvh] space-y-4 overflow-y-auto">
         <section v-for="entry in visibleCategories" :key="entry.key" v-show="results[entry.key].length" role="group" :aria-label="entry.label">
           <h3 class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">{{ entry.label }}</h3>
-          <button v-for="item in results[entry.key]" :id="optionId(item)" :key="item.id" type="button"
-            role="option" data-search-result :aria-selected="items[active]?.id === item.id && items[active]?.type === item.type"
-            class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-orange-50"
-            :class="items[active]?.id === item.id && items[active]?.type === item.type ? 'bg-orange-50' : ''"
-            @mouseenter="active = items.findIndex(result => result.id === item.id && result.type === item.type)"
-            @click="choose(item)">
-            <span class="min-w-0 flex-1"><span class="block truncate text-sm font-semibold text-slate-800">{{ item.title }}</span>
-              <span class="block truncate text-xs text-slate-500">{{ item.subtitle }}</span></span>
-            <span class="text-xs text-slate-400" aria-hidden="true">↵</span>
-          </button>
+          <GlobalSearchResult v-for="item in results[entry.key]" :key="item.id"
+            :item="item" :option-id="optionId(item)" option
+            :active="items[active]?.id === item.id && items[active]?.type === item.type"
+            @hover="active = items.findIndex(result => result.id === item.id && result.type === item.type)"
+            @select="choose(item)" />
         </section>
         <p v-if="!items.length" class="py-5 text-center text-sm text-slate-500">Nenhum resultado encontrado.</p>
       </div>
