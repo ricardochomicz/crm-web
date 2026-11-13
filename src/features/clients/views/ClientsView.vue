@@ -50,6 +50,7 @@ const {
   modal,
   selected,
   detailsInitialTab,
+  closeDetails,
   contact,
   contactModal,
   pendingContactClientId,
@@ -127,7 +128,7 @@ const {
         :sellers="sellers"
         :classes="classes"
         :initial-tab="detailsInitialTab"
-        @close="selected = null"
+        @close="closeDetails"
         @save-operator-classification="saveOperatorClassification"
         @edit-contact="editContact"
         @consolidated="load"
