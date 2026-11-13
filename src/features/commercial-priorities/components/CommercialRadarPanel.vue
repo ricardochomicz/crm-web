@@ -4,6 +4,7 @@ import { useCommercialRadar } from '../composables/useCommercialRadar'
 import { useCommercialRadarMembers } from '../composables/useCommercialRadarMembers'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import type { CommercialRadarItem } from '../radarApi'
+import { commercialRadarDestination } from '../utils/commercialRadarNavigation'
 
 const props = defineProps<{ tenantId: string; enabled: boolean }>()
 const tenantId = computed(() => props.tenantId)
@@ -30,16 +31,6 @@ const typeOptions = [
   { value: 'order', label: 'Pedidos' },
 ] as const
 
-function destination(item: CommercialRadarItem): string {
-  const base = '/empresas/' + encodeURIComponent(props.tenantId)
-  if (item.type === 'opportunity') {
-    return base + '/oportunidades?oportunidade=' + encodeURIComponent(item.destination_id)
-  }
-  if (item.type === 'order') {
-    return base + '/pedidos?pedido=' + encodeURIComponent(item.destination_id)
-  }
-  return base + '/atividades'
-}
 </script>
 
 <template>
@@ -103,7 +94,7 @@ function destination(item: CommercialRadarItem): string {
         <RouterLink
           v-for="item in visibleItems.slice(0, 6)"
           :key="item.type + '-' + item.id"
-          :to="destination(item)"
+          :to="commercialRadarDestination(tenantId, item)"
           class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 p-3 transition hover:border-orange-300 focus-visible:outline-2 focus-visible:outline-orange-600"
         >
           <div class="min-w-0">
