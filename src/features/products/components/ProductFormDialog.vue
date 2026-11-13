@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import AppDialog from '@/components/ui/AppDialog.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import type { ProductFormValues, ProductFormErrors, ProductCategoryOption } from '../types/forms'
 
 defineProps<{
   open: boolean
   editing: boolean
   busy: boolean
-  form: { operator_id: number; name: string; description: string; category: string; price: string; is_active: boolean }
-  errors: Record<string, string>
+  form: ProductFormValues
+  errors: ProductFormErrors
   operators: { id: number; name: string }[]
-  categories: string[][]
+  categories: ProductCategoryOption[]
 }>()
 const priceDisplay = defineModel<string>('priceDisplay', { required: true })
 const emit = defineEmits<{ close: []; save: [] }>()
