@@ -9,6 +9,7 @@ export function useOpportunityClientSearch(
 ) {
   const clientSearch = ref('')
   const clientMenuOpen = ref(false)
+  const activeIndex = ref(0)
   const filteredClients = computed(() => {
     const term = clientSearch.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
     const digits = term.replace(/\D/g, '')
@@ -22,11 +23,46 @@ export function useOpportunityClientSearch(
     onSelect(client.id)
     clientSearch.value = client.company_name + ' · ' + client.document
     clientMenuOpen.value = false
+    activeIndex.value = 0
   }
 
   function onSearchInput() {
     onSelect('')
     clientMenuOpen.value = true
+    activeIndex.value = 0
+  }
+
+  function openMenu() {
+    clientMenuOpen.value = true
+    activeIndex.value = 0
+  }
+
+  function closeMenu() {
+    clientMenuOpen.value = false
+  }
+
+  function onKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      if (clientMenuOpen.value) event.preventDefault()
+      closeMenu()
+      return
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      if (!clientMenuOpen.value) {
+        openMenu()
+        return
+      }
+      const length = filteredClients.value.length
+      if (!length) return
+      activeIndex.value = (activeIndex.value + (event.key === 'ArrowDown' ? 1 : -1) + length) % length
+      return
+    }
+    if (event.key === 'Enter' && clientMenuOpen.value) {
+      event.preventDefault()
+      const client = filteredClients.value[activeIndex.value]
+      if (client) selectClient(client)
+    }
   }
 
   watch([selectedId, clients], ([id, available]) => {
@@ -35,5 +71,5 @@ export function useOpportunityClientSearch(
     clientSearch.value = selected ? selected.company_name + ' · ' + selected.document : ''
   }, { immediate: true })
 
-  return { clientSearch, clientMenuOpen, filteredClients, selectClient, onSearchInput }
+  return { clientSearch, clientMenuOpen, activeIndex, filteredClients, selectClient, onSearchInput, onKeydown, openMenu, closeMenu }
 }
