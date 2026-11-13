@@ -31,5 +31,5 @@ export function useOpportunityDialogPermissions(open: Readonly<Ref<boolean>>, te
     if (clientResult.status === 'fulfilled') canCreateClient.value = clientResult.value.meta.can_create
   }, { immediate: true })
 
-  return { showResponsible, canCreateClient }
+  return { viewerTenant, showResponsible, canCreateClient }
 }
