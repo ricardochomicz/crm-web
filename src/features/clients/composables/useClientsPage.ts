@@ -124,14 +124,27 @@ export function useClientsPage() {
   }
   async function saveOperatorClassification(operatorId: number, classificationId: number) {
     if (!selected.value || busy.value) return
+
+    const clientId = selected.value.id
+    const currentTenantId = tenantId.value
     busy.value = true
+
     try {
-      const clientId = selected.value.id
-      await clientsApi.setOperatorClassification(tenantId.value, clientId, operatorId, classificationId)
+      await clientsApi.setOperatorClassification(
+        currentTenantId,
+        clientId,
+        operatorId,
+        classificationId,
+      )
+      if (currentTenantId !== tenantId.value) return
+
       selected.value = null
       toast.success('Classificação da operadora atualizada.')
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao atualizar classificação.')
+      await load()
+    } catch (error) {
+      if (currentTenantId === tenantId.value) {
+        toast.error(error instanceof Error ? error.message : 'Erro ao atualizar classificação.')
+      }
     } finally {
       busy.value = false
     }
