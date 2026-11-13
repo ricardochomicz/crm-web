@@ -14,7 +14,7 @@ import OpportunityAppointmentsPanel from './OpportunityAppointmentsPanel.vue'
 import ClientDocumentsPanel from './ClientDocumentsPanel.vue'
 import OpportunityLineEditDialog from './OpportunityLineEditDialog.vue'
 import OpportunityBulkEditDialog from './OpportunityBulkEditDialog.vue'
-import type { Opportunity, OpportunityInput } from '../api'
+import type { Opportunity } from '../api'
 import type { OrderType } from '@/features/order-types/api'
 import type { Product } from '@/features/products/api'
 import type { TenantOperator } from '@/features/operators/api'
@@ -43,7 +43,6 @@ const typeName = (id: string) => props.orderTypes.find(type => type.id === id)?.
 const maxItems = MAX_OPPORTUNITY_ITEMS
 const lineCount = computed(() => opportunityLineCount(form.value.items))
 const { form, changeOperator, initialize } = useOpportunityFormState({
-  opportunity: computed(() => props.opportunity),
   operators: computed(() => props.operators),
   onOperatorChanged: () => {
     selectedLineIndices.value = []
