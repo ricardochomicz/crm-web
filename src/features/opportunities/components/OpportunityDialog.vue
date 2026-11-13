@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
-import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
 import AppCurrencyField from '@/components/ui/AppCurrencyField.vue'
 import { computed, ref, watch } from 'vue'
@@ -25,6 +24,7 @@ import { useOpportunityBatchImport } from '../composables/useOpportunityBatchImp
 import { useOpportunityFormSubmission } from '../composables/useOpportunityFormSubmission'
 import { useOpportunityDialogClients } from '../composables/useOpportunityDialogClients'
 import { useOpportunityFormState } from '../composables/useOpportunityFormState'
+import OpportunityLinesSection from './OpportunityLinesSection.vue'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
@@ -108,37 +108,25 @@ watch(() => [props.open, props.opportunity] as const, () => {
       <div class="grid flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
         <fieldset :disabled="busy" class="min-w-0 space-y-6">
           <OpportunityDetailsForm v-model="form" :clients="availableClients" :can-create-client="canCreateClient" :client-contacts="clientContacts" :loading-client-contacts="loadingClientContacts" :order-types="orderTypes" :operators="operatorOptions" @change-operator="changeOperator" @create-client="quickClientOpen = true" />
-          <section class="space-y-4 rounded-2xl border border-stone-200 bg-stone-50/60 p-4 sm:p-5">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div><h3 class="text-lg font-semibold">Linhas e serviços</h3><p class="text-xs text-slate-500">Cole números do Excel em lotes, cada lote com seu plano.</p></div>
-              <button type="button" class="primary-button w-auto" :disabled="form.items.length >= maxItems" @click="openImport">+ Importar linhas</button>
-            </div>
-            <div v-if="selectedLineIndices.length" class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-orange-50 px-4 py-3">
-              <span class="text-sm font-semibold text-orange-900">{{ selectedLineIndices.length }} linha(s) selecionada(s)</span>
-              <div class="flex gap-2">
-                <button type="button" class="secondary-button w-auto" @click="selectedLineIndices = []">Limpar seleção</button>
-                <button type="button" class="primary-button w-auto" @click="showBulkEdit = true">Editar selecionadas</button>
-              </div>
-            </div>
-            <div v-if="form.items.length" class="flex flex-wrap items-end justify-between gap-3">
-              <label class="block w-full max-w-sm space-y-1 text-xs font-semibold text-slate-600">Buscar número da linha
-                <input v-model="lineSearch" class="field w-full" type="search" inputmode="numeric" placeholder="Número completo ou parte dele" />
-              </label>
-              <span class="text-xs text-slate-500">Exibindo {{ filteredLineIndices.length }} de {{ form.items.length }} linhas</span>
-            </div>
-            <p v-if="!form.items.length" class="rounded-xl border border-dashed border-stone-300 bg-white p-8 text-center text-sm text-slate-500">Nenhuma linha adicionada.</p>
-            <div v-else class="overflow-auto rounded-xl border border-stone-200 bg-white" :class="form.items.length > 10 ? 'max-h-[480px]' : ''">
-              <table class="w-full min-w-[500px] text-left text-sm">
-                <thead class="sticky top-0 bg-stone-100 text-xs uppercase text-slate-500"><tr><th class="p-3"><div class="flex items-center gap-3"><AppCheckbox label="Selecionar todas as linhas" :show-label="false" :model-value="allSelected" :indeterminate="selectedLineIndices.length > 0 && !allSelected" @update:model-value="toggleAll" /><span>Número</span></div></th><th class="p-3">Plano</th><th class="p-3 text-right">Mensal</th><th class="p-3 text-right">Ação</th></tr></thead>
-                <tbody><tr v-for="index in filteredLineIndices" :key="form.items[index]?.id ?? index" class="border-t border-stone-100 transition-colors" :class="selectedLineIndices.includes(index) ? 'bg-orange-50/70' : 'hover:bg-stone-50'">
-                  <td class="p-3 font-medium"><div class="flex items-center gap-3"><AppCheckbox :label="'Selecionar linha ' + (index + 1)" :show-label="false" :model-value="selectedLineIndices.includes(index)" @update:model-value="checked => toggleLine(index, checked)" /><span>{{ form.items[index]?.line_number || 'Número pendente' }}<span class="ml-2 text-xs text-slate-400">{{ typeName(form.items[index]?.order_type_id ?? '') }}</span></span></div></td><td class="p-3">{{ form.items[index]?.description }}</td>
-                  <td class="p-3 text-right">{{ money(Number(form.items[index]?.monthly_unit_amount) * Number(form.items[index]?.quantity)) }}</td>
-                  <td class="p-3 text-right"><div class="flex justify-end gap-3"><button type="button" class="font-semibold text-blue-700 hover:underline" @click="editingLineIndex = index">Editar</button><button type="button" class="font-semibold text-red-600 hover:underline" @click="removeLine(index)">Excluir</button></div></td>
-                </tr><tr v-if="!filteredLineIndices.length"><td colspan="4" class="p-6 text-center text-sm text-slate-500">Nenhuma linha encontrada.</td></tr></tbody>
-              </table>
-            </div>
-            <p class="text-sm font-semibold">{{ lineCount }} linha(s) · {{ money(totalMonthly) }}/mês</p>
-          </section>
+          <OpportunityLinesSection
+            :items="form.items"
+            :max-items="maxItems"
+            :selected-line-indices="selectedLineIndices"
+            :filtered-line-indices="filteredLineIndices"
+            :all-selected="allSelected"
+            v-model:line-search="lineSearch"
+            :line-count="lineCount"
+            :total-monthly="totalMonthly"
+            :type-name="typeName"
+            :money="money"
+            @import="openImport"
+            @clear-selection="selectedLineIndices = []"
+            @bulk-edit="showBulkEdit = true"
+            @toggle-all="toggleAll"
+            @toggle-line="toggleLine"
+            @edit="editingLineIndex = $event"
+            @remove="removeLine"
+          />
         </fieldset>
         <OpportunityReceipt :form="form" :order-types="orderTypes" />
       </div>
