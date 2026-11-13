@@ -138,7 +138,7 @@ async function logout() {
         </button>
       </nav>
     </header>
-    <GlobalSearchDialog v-if="tenant" :open="globalSearchOpen" :tenant-id="tenant.id" @close="globalSearchOpen = false" />
+    <GlobalSearchDialog v-if="tenant" :open="globalSearchOpen" :tenant-id="tenant.id" :user-id="String(auth.user?.id ?? '')" @close="globalSearchOpen = false" />
     <main id="main-content" class="mx-auto w-full px-5 py-8 transition-[max-width] duration-200 sm:px-9 sm:py-11" :class="wideLayout ? 'max-w-[1920px]' : 'max-w-7xl'">
       <p v-if="error" role="alert" class="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-800">
         {{ error }} <button class="underline" @click="logout">Tentar novamente</button>
