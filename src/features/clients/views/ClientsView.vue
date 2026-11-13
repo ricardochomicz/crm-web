@@ -11,7 +11,66 @@ import ClientContactDialog from '../components/ClientContactDialog.vue'
 import ClientTransferDialog from '../components/ClientTransferDialog.vue'
 import ClientTransferApprovals from '../components/ClientTransferApprovals.vue'
 import { useClientsPage } from '../composables/useClientsPage'
-const { transferDialogOpen, submitTransfer, onActivitySaved, tenantId, tenant, operators, classes, sellers, canAssignSeller, loading, busy, error, activityClient, canCreateActivity, showSellerSelect, writable, canAdd, search, operatorFilter, filtered, applyFilters, clearFilters, page, total, lastPage, pageRows, changePage, validationState, duplicate, checkingDocument, transferBusy, checkDocument, requestTransfer, form, editing, modal, selected, detailsInitialTab, contact, contactModal, pendingContactClientId, documentModel, phoneModel, contactPhoneModel, cepModel, cepBusy, cepMessage, lookupCep, classesForOperator, sellerName, start, load, save, saveOperatorClassification, openHistory, details, editContact, saveContact } = useClientsPage()
+const {
+  transferDialogOpen,
+  submitTransfer,
+  onActivitySaved,
+  tenantId,
+  tenant,
+  operators,
+  classes,
+  sellers,
+  canAssignSeller,
+  loading,
+  busy,
+  error,
+  activityClient,
+  canCreateActivity,
+  showSellerSelect,
+  writable,
+  canAdd,
+  search,
+  operatorFilter,
+  filtered,
+  applyFilters,
+  clearFilters,
+  page,
+  total,
+  lastPage,
+  pageRows,
+  changePage,
+  validationState,
+  duplicate,
+  checkingDocument,
+  transferBusy,
+  checkDocument,
+  requestTransfer,
+  form,
+  editing,
+  modal,
+  selected,
+  detailsInitialTab,
+  contact,
+  contactModal,
+  pendingContactClientId,
+  documentModel,
+  phoneModel,
+  contactPhoneModel,
+  cepModel,
+  cepBusy,
+  cepMessage,
+  lookupCep,
+  classesForOperator,
+  sellerName,
+  start,
+  load,
+  save,
+  saveOperatorClassification,
+  openHistory,
+  details,
+  editContact,
+  saveContact,
+} = useClientsPage()
 </script>
 <template>
   <AppShell :tenant="tenant" title="Clientes" subtitle="Carteira comercial e contatos">
@@ -107,7 +166,12 @@ const { transferDialogOpen, submitTransfer, onActivitySaved, tenantId, tenant, o
       @cancel="modal = false"
       @save="save"
     />
-    <ClientTransferDialog :open="transferDialogOpen" :busy="transferBusy" @close="transferDialogOpen = false" @submit="submitTransfer" />
+    <ClientTransferDialog
+      :open="transferDialogOpen"
+      :busy="transferBusy"
+      @close="transferDialogOpen = false"
+      @submit="submitTransfer"
+    />
     <ClientContactDialog
       :open="contactModal"
       :busy="busy"
