@@ -6,6 +6,7 @@ import AppTabs from '@/components/ui/AppTabs.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
+import PageLoadingOverlay from '@/components/ui/PageLoadingOverlay.vue'
 import OpportunityFiltersPanel from '../components/OpportunityFilters.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import OpportunityDialog from '../components/OpportunityDialog.vue'
@@ -67,7 +68,8 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
         @update:model-value="selectView"
       />
     </div>
-    <AsyncNotice :loading="loading" :error="error" @retry="reload" />
+    <PageLoadingOverlay :show="loading" label="Carregando oportunidades…" />
+    <AsyncNotice :error="error" @retry="reload" />
     <div v-if="section === 'open' && viewMode === 'kanban' && !loading && !error">
       <OpportunityKanban @dragging="draggingOpportunity = $event" :stage-states="stageStates" @load-more="loadMoreKanban" :highlights-only="showHighlightsOnly" :highlighted-ids="highlightedIds" :highlighting-id="highlightingId" @highlight="toggleHighlight" :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @schedule="item => scheduling = item" @won="askConfirmSale" @lost="askMarkLost" @resend="askResendToBackoffice" />
 
