@@ -9,7 +9,7 @@ const status = defineModel<string>('status', { required: true })
 const month = defineModel<string>('month', { required: true })
 const consultant = defineModel<string>('consultant', { required: true })
 const team = defineModel<string>('team', { required: true })
-const dateField = defineModel<string>('dateField', { required: true })
+const dateField = defineModel<'created_at' | 'activated_at' | 'administratively_completed_at'>('dateField', { required: true })
 const props = defineProps<{
   total: number
   busy?: boolean
