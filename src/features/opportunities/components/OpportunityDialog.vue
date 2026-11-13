@@ -5,8 +5,6 @@ import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
 import AppCurrencyField from '@/components/ui/AppCurrencyField.vue'
 import { computed, ref, watch } from 'vue'
 import { blankOpportunity, opportunityLineCount, opportunityTotal, parseOpportunityNumbers, MAX_OPPORTUNITY_ITEMS } from '../utils/opportunityForm'
-import { tenantApi } from '@/features/tenants/api'
-import type { Tenant } from '@/features/tenants/types'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import OpportunityDetailsForm from './OpportunityDetailsForm.vue'
 import OpportunityReceipt from './OpportunityReceipt.vue'
@@ -22,32 +20,25 @@ import type { OrderType } from '@/features/order-types/api'
 import type { Product } from '@/features/products/api'
 import type { TenantOperator } from '@/features/operators/api'
 import { clientsApi, type Client } from '@/features/clients/api'
+import { useOpportunityDialogPermissions } from '../composables/useOpportunityDialogPermissions'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
 import type { Contact } from '@/features/clients/api'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const activeTab = ref<'details' | 'documents' | 'history' | 'comparison' | 'appointments' | 'proposal'>('details')
-const viewerTenant = ref<Tenant | null>(null)
-const showResponsible = computed(() => !!viewerTenant.value && (['OWNER', 'MANAGER'].includes(viewerTenant.value.role) || viewerTenant.value.role === 'CONSULTANT' && viewerTenant.value.access?.permissions.includes('teams.view')))
-watch(() => [props.open, props.tenantId], async () => {
-  if (!props.open) return
-  try { viewerTenant.value = (await tenantApi.show(props.tenantId)).data } catch { viewerTenant.value = null }
-}, { immediate: true })
+const { showResponsible, canCreateClient } = useOpportunityDialogPermissions(
+  computed(() => props.open),
+  computed(() => props.tenantId),
+)
 const clientContacts = ref<Contact[]>([])
 const loadingClientContacts = ref(false)
 let contactRequestVersion = 0
 
 const busy = ref(false)
 const quickClientOpen = ref(false)
-const canCreateClient = ref(false)
 const availableClients = ref<Client[]>([])
 watch(() => [props.open, props.clients] as const, () => { if (props.open) availableClients.value = [...props.clients] }, { immediate: true })
-watch(() => [props.open, props.tenantId] as const, async () => {
-  if (!props.open) return
-  try { canCreateClient.value = (await clientsApi.list(props.tenantId)).meta.can_create }
-  catch { canCreateClient.value = false }
-}, { immediate: true })
 function onClientCreated(client: Client) {
   availableClients.value = [...availableClients.value.filter(item => item.id !== client.id), client]
   form.value.client_id = client.id
