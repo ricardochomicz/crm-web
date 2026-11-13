@@ -89,11 +89,7 @@ const emit = defineEmits<{ edit: [product: Product]; promotion: [product: Produc
                 :colspan="canUpdate || canPromote ? 7 : 6"
                 class="px-5 py-12 text-center text-slate-500"
               >
-                {{
-                  products.length
-                    ? 'Nenhum produto corresponde aos filtros.'
-                    : 'Nenhum produto cadastrado.'
-                }}
+                Nenhum produto encontrado.
               </td>
             </tr>
           </tbody>
