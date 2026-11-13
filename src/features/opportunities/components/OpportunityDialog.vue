@@ -21,6 +21,7 @@ import type { Product } from '@/features/products/api'
 import type { TenantOperator } from '@/features/operators/api'
 import { clientsApi, type Client } from '@/features/clients/api'
 import { useOpportunityDialogPermissions } from '../composables/useOpportunityDialogPermissions'
+import { useOpportunityLineSelection } from '../composables/useOpportunityLineSelection'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
 import type { Contact } from '@/features/clients/api'
 
@@ -46,39 +47,6 @@ function onClientCreated(client: Client) {
 }
 const error = ref('')
 const showImport = ref(false)
-const editingLineIndex = ref<number | null>(null)
-const selectedLineIndices = ref<number[]>([])
-const lineSearch = ref('')
-const filteredLineIndices = computed(() => form.value.items.map((_, index) => index).filter(index => {
-  const query = lineSearch.value.replace(/\D/g, '')
-  return !query || (form.value.items[index]?.line_number ?? '').replace(/\D/g, '').includes(query)
-}))
-const showBulkEdit = ref(false)
-const allSelected = computed(() => form.value.items.length > 0 && selectedLineIndices.value.length === form.value.items.length)
-const selectedItems = computed(() => selectedLineIndices.value.map(index => form.value.items[index]).filter((item): item is OpportunityInput['items'][number] => !!item))
-function toggleLine(index: number, checked: boolean) {
-  selectedLineIndices.value = checked ? [...selectedLineIndices.value.filter(i => i !== index), index] : selectedLineIndices.value.filter(i => i !== index)
-}
-function toggleAll(checked: boolean) { selectedLineIndices.value = checked ? form.value.items.map((_, index) => index) : [] }
-function removeLine(index: number) {
-  form.value.items.splice(index, 1)
-  selectedLineIndices.value = selectedLineIndices.value.filter(i => i !== index).map(i => i > index ? i - 1 : i)
-}
-function applyBulk(changes: { order_type_id?: string; product_id?: string; monthly_unit_amount?: number }) {
-  const product = changes.product_id ? filteredProducts.value.find(p => p.id === changes.product_id) : null
-  for (const index of selectedLineIndices.value) {
-    const item = form.value.items[index]
-    if (!item) continue
-    form.value.items.splice(index, 1, {
-      ...item, ...changes, ...(product ? { description: product.name } : {}),
-    })
-  }
-  selectedLineIndices.value = []
-  showBulkEdit.value = false
-}
-const editingLine = computed(() => editingLineIndex.value === null ? null : form.value.items[editingLineIndex.value] ?? null)
-const otherNumbers = computed(() => form.value.items.filter((_, i) => i !== editingLineIndex.value).map(i => (i.line_number ?? '').replace(/\D/g, '')).filter(Boolean))
-function updateLine(item: OpportunityInput['items'][number]) { if (editingLineIndex.value !== null) form.value.items.splice(editingLineIndex.value, 1, item); editingLineIndex.value = null }
 const pastedNumbers = ref('')
 const batchProductId = ref('')
 const batchTypeId = ref('')
@@ -97,6 +65,11 @@ const maxItems = MAX_OPPORTUNITY_ITEMS
 const lineCount = computed(() => opportunityLineCount(form.value.items))
 const blank = blankOpportunity
 const form = ref<OpportunityInput>(blank())
+const {
+  editingLineIndex, selectedLineIndices, lineSearch, filteredLineIndices, showBulkEdit,
+  allSelected, selectedItems, editingLine, otherNumbers,
+  toggleLine, toggleAll, removeLine, applyBulk, updateLine, resetSelection,
+} = useOpportunityLineSelection(form, filteredProducts)
 watch(() => [props.open, props.tenantId, form.value.client_id] as const, async ([isOpen, tenantId, clientId]) => {
   const current = ++contactRequestVersion
   clientContacts.value = []
@@ -187,9 +160,7 @@ watch(() => [props.open, props.opportunity] as const, () => {
   activeTab.value = props.opportunity ? (props.initialTab ?? 'details') : 'details'
   error.value = ''
   showImport.value = false
-  editingLineIndex.value = null
-  selectedLineIndices.value = []
-  showBulkEdit.value = false
+  resetSelection()
   form.value = props.opportunity ? {
     code: props.opportunity.code, title: props.opportunity.title,
     client_id: props.opportunity.client_id, order_type_id: props.opportunity.order_type_id ?? '', operator_id: props.opportunity.operator_id,
