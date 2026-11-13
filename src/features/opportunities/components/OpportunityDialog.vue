@@ -4,7 +4,7 @@ import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
 import AppCurrencyField from '@/components/ui/AppCurrencyField.vue'
 import { computed, ref, watch } from 'vue'
-import { blankOpportunity, opportunityLineCount, opportunityTotal, parseOpportunityNumbers, MAX_OPPORTUNITY_ITEMS } from '../utils/opportunityForm'
+import { blankOpportunity, opportunityLineCount, opportunityTotal, MAX_OPPORTUNITY_ITEMS } from '../utils/opportunityForm'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import OpportunityDetailsForm from './OpportunityDetailsForm.vue'
 import OpportunityReceipt from './OpportunityReceipt.vue'
@@ -22,13 +22,14 @@ import type { TenantOperator } from '@/features/operators/api'
 import { clientsApi, type Client } from '@/features/clients/api'
 import { useOpportunityDialogPermissions } from '../composables/useOpportunityDialogPermissions'
 import { useOpportunityLineSelection } from '../composables/useOpportunityLineSelection'
+import { useOpportunityBatchImport } from '../composables/useOpportunityBatchImport'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
 import type { Contact } from '@/features/clients/api'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
 const activeTab = ref<'details' | 'documents' | 'history' | 'comparison' | 'appointments' | 'proposal'>('details')
-const { showResponsible, canCreateClient } = useOpportunityDialogPermissions(
+const { viewerTenant, showResponsible, canCreateClient } = useOpportunityDialogPermissions(
   computed(() => props.open),
   computed(() => props.tenantId),
 )
@@ -46,21 +47,12 @@ function onClientCreated(client: Client) {
   quickClientOpen.value = false
 }
 const error = ref('')
-const showImport = ref(false)
-const pastedNumbers = ref('')
-const batchProductId = ref('')
-const batchTypeId = ref('')
 const filteredProducts = computed(() => props.products.filter(p => p.is_active && Number(p.operator_id) === Number(form.value.operator_id)))
 const operatorOptions = computed(() => props.operators.map(operator => ({ id: operator.id, name: operator.name })))
 const activePlanOptions = computed(() => filteredProducts.value.map(p => ({
   id: p.id, name: p.name + ' — ' + money(Number(p.price)),
 })))
-watch(batchProductId, () => chooseBatchPlan())
-const selectedBatchType = computed(() => props.orderTypes.find(type => type.id === batchTypeId.value))
 const typeName = (id: string) => props.orderTypes.find(type => type.id === id)?.name ?? 'Tipo anterior'
-const batchQuantity = ref(1)
-const batchMonthly = ref(0)
-const batchError = ref('')
 const maxItems = MAX_OPPORTUNITY_ITEMS
 const lineCount = computed(() => opportunityLineCount(form.value.items))
 const blank = blankOpportunity
@@ -70,6 +62,11 @@ const {
   allSelected, selectedItems, editingLine, otherNumbers,
   toggleLine, toggleAll, removeLine, applyBulk, updateLine, resetSelection,
 } = useOpportunityLineSelection(form, filteredProducts)
+const {
+  showImport, pastedNumbers, batchProductId, batchTypeId, batchQuantity,
+  batchMonthly, batchError, parsedNumbers, selectedBatchType,
+  openImport, addBatch,
+} = useOpportunityBatchImport(form, filteredProducts, computed(() => props.orderTypes))
 watch(() => [props.open, props.tenantId, form.value.client_id] as const, async ([isOpen, tenantId, clientId]) => {
   const current = ++contactRequestVersion
   clientContacts.value = []
@@ -93,45 +90,6 @@ function generateCode(): string {
   return 'OP-' + stamp + '-' + Math.random().toString(36).slice(2, 6).toUpperCase()
 }
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-const parsedNumbers = computed(() => parseOpportunityNumbers(pastedNumbers.value))
-function openImport() {
-  pastedNumbers.value = ''
-  batchProductId.value = ''
-  batchTypeId.value = ''
-  batchQuantity.value = 1
-  batchMonthly.value = 0
-  batchError.value = ''
-  showImport.value = true
-}
-function chooseBatchPlan() {
-  batchMonthly.value = Number(filteredProducts.value.find(product => product.id === batchProductId.value)?.price ?? 0)
-}
-function addBatch() {
-  batchError.value = ''
-  const numbers = parsedNumbers.value
-  const product = filteredProducts.value.find(p => p.id === batchProductId.value && p.is_active)
-  const batchType = selectedBatchType.value
-  if (!batchType) { batchError.value = 'Selecione o tipo das linhas.'; return }
-  if (batchType.requires_number && !numbers.length) { batchError.value = 'Cole pelo menos um número.'; return }
-  if (!batchType.requires_number && (!Number.isInteger(Number(batchQuantity.value)) || Number(batchQuantity.value) < 1)) { batchError.value = 'Informe a quantidade de linhas novas.'; return }
-  const count = !batchType.requires_number ? Number(batchQuantity.value) : numbers.length
-  if (!product) { batchError.value = 'Selecione um plano ativo.'; return }
-  if (!Number.isFinite(Number(batchMonthly.value)) || Number(batchMonthly.value) < 0) { batchError.value = 'Valor mensal inválido.'; return }
-  if (count + form.value.items.length > maxItems) { batchError.value = 'Limite de 200 itens por oportunidade.'; return }
-  const seen = new Set(form.value.items.map(item => (item.line_number ?? '').replace(/\D/g, '')).filter(Boolean))
-  for (const number of batchType.requires_number ? numbers : []) {
-    if (![10, 11].includes(number.length)) { batchError.value = 'Número inválido: ' + number; return }
-    if (seen.has(number)) { batchError.value = 'Número duplicado: ' + number; return }
-    seen.add(number)
-  }
-  form.value.items.push(...Array.from({ length: count }, (_, index) => ({
-    order_type_id: batchTypeId.value,
-    product_id: product.id, line_number: batchType.requires_number ? (numbers[index] ?? null) : null, description: product.name,
-    quantity: 1, monthly_unit_amount: Number(batchMonthly.value),
-    one_time_unit_amount: 0, notes: null,
-  })))
-  showImport.value = false
-}
 function changeOperator(id: number | null) {
   if (id === form.value.operator_id) return
   if (form.value.items.length && !window.confirm('Alterar a operadora removerá as linhas e planos da oportunidade. Deseja continuar?')) return
