@@ -54,6 +54,16 @@ export function useOpportunityListFilters(
     }
   }
 
+  /** Refreshes visible list data without showing a loading state or overwriting a newer view. */
+  async function refreshSilently(tenant: string, canApply: () => boolean) {
+    const result = await opportunitiesApi.list(tenant, { ...applied.value, page: page.value })
+    if (!canApply()) return
+    rows.value = result.data
+    total.value = result.total
+    lastPage.value = result.last_page
+    perPage.value = result.per_page
+  }
+
   function applyFilters() {
     if (filters.value.min_amount !== undefined && filters.value.max_amount !== undefined &&
       Number(filters.value.min_amount) > Number(filters.value.max_amount)) {
@@ -95,6 +105,6 @@ export function useOpportunityListFilters(
 
   return {
     rows, filters, applied, page, total, lastPage, perPage, loading, error,
-    load, invalidate, applyFilters, clearFilters, resetSection, changePage,
+    load, refreshSilently, invalidate, applyFilters, clearFilters, resetSection, changePage,
   }
 }
