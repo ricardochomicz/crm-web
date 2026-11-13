@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import type { Opportunity } from '../api'
 
-defineProps<{
+const props = defineProps<{
   opportunity: Opportunity | null
   destinationStage: string
   modelValue: string
@@ -16,6 +17,9 @@ const emit = defineEmits<{
   'update:reason': [value: string]
 }>()
 const today = () => [new Date().getFullYear(), String(new Date().getMonth() + 1).padStart(2, '0'), String(new Date().getDate()).padStart(2, '0')].join('-')
+const dateValid = computed(() => /^\d{4}-\d{2}-\d{2}$/.test(props.modelValue) && props.modelValue >= today())
+const reasonValid = computed(() => props.reason.trim().length >= 10)
+const canConfirm = computed(() => !!props.opportunity && !props.busy && dateValid.value && reasonValid.value)
 </script>
 
 <template>
@@ -49,10 +53,12 @@ const today = () => [new Date().getFullYear(), String(new Date().getMonth() + 1)
         Motivo da prorrogação
         <textarea class="field mt-2 w-full" rows="3" maxlength="500" :value="reason" :disabled="busy" placeholder="Explique por que a previsão foi alterada" @input="emit('update:reason', ($event.target as HTMLTextAreaElement).value)" />
         <span class="mt-1 block text-xs text-slate-500">Obrigatório: mínimo de 10 caracteres.</span>
+        <p v-if="modelValue && !dateValid" class="mt-2 text-xs font-medium text-rose-700" role="alert">Informe uma data válida de hoje ou posterior.</p>
+        <p v-if="!reasonValid" class="mt-2 text-xs font-medium text-amber-800">Informe pelo menos 10 caracteres para justificar a prorrogação.</p>
       </label>
       <div class="flex justify-end gap-3 border-t pt-4">
         <button type="button" class="secondary-button w-auto" :disabled="busy" @click="emit('close')">Cancelar</button>
-        <button type="button" class="primary-button w-auto" :disabled="busy || !modelValue || modelValue < today() || reason.trim().length < 10" @click="emit('confirm')">
+        <button type="button" class="primary-button w-auto" :disabled="!canConfirm" @click="emit('confirm')">
           Atualizar e movimentar
         </button>
       </div>
