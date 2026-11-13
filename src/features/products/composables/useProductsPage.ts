@@ -7,6 +7,7 @@ import { toast } from '@/services/toast'
 import { productsApi, type Product, type ProductPromotion } from '../api'
 import { useProductsList } from './useProductsList'
 import { useProductFormValidation } from './useProductFormValidation'
+import { PRODUCT_CATEGORIES, emptyProductForm, emptyPromotionForm, type ProductFormValues, type ProductPromotionFormValues } from '../types/forms'
 
 /** Estado e operações da página de produtos, sem dependências de apresentação. */
 export function useProductsPage(tenantId: Ref<string>) {
@@ -16,19 +17,13 @@ const operators = ref<TenantOperator[]>([])
 const loading = ref(true)
 const busy = ref(false)
 const error = ref('')
-const categories = [
-  ['PREPAID','Pré-pago'], ['CONTROL','Controle'], ['POSTPAID','Pós-pago'],
-  ['BROADBAND','Fibra / Banda larga'], ['BUSINESS_INTERNET','Internet empresarial'],
-  ['LANDLINE','Telefonia fixa'], ['PAY_TV','TV por assinatura'], ['BUNDLE','Combos'],
-  ['ADD_ON','Serviços adicionais'], ['OTHER','Outros'],
-]
-const blank = () => ({ operator_id: 0, name: '', description: '', category: '', price: '', is_active: true })
-const form = ref(blank())
+const categories = PRODUCT_CATEGORIES
+const form = ref<ProductFormValues>(emptyProductForm())
 const { productErrors, promotionErrors, validateProduct, validatePromotion, applyApiErrors } = useProductFormValidation()
 const editingId = ref('')
 const promoProductId = ref('')
 const promoEditingId = ref('')
-const promo = ref({ name: '', promotional_price: '', starts_at: '', ends_at: '', is_active: true })
+const promo = ref<ProductPromotionFormValues>(emptyPromotionForm())
 const productModalOpen = ref(false)
 const promotionModalOpen = ref(false)
 const money = (value: unknown) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -67,7 +62,7 @@ function edit(p: Product) {
   editingId.value = p.id
   form.value = { operator_id: p.operator_id, name: p.name, description: p.description ?? '', category: p.category, price: money(p.price), is_active: p.is_active }
 }
-function reset() { editingId.value = ''; form.value = blank() }
+function reset() { editingId.value = ''; form.value = emptyProductForm() }
 async function save() {
   if (!(editingId.value ? canUpdateWritable.value : canCreateWritable.value) || busy.value) return
   if (!validateProduct(form.value, operators.value.map(o => o.id), categories.map(c => c[0]!))) return
@@ -87,7 +82,7 @@ function promotion(p: Product, existing?: ProductPromotion) {
   promotionModalOpen.value = true
   promoProductId.value = p.id
   promoEditingId.value = existing?.id ?? ''
-  promo.value = existing ? { name: existing.name, promotional_price: money(existing.promotional_price), starts_at: existing.starts_at, ends_at: existing.ends_at, is_active: existing.is_active } : { name: '', promotional_price: '', starts_at: '', ends_at: '', is_active: true }
+  promo.value = existing ? { name: existing.name, promotional_price: money(existing.promotional_price), starts_at: existing.starts_at, ends_at: existing.ends_at, is_active: existing.is_active } : emptyPromotionForm()
 }
 async function savePromotion() {
   if (!canPromoteWritable.value || busy.value) return
