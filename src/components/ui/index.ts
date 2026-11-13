@@ -1,5 +1,7 @@
 export { default as AppDialog } from './AppDialog.vue'
 export { default as AppIcon } from './AppIcon.vue'
+export { default as AppFilterChips } from './AppFilterChips.vue'
+export { default as AppSearchInput } from './AppSearchInput.vue'
 export { default as AsyncNotice } from './AsyncNotice.vue'
 export { default as BrandLogo } from './BrandLogo.vue'
 export { default as FormError } from './FormError.vue'
