@@ -24,7 +24,7 @@ export function useOpportunityStageMovement(context: MovementContext) {
   const movingId = ref<string | null>(null)
   const forecastCandidate = ref<{ item: Opportunity; stageId: string } | null>(null)
   const forecastDate = ref('')
-  const today = () => new Date().toLocaleDateString('en-CA')
+  const today = () => [new Date().getFullYear(), String(new Date().getMonth() + 1).padStart(2, '0'), String(new Date().getDate()).padStart(2, '0')].join('-')
 
   function cancelForecast() {
     forecastCandidate.value = null
