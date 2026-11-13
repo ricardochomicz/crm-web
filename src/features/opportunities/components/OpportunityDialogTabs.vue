@@ -1,5 +1,5 @@
 <script setup lang="ts">
-export type OpportunityDialogTab = 'details' | 'documents' | 'history' | 'appointments' | 'comparison' | 'proposal'
+type OpportunityDialogTab = 'details' | 'documents' | 'history' | 'appointments' | 'comparison' | 'proposal'
 
 defineProps<{ modelValue: OpportunityDialogTab }>()
 const emit = defineEmits<{ 'update:modelValue': [tab: OpportunityDialogTab] }>()
