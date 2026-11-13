@@ -36,7 +36,7 @@ export interface NewTenant {
 }
 export interface Subscription {
   status: string
-  plan: { name: string | null }
+  plan: { id: string; name: string | null }
   limits: { users: number; storage_mb: number }
   usage: { users: number; reserved_invitations: number }
   remaining: { users: number }
