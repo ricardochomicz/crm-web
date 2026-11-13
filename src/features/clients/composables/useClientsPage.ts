@@ -31,10 +31,10 @@ export function useClientsPage() {
   } = useClientsData({
     tenantId,
     hasPendingContact: () => !!pendingContactClientId.value || contactModal.value,
-    onPendingContact: async (client) => {
+    onPendingContact: async (client, isCurrent) => {
       const currentTenantId = tenantId.value
       const loaded = await details(client.id)
-      if (!loaded || currentTenantId !== tenantId.value) return
+      if (!loaded || !isCurrent() || currentTenantId !== tenantId.value) return
       pendingContactClientId.value = client.id
       editContact()
       contact.value.is_primary = true
