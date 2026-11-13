@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
+import SubscriptionUpgradeDialog from '../components/SubscriptionUpgradeDialog.vue'
 import { can } from '../types'
 import { useTenantSubscription } from '../composables/useTenantSubscription'
 
@@ -47,6 +48,11 @@ const { tenant, subscription, loading, error, subscriptionError, metrics, load, 
             <p class="mt-4 text-2xl font-semibold tracking-tight">{{ metric.value }}</p>
             <p class="mt-2 text-xs text-slate-400">{{ metric.detail }}</p>
           </article>
+        </div>
+        <div v-if="tenant.role === 'OWNER'" class="mt-6 rounded-2xl border border-stone-200 bg-white p-6">
+          <h2 class="text-lg font-semibold text-slate-900">Precisa de mais capacidade?</h2>
+          <p class="mt-2 mb-4 text-sm text-slate-500">Compare os planos e aumente o limite de usuários da sua empresa.</p>
+          <SubscriptionUpgradeDialog :tenant-id="tenantId" :subscription="subscription" @updated="loadSubscription" />
         </div></template
       >
     </template></AppShell
