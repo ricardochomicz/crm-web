@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import { publishOpportunityChanged } from '../opportunityEvents'
 import { opportunitiesApi, type FunnelStage, type Opportunity } from '../api'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
@@ -37,6 +38,7 @@ export function useOpportunityStageMovement(context: MovementContext) {
       const result = await opportunitiesApi.moveStage(tenant, id, stageId)
       if (tenant !== context.tenantId.value) return
       setStage(result.data.funnel_stage_id)
+      publishOpportunityChanged(tenant)
       toast.success('Etapa atualizada.')
 
       const sourceStageId = previousStageId ?? context.stages.value.find(stage => /prospec/i.test(stage.name))?.id
