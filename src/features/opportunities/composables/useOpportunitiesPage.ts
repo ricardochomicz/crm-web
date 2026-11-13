@@ -1,9 +1,8 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { opportunitiesApi, type Opportunity } from '../api'
+import type { Opportunity } from '../api'
 import { useOpportunityStagePagination } from './useOpportunityStagePagination'
 import type OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
-import { errorMessage } from '@/lib/feedback'
 import { useOpportunityRealtimeSync } from './useOpportunityRealtimeSync'
 import { useOpportunityReferenceData } from './useOpportunityReferenceData'
 import { useOpportunityCommercialActions } from './useOpportunityCommercialActions'
@@ -13,6 +12,7 @@ import { useOpportunityDialogState } from './useOpportunityDialogState'
 import { useOpportunityPageLifecycle } from './useOpportunityPageLifecycle'
 import { useOpportunityViewNavigation } from './useOpportunityViewNavigation'
 import { useOpportunitySilentRefresh } from './useOpportunitySilentRefresh'
+import { useOpportunityDataLoading } from './useOpportunityDataLoading'
 import { displayOpportunityOrderType, formatOpportunityMoney } from '../utils/opportunityDisplay'
 
 export function useOpportunitiesPage() {
@@ -43,30 +43,16 @@ const {
   refreshOverview: () => { void commercialOverview.value?.refresh() },
   switchToOpen: () => switchSection('open'),
 })
-let version = 0
-async function load() {
-  ++version
-  await list.load()
-}
-async function loadKanban() {
-  list.invalidate()
-  const current = ++version
-  loading.value = true
-  error.value = ''
-  try {
-    await stagePagination.reset()
-    if (current !== version) return
-    total.value = stagePagination.total.value
-  } catch (e) {
-    if (current === version) error.value = errorMessage(e)
-  } finally {
-    if (current === version) loading.value = false
-  }
-}
+const { reload, getVersion, invalidateRefresh } = useOpportunityDataLoading({
+  viewMode, loading, error, total,
+  invalidateList: list.invalidate,
+  loadList: list.load,
+  resetKanban: stagePagination.reset,
+  kanbanTotal: stagePagination.total,
+})
 function loadMoreKanban(stageId: string) {
   stagePagination.loadMore(stageId)
 }
-function reload() { if (viewMode.value === 'kanban') void loadKanban(); else void load() }
 const { switchSection, changeView } = useOpportunityViewNavigation({
   tenantId, section, viewMode, stages,
   resetSection: list.resetSection,
@@ -80,14 +66,14 @@ const { dialogTab, dialogOpen, editing, open, saved } = useOpportunityDialogStat
 const { refreshRows: refreshRowsSilently } = useOpportunitySilentRefresh({
   tenantId, viewMode,
   dragging: draggingOpportunity, movingId, dialogOpen,
-  version: () => version,
+  version: getVersion,
   refreshList: list.refreshSilently,
   refreshKanban: canApply => stagePagination.refresh(undefined, canApply),
   syncKanbanTotal: () => { total.value = stagePagination.total.value },
 })
 useOpportunityRealtimeSync({
   tenantId, stages, loading, movingId, draggingOpportunity, dialogOpen,
-  version: () => version,
+  version: getVersion,
   refreshRows: refreshRowsSilently,
   refreshOverview: () => { void commercialOverview.value?.refresh() },
 })
@@ -101,7 +87,7 @@ useOpportunityPageLifecycle({
   resetSection: list.resetSection,
   clearReferenceData: referenceData.clear,
   loadReferenceData: referenceData.load,
-  invalidateRefresh: () => { ++version },
+  invalidateRefresh,
   reload,
 })
 watch(stages, (next, previous) => {
