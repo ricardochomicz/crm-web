@@ -12,6 +12,7 @@ import { useOpportunityListFilters } from './useOpportunityListFilters'
 import { useOpportunityDialogState } from './useOpportunityDialogState'
 import { useOpportunityPageLifecycle } from './useOpportunityPageLifecycle'
 import { useOpportunityViewNavigation } from './useOpportunityViewNavigation'
+import { useOpportunitySilentRefresh } from './useOpportunitySilentRefresh'
 import { displayOpportunityOrderType, formatOpportunityMoney } from '../utils/opportunityDisplay'
 
 export function useOpportunitiesPage() {
@@ -76,20 +77,14 @@ const { dialogTab, dialogOpen, editing, open, saved } = useOpportunityDialogStat
   reload: () => reload(),
   refreshOverview: () => { void commercialOverview.value?.refresh() },
 })
-async function refreshRowsSilently(id: string, current: number) {
-  if (viewMode.value === 'list') {
-    await list.refreshSilently(id, () =>
-      id === tenantId.value && current === version && viewMode.value === 'list' &&
-      !draggingOpportunity.value && !movingId.value && !dialogOpen.value)
-    return
-  }
-  // Reuse the stage-scoped API and preserve the same visibility rules.
-  await stagePagination.refresh(undefined, () => id === tenantId.value && viewMode.value === 'kanban' &&
-    !draggingOpportunity.value && !movingId.value && !dialogOpen.value && current === version)
-  if (id !== tenantId.value || current !== version || viewMode.value !== 'kanban' ||
-    draggingOpportunity.value || movingId.value || dialogOpen.value) return
-  total.value = stagePagination.total.value
-}
+const { refreshRows: refreshRowsSilently } = useOpportunitySilentRefresh({
+  tenantId, viewMode,
+  dragging: draggingOpportunity, movingId, dialogOpen,
+  version: () => version,
+  refreshList: list.refreshSilently,
+  refreshKanban: canApply => stagePagination.refresh(undefined, canApply),
+  syncKanbanTotal: () => { total.value = stagePagination.total.value },
+})
 useOpportunityRealtimeSync({
   tenantId, stages, loading, movingId, draggingOpportunity, dialogOpen,
   version: () => version,
