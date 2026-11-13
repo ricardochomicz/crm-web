@@ -90,15 +90,10 @@ const { dialogTab, dialogOpen, editing, open, saved } = useOpportunityDialogStat
   refreshOverview: () => { void commercialOverview.value?.refresh() },
 })
 async function refreshRowsSilently(id: string, current: number) {
-  const params = { ...applied.value, page: page.value }
   if (viewMode.value === 'list') {
-    const result = await opportunitiesApi.list(id, params)
-    if (id !== tenantId.value || current !== version || viewMode.value !== 'list' ||
-      draggingOpportunity.value || movingId.value || dialogOpen.value) return
-    rows.value = result.data
-    total.value = result.total
-    lastPage.value = result.last_page
-    perPage.value = result.per_page
+    await list.refreshSilently(id, () =>
+      id === tenantId.value && current === version && viewMode.value === 'list' &&
+      !draggingOpportunity.value && !movingId.value && !dialogOpen.value)
     return
   }
   // Reuse the stage-scoped API and preserve the same visibility rules.
