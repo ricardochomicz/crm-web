@@ -14,8 +14,7 @@ import OpportunityAppointmentsPanel from './OpportunityAppointmentsPanel.vue'
 import ClientDocumentsPanel from './ClientDocumentsPanel.vue'
 import OpportunityLineEditDialog from './OpportunityLineEditDialog.vue'
 import OpportunityBulkEditDialog from './OpportunityBulkEditDialog.vue'
-import { opportunitiesApi, type Opportunity, type OpportunityInput } from '../api'
-import { errorMessage } from '@/lib/feedback'
+import type { Opportunity, OpportunityInput } from '../api'
 import type { OrderType } from '@/features/order-types/api'
 import type { Product } from '@/features/products/api'
 import type { TenantOperator } from '@/features/operators/api'
@@ -23,6 +22,7 @@ import { clientsApi, type Client } from '@/features/clients/api'
 import { useOpportunityDialogPermissions } from '../composables/useOpportunityDialogPermissions'
 import { useOpportunityLineSelection } from '../composables/useOpportunityLineSelection'
 import { useOpportunityBatchImport } from '../composables/useOpportunityBatchImport'
+import { useOpportunityFormSubmission } from '../composables/useOpportunityFormSubmission'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
 import type { Contact } from '@/features/clients/api'
 
@@ -37,7 +37,6 @@ const clientContacts = ref<Contact[]>([])
 const loadingClientContacts = ref(false)
 let contactRequestVersion = 0
 
-const busy = ref(false)
 const quickClientOpen = ref(false)
 const availableClients = ref<Client[]>([])
 watch(() => [props.open, props.clients] as const, () => { if (props.open) availableClients.value = [...props.clients] }, { immediate: true })
@@ -46,7 +45,6 @@ function onClientCreated(client: Client) {
   form.value.client_id = client.id
   quickClientOpen.value = false
 }
-const error = ref('')
 const filteredProducts = computed(() => props.products.filter(p => p.is_active && Number(p.operator_id) === Number(form.value.operator_id)))
 const operatorOptions = computed(() => props.operators.map(operator => ({ id: operator.id, name: operator.name })))
 const activePlanOptions = computed(() => filteredProducts.value.map(p => ({
@@ -67,6 +65,14 @@ const {
   batchMonthly, batchError, parsedNumbers, selectedBatchType,
   openImport, addBatch,
 } = useOpportunityBatchImport(form, filteredProducts, computed(() => props.orderTypes))
+const { busy, error, save } = useOpportunityFormSubmission({
+  form,
+  tenantId: computed(() => props.tenantId),
+  opportunity: computed(() => props.opportunity),
+  orderTypes: computed(() => props.orderTypes),
+  filteredProducts,
+  onSaved: () => emit('saved'),
+})
 watch(() => [props.open, props.tenantId, form.value.client_id] as const, async ([isOpen, tenantId, clientId]) => {
   const current = ++contactRequestVersion
   clientContacts.value = []
@@ -98,21 +104,6 @@ function changeOperator(id: number | null) {
   batchProductId.value = ''
   form.value.operator_id = id
 }
-function validateLines(): boolean {
-  if (!form.value.items.length) { error.value = 'Adicione pelo menos uma linha ou serviço.'; return false }
-  const numbers = new Set<string>()
-  for (const [index, item] of form.value.items.entries()) {
-    if (props.orderTypes.find(type => type.id === item.order_type_id)?.requires_number && !item.line_number) { error.value = `O tipo do item ${index + 1} exige número.`; return false }
-    if (!filteredProducts.value.some(product => product.id === item.product_id)) { error.value = `O plano do item ${index + 1} não pertence à operadora selecionada.`; return false }
-    if (!item.product_id) { error.value = `Selecione o plano do item ${index + 1}.`; return false }
-    const number = (item.line_number ?? '').replace(/\D/g, '')
-    if (number && ![10, 11].includes(number.length)) { error.value = `Informe o telefone com DDD no item ${index + 1}.`; return false }
-    if (number && numbers.has(number)) { error.value = 'Existem números de linha duplicados.'; return false }
-    if (number) numbers.add(number)
-    if (number && Number(item.quantity) !== 1) { error.value = 'Uma linha identificada deve ter quantidade 1.'; return false }
-  }
-  return true
-}
 watch(() => [props.open, props.opportunity] as const, () => {
   if (!props.open) return
   activeTab.value = props.opportunity ? (props.initialTab ?? 'details') : 'details'
@@ -129,23 +120,6 @@ watch(() => [props.open, props.opportunity] as const, () => {
     items: (props.opportunity.items ?? []).map(item => ({ ...item, quantity: Number(item.quantity), monthly_unit_amount: Number(item.monthly_unit_amount), one_time_unit_amount: Number(item.one_time_unit_amount) })),
   } : { ...blank(), code: generateCode(), operator_id: operatorOptions.value.length === 1 ? operatorOptions.value[0]!.id : null }
 }, { immediate: true })
-async function save() {
-  if (busy.value) return
-  if (!form.value.operator_id) { error.value = 'Selecione a operadora da oportunidade.'; return }
-  if (!form.value.client_id) { error.value = 'Selecione um cliente.'; return }
-  if (!form.value.order_type_id) { error.value = 'Selecione o tipo da negociação.'; return }
-  if (!form.value.expected_close_at) { error.value = 'Informe a previsão de fechamento da oportunidade.'; return }
-  if (!validateLines()) return
-  busy.value = true
-  error.value = ''
-  try {
-    const payload = { ...form.value, expected_close_at: form.value.expected_close_at || null, estimated_monthly_amount: totalMonthly.value, estimated_one_time_amount: totalOnce.value, items: form.value.items.map(item => ({ ...item, line_number: item.line_number?.replace(/\D/g, '') || null })) }
-    if (props.opportunity) await opportunitiesApi.update(props.tenantId, props.opportunity.id, payload)
-    else await opportunitiesApi.create(props.tenantId, payload)
-    emit('saved')
-  } catch (e) { error.value = errorMessage(e) }
-  finally { busy.value = false }
-}
 </script>
 <template>
   <AppDialog :open="open" :title="opportunity ? 'Editar oportunidade' : 'Nova oportunidade'"
