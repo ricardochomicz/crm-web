@@ -1,17 +1,18 @@
 import { computed, onBeforeUnmount, ref, watch, type Ref } from 'vue'
-import { globalSearchApi, type GlobalSearchItem, type GlobalSearchResults } from '../api/globalSearchApi'
+import { globalSearchApi, type GlobalSearchCategory, type GlobalSearchItem, type GlobalSearchResults } from '../api/globalSearchApi'
 import { errorMessage } from '@/lib/feedback'
 
 const empty = (): GlobalSearchResults => ({ clients: [], opportunities: [], orders: [] })
 
 export function useGlobalSearch(tenantId: Readonly<Ref<string | undefined>>, open: Readonly<Ref<boolean>>) {
   const query = ref('')
+  const category = ref<GlobalSearchCategory | 'all'>('all')
   const results = ref<GlobalSearchResults>(empty())
   const loading = ref(false)
   const error = ref('')
-  const items = computed<GlobalSearchItem[]>(() => [
-    ...results.value.clients, ...results.value.opportunities, ...results.value.orders,
-  ])
+  const items = computed<GlobalSearchItem[]>(() => category.value === 'all'
+    ? [...results.value.clients, ...results.value.opportunities, ...results.value.orders]
+    : results.value[category.value])
   let timer: ReturnType<typeof setTimeout> | undefined
   let controller: AbortController | undefined
   let sequence = 0
@@ -45,5 +46,5 @@ export function useGlobalSearch(tenantId: Readonly<Ref<string | undefined>>, ope
     }, 300)
   }, { immediate: true })
   onBeforeUnmount(cancel)
-  return { query, results, items, loading, error }
+  return { query, category, results, items, loading, error }
 }
