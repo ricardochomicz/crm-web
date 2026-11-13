@@ -1,13 +1,11 @@
-import { ref, watch, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import type { Opportunity, OpportunityInput } from '../api'
 import type { TenantOperator } from '@/features/operators/api'
 import { blankOpportunity } from '../utils/opportunityForm'
 
 interface Dependencies {
-  open: Readonly<Ref<boolean>>
   opportunity: Readonly<Ref<Opportunity | null>>
   operators: Readonly<Ref<TenantOperator[]>>
-  onReset: () => void
   onOperatorChanged: () => void
   confirmOperatorChange: () => boolean
 }
@@ -34,9 +32,7 @@ export function useOpportunityFormState(deps: Dependencies) {
     form.value.operator_id = id
   }
 
-  watch([deps.open, deps.opportunity], ([isOpen, opportunity]) => {
-    if (!isOpen) return
-    deps.onReset()
+  function initialize(opportunity: Opportunity | null) {
     form.value = opportunity ? {
       code: opportunity.code,
       title: opportunity.title,
@@ -58,7 +54,7 @@ export function useOpportunityFormState(deps: Dependencies) {
       code: generateCode(),
       operator_id: deps.operators.value.length === 1 ? deps.operators.value[0]!.id : null,
     }
-  }, { immediate: true })
+  }
 
-  return { form, changeOperator }
+  return { form, changeOperator, initialize }
 }
