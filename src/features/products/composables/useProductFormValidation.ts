@@ -1,9 +1,10 @@
 import { ref } from 'vue'
 import { ApiError } from '@/lib/http'
+import type { ProductFormValues, ProductPromotionFormValues, ProductFormErrors } from '../types/forms'
 
-type Errors = Record<string, string>
-type ProductForm = { operator_id: number; name: string; category: string; price: string }
-type PromotionForm = { name: string; promotional_price: string; starts_at: string; ends_at: string }
+type Errors = ProductFormErrors
+ type ProductForm = ProductFormValues
+ type PromotionForm = ProductPromotionFormValues
 
 const parseMoney = (value: string) => Number(value.replace(/[^0-9]/g, '')) / 100
 const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value))
