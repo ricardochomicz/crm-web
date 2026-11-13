@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, watch, toRef } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
-import SearchSelect from '@/components/ui/SearchSelect.vue'
 import CalendarAssigneeField from './CalendarAssigneeField.vue'
 import CalendarEventLinks from './CalendarEventLinks.vue'
 import CalendarEventScheduleFields from './CalendarEventScheduleFields.vue'
-import FormField from '@/components/ui/FormField.vue'
+import CalendarEventDetailsFields from './CalendarEventDetailsFields.vue'
 import FormActions from '@/components/ui/FormActions.vue'
 import { useCalendarEventMutation } from '../composables/useCalendarEventMutation'
 import { useCalendarEventOptions } from '../composables/useCalendarEventOptions'
@@ -52,13 +51,6 @@ const {
   clientId: computed(() => form.value.client_id),
 })
 
-const types: { value: EventType; label: string }[] = [
-  { value: 'meeting', label: 'Reunião' }, { value: 'call', label: 'Ligação' },
-  { value: 'visit', label: 'Visita' }, { value: 'task', label: 'Tarefa' },
-  { value: 'reminder', label: 'Lembrete' },
-]
-const statuses = [{ value: 'pending', label: 'Pendente' }, { value: 'completed', label: 'Concluído' }, { value: 'cancelled', label: 'Cancelado' }]
-const priorities = [{ value: 'low', label: 'Baixa' }, { value: 'normal', label: 'Normal' }, { value: 'high', label: 'Alta' }]
 watch(
   () => [props.open, props.tenantId, props.event, props.date] as const,
   () => {
@@ -92,26 +84,21 @@ watch(
           :loading="assigneesLoading"
           :disabled="!!event && !assignees.some((member) => member.id === event?.tenant_user_id)"
         />
-        <FormField id="calendar-title" v-model="form.title" label="Título" maxlength="200" required placeholder="Ex.: Reunião com cliente" />
-        <label class="block space-y-2 text-sm font-semibold text-slate-700">Tipo
-          <SearchSelect v-model="form.type" :options="types" placeholder="Selecione o tipo" required />
-        </label>
-        <CalendarEventScheduleFields
-          v-model:starts-at="form.starts_at"
-          v-model:ends-at="form.ends_at"
-          v-model:all-day="form.all_day"
-        />
-        <div class="grid gap-4 sm:grid-cols-2">
-          <label class="block space-y-2 text-sm font-semibold text-slate-700">Situação
-            <SearchSelect v-model="form.status" :options="statuses" placeholder="Selecione a situação" required />
-          </label>
-          <label class="block space-y-2 text-sm font-semibold text-slate-700">Prioridade
-            <SearchSelect v-model="form.priority" :options="priorities" placeholder="Selecione a prioridade" required />
-          </label>
-        </div>
-        <label class="block space-y-2 text-sm font-semibold text-slate-700">Descrição
-          <textarea v-model="form.description" rows="3" maxlength="10000" class="field" placeholder="Informações adicionais" />
-        </label>
+        <CalendarEventDetailsFields
+          v-model:title="form.title"
+          v-model:type="form.type"
+          v-model:status="form.status"
+          v-model:priority="form.priority"
+          v-model:description="form.description"
+        >
+          <template #schedule>
+            <CalendarEventScheduleFields
+              v-model:starts-at="form.starts_at"
+              v-model:ends-at="form.ends_at"
+              v-model:all-day="form.all_day"
+            />
+          </template>
+        </CalendarEventDetailsFields>
       </fieldset>
       <p v-if="error || optionsError" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ error || optionsError }}</p>
       <div class="border-t border-stone-100 pt-4">
