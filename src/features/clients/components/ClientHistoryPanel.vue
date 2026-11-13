@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import AppTabs from '@/components/ui/AppTabs.vue'
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
 import ClientProtocolHistory from './ClientProtocolHistory.vue'
 
@@ -23,28 +24,21 @@ watch(
   () => [props.tenantId, props.clientId],
   () => { historyOrigin.value = 'client' },
 )
+function selectOrigin(value: string) {
+  const category = categories.find((item) => item.id === value)
+  if (category) historyOrigin.value = category.id
+}
 </script>
 
 <template>
   <section class="space-y-4">
-    <nav
-      class="flex flex-wrap gap-2 border-b border-stone-200 pb-3"
+    <AppTabs
+      :model-value="historyOrigin"
+      :options="categories"
       aria-label="Filtrar histórico por origem"
-    >
-      <button
-        v-for="category in categories"
-        :key="category.id"
-        type="button"
-        class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-        :class="historyOrigin === category.id
-          ? 'bg-orange-100 text-orange-900'
-          : 'bg-stone-100 text-slate-600 hover:bg-stone-200'"
-        :aria-pressed="historyOrigin === category.id"
-        @click="historyOrigin = category.id"
-      >
-        {{ category.label }}
-      </button>
-    </nav>
+      variant="underlined"
+      @update:model-value="selectOrigin"
+    />
 
     <TimelinePanel
       v-if="historyOrigin !== 'protocol'"
