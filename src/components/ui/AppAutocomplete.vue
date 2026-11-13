@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
-import { useId } from 'vue'
+import { computed, nextTick, ref, useId, watch } from 'vue'
 type Option = { id: string; name: string }
 const props = withDefaults(
-  defineProps<{ options: Option[]; label: string; placeholder?: string; disabled?: boolean }>(),
-  { placeholder: 'Selecione ou pesquise', disabled: false },
+  defineProps<{ options: Option[]; label: string; placeholder?: string; disabled?: boolean; emptyMessage?: string }>(),
+  { placeholder: 'Selecione ou pesquise', disabled: false, emptyMessage: 'Nenhum resultado encontrado.' },
 )
 const model = defineModel<string>({ required: true })
 const id = useId()
@@ -37,7 +36,7 @@ watch(
   },
 )
 function show() {
-  if (props.disabled) return
+  if (props.disabled || open.value) return
   query.value = ''
   active.value = 0
   open.value = true
@@ -62,6 +61,7 @@ function close() {
   query.value = selected.value?.name ?? ''
 }
 function keydown(event: KeyboardEvent) {
+  if (props.disabled) return
   if (event.key === 'Escape') {
     event.preventDefault()
     close()
@@ -73,10 +73,9 @@ function keydown(event: KeyboardEvent) {
       show()
       return
     }
-    active.value = Math.max(
-      0,
-      Math.min(filtered.value.length - 1, active.value + (event.key === 'ArrowDown' ? 1 : -1)),
-    )
+    if (!filtered.value.length) return
+    active.value = (active.value + (event.key === 'ArrowDown' ? 1 : -1) + filtered.value.length) % filtered.value.length
+    void nextTick(() => document.getElementById(id + '-option-' + active.value)?.scrollIntoView({ block: 'nearest' }))
     return
   }
   if (event.key === 'Enter' && open.value) {
@@ -153,7 +152,7 @@ function keydown(event: KeyboardEvent) {
           {{ option.name }}
         </button>
         <p v-if="!filtered.length" class="px-4 py-3 text-sm text-slate-500">
-          Nenhum tipo encontrado.
+          {{ emptyMessage }}
         </p>
       </div>
     </div>
