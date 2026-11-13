@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import CalendarAssigneeField from './CalendarAssigneeField.vue'
 import FormField from '@/components/ui/FormField.vue'
 import FormActions from '@/components/ui/FormActions.vue'
 import { calendarApi } from '../api'
@@ -18,7 +19,6 @@ const clients = ref<Client[]>([])
 const clientsLoading = ref(false)
 const assignees = ref<{ id: string; name: string }[]>([])
 const assigneesLoading = ref(false)
-const assigneeOptions = computed(() => assignees.value.map(member => ({ value: member.id, label: member.name })))
 const opportunities = ref<Opportunity[]>([])
 const opportunitiesLoading = ref(false)
 const opportunityOptions = computed(() => opportunities.value.map(item => ({ value: item.id, label: item.code + ' · ' + item.title })))
@@ -184,10 +184,12 @@ async function remove() {
           <SearchSelect  :model-value="form.opportunity_id ?? null" @update:model-value="value => form.opportunity_id = String(value || '') || null" :options="opportunityOptions" :placeholder="form.client_id ? 'Selecione a oportunidade' : 'Selecione primeiro um cliente'" :disabled="!form.client_id || opportunitiesLoading || lockedLink" />
           <span v-if="opportunitiesLoading" class="text-xs font-normal text-slate-500">Carregando oportunidades…</span>
         </label>
-        <label class="block space-y-2 text-sm font-semibold text-slate-700">Responsável
-          <SearchSelect  :model-value="form.tenant_user_id ?? null" @update:model-value="value => form.tenant_user_id = String(value || '') || null" :options="assigneeOptions" placeholder="Eu (padrão)" :disabled="assigneesLoading || (!!event && !assigneeOptions.some(member => member.value === props.event?.tenant_user_id))" />
-          <span v-if="assigneesLoading" class="text-xs font-normal text-slate-500">Carregando responsáveis…</span>
-        </label>
+        <CalendarAssigneeField
+          v-model="form.tenant_user_id"
+          :assignees="assignees"
+          :loading="assigneesLoading"
+          :disabled="!!event && !assignees.some((member) => member.id === event?.tenant_user_id)"
+        />
         <FormField id="calendar-title" v-model="form.title" label="Título" maxlength="200" required placeholder="Ex.: Reunião com cliente" />
         <label class="block space-y-2 text-sm font-semibold text-slate-700">Tipo
           <SearchSelect v-model="form.type" :options="types" placeholder="Selecione o tipo" required />
