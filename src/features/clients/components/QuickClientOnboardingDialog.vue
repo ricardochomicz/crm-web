@@ -86,7 +86,7 @@ async function saveContact() {
 </script>
 
 <template>
-  <AppDialog :open="open" :busy="busy || !!createdClient" :title="createdClient ? 'Responsável pela empresa' : 'Cadastrar novo cliente'"
+  <AppDialog :open="open" size="medium" :busy="busy || !!createdClient" :title="createdClient ? 'Responsável pela empresa' : 'Cadastrar novo cliente'"
     :description="createdClient ? 'Cadastre o contato principal para concluir o cliente e voltar à oportunidade.' : 'Cadastro rápido sem perder os dados da oportunidade.'"
     @close="emit('close')">
     <form class="space-y-4 p-6" @submit.prevent="createdClient ? saveContact() : saveClient()">
