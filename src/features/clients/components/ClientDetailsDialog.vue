@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
-import ClientContractRenewals from './ClientContractRenewals.vue'
-import ClientOrdersHistory from './ClientOrdersHistory.vue'
+import ClientContractsPanel from './ClientContractsPanel.vue'
+import ClientOverviewPanel from './ClientOverviewPanel.vue'
+import ClientSellersHistory from './ClientSellersHistory.vue'
+import ClientDetailsTabs from './ClientDetailsTabs.vue'
+import type { ClientDetailsTab } from './ClientDetailsTabs.vue'
 import ClientContractConsolidationDialog from './ClientContractConsolidationDialog.vue'
 import ClientOperatorClassifications from './ClientOperatorClassifications.vue'
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
@@ -26,12 +29,10 @@ const emit = defineEmits<{
   consolidated: []
 }>()
 const consolidationOpen = ref(false)
-const contractsTab = ref<'orders' | 'renewals'>('orders')
-const activeTab = ref<'data' | 'operators' | 'contracts' | 'contacts' | 'sellers' | 'history'>('data')
+const activeTab = ref<ClientDetailsTab>('data')
 const historyOrigin = ref<'client' | 'opportunity' | 'commercial_order' | 'protocol'>('client')
 watch(() => props.client?.id, () => {
   consolidationOpen.value = false
-  contractsTab.value = 'orders'
   activeTab.value = props.initialTab ?? 'data'
   historyOrigin.value = 'client'
 }, { immediate: true })
@@ -40,88 +41,16 @@ watch(() => props.initialTab, value => { activeTab.value = value ?? 'data' })
 <template>
       <AppDialog :open="!!client" :title="client?.company_name ?? 'Detalhes do cliente'" description="Dados cadastrais, contratos, contatos e histórico do cliente." size="full" @close="emit('close')">
         <div v-if="client" class="space-y-4">
-        <div class="flex flex-wrap gap-2">
-          <button
-            v-for="item in [
-              { id: 'data', label: 'Dados' },
-              { id: 'contacts', label: 'Pessoas de contato' },
-              { id: 'contracts', label: 'Contratos e renovações' },
-              { id: 'operators', label: 'Operadoras e classificações' },
-              { id: 'sellers', label: 'Histórico de vendedores' },
-              { id: 'history', label: 'Histórico' },
-            ] as const"
-            :key="item.id"
-            class="rounded-lg px-3 py-2 text-sm"
-            :class="activeTab === item.id ? 'bg-orange-100 text-orange-900' : 'bg-stone-100'"
-            @click="activeTab = item.id"
-          >
-            {{ item.label }}
-          </button>
-        </div>
-        <div v-if="activeTab === 'data'" class="space-y-2 text-sm">
-          <p>
-            <strong>Operadora atual:</strong> {{ client.operator?.name ?? '—' }}
-          </p>
-          <p><strong>Contato:</strong> {{ client.phone ?? '—' }} · {{ client.email ?? '—' }}</p>
-          <p>
-            <strong>Endereço:</strong>
-            {{
-              [
-                client.address,
-                client.address_number,
-                client.neighborhood,
-                client.city,
-                client.state,
-              ]
-                .filter(Boolean)
-                .join(', ')
-            }}
-          </p>
-          <p>
-            <strong>Contrato:</strong> {{ client.contract_started_on ?? '—' }} até
-            {{ client.contract_ends_on ?? '—' }}
-          </p>
-        </div>
+        <ClientDetailsTabs v-model="activeTab" />
+        <ClientOverviewPanel v-if="activeTab === 'data'" :client="client" />
         <ClientOperatorClassifications v-if="activeTab === 'operators'" :client="client" :classes="classes" :writable="writable" :busy="busy" @save="(operatorId, classificationId) => emit('save-operator-classification', operatorId, classificationId)" />
-        <button
-          v-if="activeTab === 'contracts' && writable"
-          type="button"
-          class="secondary-button mb-4 inline-flex w-auto"
-          @click="consolidationOpen = true"
-        >
-          Consolidar pedidos deste cliente
-        </button>
-        <section v-if="activeTab === 'contracts'" class="space-y-4">
-          <div class="flex flex-wrap gap-2" role="group" aria-label="Informações contratuais">
-            <button
-              type="button"
-              class="rounded-lg px-4 py-2 text-sm font-medium"
-              :class="contractsTab === 'orders' ? 'bg-orange-100 text-orange-900' : 'bg-stone-100 text-slate-700'"
-              :aria-pressed="contractsTab === 'orders'"
-              @click="contractsTab = 'orders'"
-            >
-              Histórico de pedidos
-            </button>
-            <button
-              type="button"
-              class="rounded-lg px-4 py-2 text-sm font-medium"
-              :class="contractsTab === 'renewals' ? 'bg-orange-100 text-orange-900' : 'bg-stone-100 text-slate-700'"
-              :aria-pressed="contractsTab === 'renewals'"
-              @click="contractsTab = 'renewals'"
-            >
-              Renovações
-            </button>
-          </div>
-          <ClientOrdersHistory
-            v-if="contractsTab === 'orders'"
-            :tenant-id="tenantId"
-            :client-id="client.id"
-          />
-          <ClientContractRenewals
-            v-else
-            :contracts="client.contract_renewals ?? []"
-          />
-        </section>
+        <ClientContractsPanel
+          v-if="activeTab === 'contracts'"
+          :client="client"
+          :tenant-id="tenantId"
+          :writable="writable"
+          @consolidate="consolidationOpen = true"
+        />
         <ClientContactsPanel
           v-if="activeTab === 'contacts'"
           :contacts="client.contacts ?? []"
@@ -154,21 +83,11 @@ watch(() => props.initialTab, value => { activeTab.value = value ?? 'data' })
             :client-id="client.id"
           />
         </div>
-        <div v-if="activeTab === 'sellers'" class="space-y-2">
-          <p v-for="s in client.sellers" :key="s.id" class="border-b py-2 text-sm">
-            {{
-              sellers.find((m) => m.id === s.tenant_user_id)?.name ??
-              s.membership?.user?.name ??
-              s.tenant_user_id
-            }}
-            · {{ new Date(s.started_at).toLocaleDateString('pt-BR') }} até
-            {{ s.ended_at ? new Date(s.ended_at).toLocaleDateString('pt-BR') : 'Atual' }}
-            {{ s.reason ? '· ' + s.reason : '' }}
-          </p>
-          <p v-if="!client.sellers?.length" class="text-sm text-slate-500">
-            Nenhuma atribuição registrada.
-          </p>
-        </div>
+        <ClientSellersHistory
+          v-if="activeTab === 'sellers'"
+          :client="client"
+          :sellers="sellers"
+        />
         </div>
       </AppDialog>
   <ClientContractConsolidationDialog
