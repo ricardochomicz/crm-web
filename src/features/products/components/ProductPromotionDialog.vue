@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import AppDialog from '@/components/ui/AppDialog.vue'
 import type { Product, ProductPromotion } from '../api'
+import type { ProductPromotionFormValues, ProductFormErrors } from '../types/forms'
 
 defineProps<{
   open: boolean
   busy: boolean
   editing: boolean
-  promo: { name: string; promotional_price: string; starts_at: string; ends_at: string; is_active: boolean }
-  errors: Record<string, string>
+  promo: ProductPromotionFormValues
+  errors: ProductFormErrors
   selectedProduct?: Product
   money: (value: unknown) => string
 }>()
