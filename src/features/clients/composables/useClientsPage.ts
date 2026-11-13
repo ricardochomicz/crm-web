@@ -180,11 +180,13 @@ export function useClientsPage() {
     }
   }, { immediate: true })
 
-  watch(selected, value => {
-    if (value || !route.query.cliente) return
-    const { cliente: _ignored, ...query } = route.query
-    void router.replace({ query })
-  })
+  function closeDetails() {
+    selected.value = null
+    if (route.query.cliente) {
+      const { cliente: _ignored, ...query } = route.query
+      void router.replace({ query })
+    }
+  }
 
   function onActivitySaved() {
     activityClient.value = null
@@ -234,6 +236,7 @@ export function useClientsPage() {
     modal,
     selected,
     detailsInitialTab,
+    closeDetails,
     contactBlank,
     contact,
     contactEditing,
