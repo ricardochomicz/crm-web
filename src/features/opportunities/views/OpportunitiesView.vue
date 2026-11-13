@@ -9,10 +9,7 @@ import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import OpportunityFiltersPanel from '../components/OpportunityFilters.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import OpportunityDialog from '../components/OpportunityDialog.vue'
-import OpportunitySaleDialog from '../components/OpportunitySaleDialog.vue'
-import OpportunityRecoverDialog from '../components/OpportunityRecoverDialog.vue'
-import OpportunityLostDialog from '../components/OpportunityLostDialog.vue'
-import OpportunityResendDialog from '../components/OpportunityResendDialog.vue'
+import OpportunityCommercialDialogs from '../components/OpportunityCommercialDialogs.vue'
 import OpportunityKanban from '../components/OpportunityKanban.vue'
 import OpportunityListTable from '../components/OpportunityListTable.vue'
 import OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
@@ -104,10 +101,27 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
       @close="scheduling = null"
       @saved="onScheduleSaved"
     />
-    <OpportunityRecoverDialog :opportunity="recoverCandidate" :busy="!!recoveringId" @close="recoverCandidate = null" @confirm="recover" />
-    <OpportunityResendDialog :opportunity="resendCandidate" :busy="!!movingId" :money="money" @close="resendCandidate = null" @confirm="resendToBackoffice" />
-    <OpportunityLostDialog :opportunity="lostCandidate" :busy="markingLost" :reason="lostReason" @update:reason="lostReason = $event" @close="lostCandidate = null" @confirm="markLost" />
-    <OpportunitySaleDialog :opportunity="saleCandidate" :busy="confirmingSale" :money="money" @close="saleCandidate = null" @confirm="confirmSale" />
+    <OpportunityCommercialDialogs
+      :recover-candidate="recoverCandidate"
+      :recovering-id="recoveringId"
+      :resend-candidate="resendCandidate"
+      :moving-id="movingId"
+      :lost-candidate="lostCandidate"
+      :lost-reason="lostReason"
+      :marking-lost="markingLost"
+      :sale-candidate="saleCandidate"
+      :confirming-sale="confirmingSale"
+      :money="money"
+      @close-recover="recoverCandidate = null"
+      @recover="recover"
+      @close-resend="resendCandidate = null"
+      @resend="resendToBackoffice"
+      @close-lost="lostCandidate = null"
+      @update:lost-reason="lostReason = $event"
+      @mark-lost="markLost"
+      @close-sale="saleCandidate = null"
+      @confirm-sale="confirmSale"
+    />
     <OpportunityDialog :initial-tab="dialogTab" :open="dialogOpen" :tenant-id="tenantId" :opportunity="editing" :clients="clients" :products="products" :operators="operators" :order-types="orderTypes" @close="dialogOpen = false" @saved="saved" />
   </AppShell>
 </template>
