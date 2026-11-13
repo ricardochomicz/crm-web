@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { maskDocument, maskBrazilianPhone, onlyDigits } from '@/lib/masks'
 import AppDialog from '@/components/ui/AppDialog.vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { clientsApi, type Client, type ClientInput, type ContactInput } from '../api'
 import { errorMessage } from '@/lib/feedback'
 
@@ -15,6 +16,13 @@ const blank = (): ClientInput => ({
   is_active: true, seller_membership_id: null, seller_reason: null,
 })
 const form = reactive<ClientInput>(blank())
+const personTypeOptions = [
+  { value: 'PJ', label: 'Pessoa jurídica' },
+  { value: 'PF', label: 'Pessoa física' },
+]
+function updatePersonType(value: string | number) {
+  if (value === 'PJ' || value === 'PF') form.person_type = value
+}
 const contact = reactive<ContactInput>({ name: '', cpf: null, birth_date: null, position: '', phone: null, email: null, notes: null, is_primary: true, is_active: true })
 const createdClient = ref<Client | null>(null)
 const busy = ref(false)
@@ -91,9 +99,11 @@ async function saveContact() {
     @close="emit('close')">
     <form class="space-y-4 p-6" @submit.prevent="createdClient ? saveContact() : saveClient()">
       <template v-if="!createdClient">
-        <label class="block text-sm font-medium">Tipo de pessoa
-          <select v-model="form.person_type" class="field"><option value="PJ">Pessoa jurídica</option><option value="PF">Pessoa física</option></select>
-        </label>
+        <div class="space-y-2">
+          <label class="block text-sm font-medium">Tipo de pessoa</label>
+          <SearchSelect :model-value="form.person_type" :options="personTypeOptions"
+            placeholder="Selecione o tipo de pessoa" required @update:model-value="updatePersonType" />
+        </div>
         <label class="block text-sm font-medium">CPF/CNPJ *
           <input v-model="documentModel" class="field" required inputmode="numeric" :maxlength="form.person_type === 'PF' ? 14 : 18"
             @input="duplicate = false" @blur="checkDuplicate" />
