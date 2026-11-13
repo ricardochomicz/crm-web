@@ -119,7 +119,7 @@ const attention = computed(() => overview.value ? [
         </div>
       </header>
 
-      <CommercialRadarPanel :tenant-id="tenantId" :enabled="canSee" />
+      <CommercialRadarPanel :tenant-id="tenantId" :enabled="!!tenant" />
 
       <ConsultantPrioritiesPanel
         v-if="tenant.role === 'CONSULTANT' && canSee"
