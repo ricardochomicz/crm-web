@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import AppTabs from '@/components/ui/AppTabs.vue'
 import type { Client } from '../api'
 import ClientOrdersHistory from './ClientOrdersHistory.vue'
 import ClientContractRenewals from './ClientContractRenewals.vue'
@@ -14,6 +15,14 @@ const emit = defineEmits<{ consolidate: [] }>()
 const activeTab = ref<'orders' | 'renewals'>('orders')
 
 watch(() => [props.client.id, props.tenantId], () => { activeTab.value = 'orders' })
+const contractTabs = [
+  { id: 'orders', label: 'Histórico de pedidos' },
+  { id: 'renewals', label: 'Renovações' },
+] as const
+
+function selectTab(value: string) {
+  if (value === 'orders' || value === 'renewals') activeTab.value = value
+}
 </script>
 
 <template>
@@ -26,22 +35,12 @@ watch(() => [props.client.id, props.tenantId], () => { activeTab.value = 'orders
     >
       Consolidar pedidos deste cliente
     </button>
-    <div class="flex flex-wrap gap-2" role="group" aria-label="Informações contratuais">
-      <button
-        v-for="tab in [
-          { id: 'orders', label: 'Histórico de pedidos' },
-          { id: 'renewals', label: 'Renovações' },
-        ] as const"
-        :key="tab.id"
-        type="button"
-        class="rounded-lg px-4 py-2 text-sm font-medium"
-        :class="activeTab === tab.id ? 'bg-orange-100 text-orange-900' : 'bg-stone-100 text-slate-700'"
-        :aria-pressed="activeTab === tab.id"
-        @click="activeTab = tab.id"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
+    <AppTabs
+      :model-value="activeTab"
+      :options="contractTabs"
+      aria-label="Informações contratuais"
+      @update:model-value="selectTab"
+    />
     <ClientOrdersHistory
       v-if="activeTab === 'orders'"
       :tenant-id="tenantId"
