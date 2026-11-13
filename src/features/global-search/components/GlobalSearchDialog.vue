@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import GlobalSearchResult from './GlobalSearchResult.vue'
+import GlobalSearchStatus from './GlobalSearchStatus.vue'
 import { globalSearchDestination } from '../utils/globalSearchDestination'
 import { useGlobalSearch } from '../composables/useGlobalSearch'
 import { useGlobalSearchRecent } from '../composables/useGlobalSearchRecent'
@@ -70,10 +71,9 @@ function choose(item: GlobalSearchItem) {
         <GlobalSearchResult v-for="item in visibleRecent" :key="item.type + item.id"
           :item="item" :category-label="categories.find(entry => entry.key === item.type)?.label"
           @select="choose(item)" />
-        <p v-if="!visibleRecent.length" class="text-sm text-slate-500">Digite pelo menos 2 caracteres para pesquisar.</p>
       </div>
-      <p v-else-if="loading" role="status" class="text-sm text-slate-500">Pesquisando...</p>
-      <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
+      <GlobalSearchStatus :query="query" :loading="loading" :error="error"
+        :has-results="items.length > 0" :has-recent="visibleRecent.length > 0" />
       <div v-if="!loading && !error && query.trim().length >= 2" :id="listId" ref="list" role="listbox"
         aria-label="Resultados da busca" class="max-h-[55dvh] space-y-4 overflow-y-auto">
         <section v-for="entry in visibleCategories" :key="entry.key" v-show="results[entry.key].length" role="group" :aria-label="entry.label">
@@ -84,7 +84,6 @@ function choose(item: GlobalSearchItem) {
             @hover="highlight(item)"
             @select="choose(item)" />
         </section>
-        <p v-if="!items.length" class="py-5 text-center text-sm text-slate-500">Nenhum resultado encontrado.</p>
       </div>
       <p class="border-t border-stone-100 pt-3 text-xs text-slate-400">↑ ↓ Navegar · Enter Abrir · Esc Fechar</p>
     </div>
