@@ -149,6 +149,7 @@ const money = formatOpportunityMoney
         moveStage,
         forecastCandidate,
         forecastDate,
+        forecastReason,
         cancelForecast,
         confirmForecast,
         applyFilters,
