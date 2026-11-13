@@ -24,7 +24,8 @@ import { useOpportunityDialogClients } from '../composables/useOpportunityDialog
 import { useOpportunityFormState } from '../composables/useOpportunityFormState'
 import OpportunityLinesSection from './OpportunityLinesSection.vue'
 import OpportunityBatchImportDialog from './OpportunityBatchImportDialog.vue'
-import OpportunityDialogTabs, { type OpportunityDialogTab } from './OpportunityDialogTabs.vue'
+import OpportunityDialogTabs from './OpportunityDialogTabs.vue'
+type OpportunityDialogTab = 'details' | 'documents' | 'history' | 'appointments' | 'comparison' | 'proposal'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
