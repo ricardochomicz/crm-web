@@ -4,10 +4,9 @@ import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import ListTable from '@/components/ui/ListTable.vue'
-import ListFilters from '@/components/ui/ListFilters.vue'
-import SearchSelect from '@/components/ui/SearchSelect.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import OrderDetailsPanel from '../components/OrderDetailsPanel.vue'
+import OrdersListFilters from '../components/OrdersListFilters.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import { can } from '@/features/tenants/types'
 import { useOrdersPage } from '../composables/useOrdersPage'
@@ -48,15 +47,10 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
                 <p class="text-sm text-slate-500">{{ item.label }}</p><p class="mt-2 text-2xl font-semibold text-slate-800">{{ item.count }}</p>
             </button>
         </div>
-        <ListFilters :count-label="total + ' pedido(s) encontrado(s)'" :columns="3" collapsible :initially-collapsed="true" @search="applyFilters" @clear="clearFilters">
-            <div><label class="mb-1 block text-xs font-semibold text-slate-600">Empresa, CPF ou CNPJ</label><input v-model="search" class="field w-full" placeholder="Nome, razão social ou documento" /></div>
-            <div><label class="mb-1 block text-xs font-semibold text-slate-600">Status do pedido</label><SearchSelect v-model="status" :options="[{ value: '', label: 'Todos os status' }, ...statuses.map(value => ({ value, label: value }))]" /></div>
-            <div><label class="mb-1 block text-xs font-semibold text-slate-600">Mês de referência</label><input v-model="month" type="month" class="field w-full" /></div>
-            <div><label class="mb-1 block text-xs font-semibold text-slate-600">Consultor</label><SearchSelect v-model="consultant" :options="[{ value: '', label: 'Todos os consultores' }, ...consultants.map(value => ({ value, label: value }))]" /></div>
-            <div><label class="mb-1 block text-xs font-semibold text-slate-600">Equipe</label><SearchSelect v-model="team" :options="[{ value: '', label: 'Todas as equipes' }, ...teams.map(value => ({ value: value.id, label: value.name }))]" /></div>
-            <div><label class="mb-1 block text-xs font-semibold text-slate-600">Mês considerado pela</label><SearchSelect v-model="dateField" :options="[{ value: 'created_at', label: 'Data de criação' }, { value: 'activated_at', label: 'Data de ativação' }, { value: 'administratively_completed_at', label: 'Data de conclusão' }]" /></div>
-            <template #actions><button type="button" class="secondary-button w-auto" @click="setQuickView('all')">Todos os pedidos</button></template>
-        </ListFilters>
+        <OrdersListFilters v-model:search="search" v-model:status="status" v-model:month="month"
+            v-model:consultant="consultant" v-model:team="team" v-model:date-field="dateField"
+            :total="total" :busy="loading" :statuses="statuses" :consultants="consultants" :teams="teams"
+            @search="applyFilters" @clear="clearFilters" @all="setQuickView('all')" />
         <AppDialog :open="!!selectedOrderId"  :title="canMoveSelectedOrder ? 'Movimentar pedido' : 'Detalhes do pedido'" size="full" @close="closeOrderDetails">
             <OrderDetailsPanel v-if="selectedOrderId" :tenant-id="tenantId" :order-id="selectedOrderId" :can-manage="canMoveSelectedOrder" @close="selectedOrderId = null" @saved="load" />
         </AppDialog>
