@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import { toast } from '@/services/toast'
+import { startPageProgress, finishPageProgress } from '@/services/pageProgress'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import AppTabs from '@/components/ui/AppTabs.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
-import PageLoadingOverlay from '@/components/ui/PageLoadingOverlay.vue'
 import OpportunityFiltersPanel from '../components/OpportunityFilters.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import OpportunityDialog from '../components/OpportunityDialog.vue'
@@ -41,6 +41,11 @@ function onScheduleSaved() {
 const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages, viewMode, section, recoveringId, recoverCandidate, askRecover, recover, switchSection, kanbanRows, movingId, draggingOpportunity, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, stageStates, loadMoreKanban, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
 useOpportunityDeepLink(tenantId, dialogOpen, open)
 const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = useOpportunityHighlights(tenantId)
+watch(loading, busy => {
+  if (busy) startPageProgress('opportunities')
+  else finishPageProgress('opportunities')
+}, { immediate: true })
+onUnmounted(() => finishPageProgress('opportunities'))
 </script>
 <template>
   <AppShell :tenant="tenant" title="Oportunidades" subtitle="Negociações comerciais e acompanhamento">
@@ -68,7 +73,6 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
         @update:model-value="selectView"
       />
     </div>
-    <PageLoadingOverlay :show="loading" label="Carregando oportunidades…" />
     <AsyncNotice :error="error" @retry="reload" />
     <div v-if="section === 'open' && viewMode === 'kanban' && !loading && !error">
       <OpportunityKanban @dragging="draggingOpportunity = $event" :stage-states="stageStates" @load-more="loadMoreKanban" :highlights-only="showHighlightsOnly" :highlighted-ids="highlightedIds" :highlighting-id="highlightingId" @highlight="toggleHighlight" :stages="stages" :items="kanbanRows" :can-edit="canEdit" :busy-id="movingId" @move="moveStage" @edit="item => open(item)" @history="item => open(item, 'history')" @schedule="item => scheduling = item" @won="askConfirmSale" @lost="askMarkLost" @resend="askResendToBackoffice" />
