@@ -1,5 +1,5 @@
 <script setup lang="ts">
-export interface TabOption {
+interface TabOption {
   id: string
   label: string
 }
