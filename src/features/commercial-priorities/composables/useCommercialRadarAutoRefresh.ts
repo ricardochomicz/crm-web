@@ -1,5 +1,6 @@
 import { onMounted, onUnmounted, watch, type Ref } from 'vue'
 import { subscribeActivityChanged } from '@/features/calendar/activityEvents'
+import { subscribeOpportunityChanged } from '@/features/opportunities/opportunityEvents'
 import { subscribeOrders } from '@/services/realtime/orders'
 
 /** Refresh radar without losing filters, and never keep listeners across tenants. */
@@ -9,6 +10,7 @@ export function useCommercialRadarAutoRefresh(
   refresh: () => Promise<void>,
 ) {
   let unsubscribeActivity: (() => void) | undefined
+  let unsubscribeOpportunity: (() => void) | undefined
   let unsubscribeOrders: (() => void) | undefined
   let interval: ReturnType<typeof setInterval> | undefined
   let mounted = false
@@ -47,6 +49,9 @@ export function useCommercialRadarAutoRefresh(
     unsubscribeActivity = subscribeActivityChanged(id => {
       if (id === tenantId.value) void run()
     })
+    unsubscribeOpportunity = subscribeOpportunityChanged(id => {
+      if (id === tenantId.value) void run()
+    })
     reconnect()
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onFocus)
@@ -59,6 +64,7 @@ export function useCommercialRadarAutoRefresh(
     mounted = false
     pending = false
     unsubscribeActivity?.()
+    unsubscribeOpportunity?.()
     unsubscribeOrders?.()
     if (interval) clearInterval(interval)
     window.removeEventListener('focus', onFocus)
