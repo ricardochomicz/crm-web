@@ -11,7 +11,7 @@ import {
 
 interface ClientsDataDependencies {
   tenantId: Readonly<Ref<string>>
-  onPendingContact: (client: Client) => Promise<void>
+  onPendingContact: (client: Client, isCurrent: () => boolean) => Promise<void>
   hasPendingContact: () => boolean
 }
 
@@ -68,7 +68,10 @@ export function useClientsData({
 
       const pending = clientsResponse.data.find((client) => client.contact_pending)
       if (pending && clientsResponse.meta.can_create && !hasPendingContact()) {
-        await onPendingContact(pending)
+        await onPendingContact(
+          pending,
+          () => version === requestVersion && currentTenantId === tenantId.value,
+        )
       }
     } catch (cause) {
       if (version === requestVersion && currentTenantId === tenantId.value) {
