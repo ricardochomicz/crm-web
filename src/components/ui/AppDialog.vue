@@ -7,7 +7,7 @@ const props = withDefaults(
     description?: string
     busy?: boolean
     drawer?: boolean
-    size?: 'default' | 'wide' | 'full'
+    size?: 'default' | 'medium' | 'wide' | 'full'
   }>(),
   { busy: false },
 )
@@ -55,7 +55,9 @@ function requestClose() {
             ? 'm-auto h-[min(94dvh,1000px)] max-h-[94dvh] w-[calc(100%-1.5rem)] max-w-[1500px] rounded-3xl'
             : size === 'wide'
               ? 'm-auto max-h-[92dvh] w-[calc(100%-2rem)] max-w-5xl rounded-3xl'
-              : 'm-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg rounded-3xl'
+              : size === 'medium'
+                ? 'm-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-2xl rounded-3xl'
+                : 'm-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg rounded-3xl'
       "
       @cancel.prevent="requestClose"
     >
