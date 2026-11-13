@@ -70,7 +70,7 @@ export const opportunitiesApi = {
     mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/resend-to-backoffice', {}, 'POST'),
   confirmSale: (tenantId: string, id: string) =>
     mutate<{ data: { id: string; status: string } }>(base(tenantId) + '/' + encodeURIComponent(id) + '/confirm-sale', {}, 'POST'),
-  moveStage: (tenantId: string, id: string, funnel_stage_id: string) => mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/stage', { funnel_stage_id }, 'PATCH'),
+  moveStage: (tenantId: string, id: string, funnel_stage_id: string, expected_close_at?: string) => mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/stage', { funnel_stage_id, ...(expected_close_at ? { expected_close_at } : {}) }, 'PATCH'),
   show: (tenantId: string, id: string) => request<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id)),
   create: (tenantId: string, data: OpportunityInput) => mutate<{ data: Opportunity }>(base(tenantId), data),
   update: (tenantId: string, id: string, data: OpportunityInput) => mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id), data, 'PATCH'),
