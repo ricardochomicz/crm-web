@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import AppSearchInput from '@/components/ui/AppSearchInput.vue'
+import type { ProductCategoryOption } from '../types/forms'
 
 const name = defineModel<string>('name', { required: true })
 const operator = defineModel<string>('operator', { required: true })
@@ -12,7 +13,7 @@ const props = defineProps<{
   total: number
   busy?: boolean
   operators: { id: number; name: string }[]
-  categories: string[][]
+  categories: ProductCategoryOption[]
 }>()
 const emit = defineEmits<{ search: []; clear: [] }>()
 const operatorOptions = computed(() => [
