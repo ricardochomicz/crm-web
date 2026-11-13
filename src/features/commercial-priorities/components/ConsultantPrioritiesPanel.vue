@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useCommercialPriorities } from '../composables/useCommercialPriorities'
 import ConsultantRenewalPriorities from './ConsultantRenewalPriorities.vue'
+import { buildCommercialRadar } from '../utils/commercialRadar'
 import { opportunityAgeClass, opportunityAgeLabel } from '@/features/opportunities/utils/opportunityAge'
 
 const props = defineProps<{ tenantId: string; enabled: boolean }>()
@@ -22,6 +23,9 @@ const {
 } = useCommercialPriorities(tenantId, enabled)
 
 const opportunitiesExpanded = ref(false)
+const radarItems = computed(() => summary.value ? buildCommercialRadar(summary.value.items, summary.value.renewals.items, props.tenantId) : [])
+const urgentCount = computed(() => radarItems.value.filter(item => item.priority === 'urgent').length)
+const highCount = computed(() => radarItems.value.filter(item => item.priority === 'high').length)
 
 const opportunityPending = computed(
   () => summary.value?.items.filter((item) => !item.acknowledged).length ?? 0,
@@ -73,6 +77,31 @@ const pending = computed(
     <p v-if="loading" class="py-6 text-sm text-slate-500">Carregando prioridades...</p>
 
     <template v-else-if="summary">
+      <section aria-label="Radar comercial" class="rounded-xl border border-stone-200 bg-stone-50 p-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">Radar comercial · próximas ações</h3>
+            <p class="mt-1 text-xs text-slate-500">Priorização por vencimento, baseada nas oportunidades e renovações disponíveis para seu perfil.</p>
+          </div>
+          <span class="text-xs font-semibold text-slate-600">{{ urgentCount }} urgente(s) · {{ highCount }} alta prioridade</span>
+        </div>
+        <div v-if="radarItems.length" class="mt-3 space-y-2">
+          <RouterLink v-for="item in radarItems.slice(0, 5)" :key="item.key" :to="item.href"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white p-3 transition hover:border-orange-300 focus-visible:outline-2 focus-visible:outline-orange-600">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-slate-900">{{ item.title }}</p>
+              <p class="mt-1 text-xs text-slate-500">{{ item.detail }} · {{ item.reason }}</p>
+            </div>
+            <span class="rounded-lg px-2 py-1 text-xs font-semibold"
+              :class="item.priority === 'urgent' ? 'bg-rose-50 text-rose-700' : item.priority === 'high' ? 'bg-amber-50 text-amber-800' : 'bg-sky-50 text-sky-700'">
+              {{ item.priority === 'urgent' ? 'Urgente' : item.priority === 'high' ? 'Alta' : 'Acompanhar' }}
+            </span>
+          </RouterLink>
+          <p v-if="radarItems.length > 5" class="text-xs text-slate-500">Exibindo as 5 primeiras de {{ radarItems.length }} prioridades.</p>
+        </div>
+        <p v-else class="mt-3 text-sm text-slate-500">Nenhuma prioridade pendente de revisão no momento.</p>
+      </section>
+
       <div class="grid gap-3 sm:grid-cols-3">
         <div class="rounded-xl bg-stone-50 p-4">
           <p class="text-xs text-slate-500">Linhas para fechar</p>
