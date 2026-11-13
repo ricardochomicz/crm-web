@@ -10,6 +10,7 @@ import { useOpportunityReferenceData } from './useOpportunityReferenceData'
 import { useOpportunityCommercialActions } from './useOpportunityCommercialActions'
 import { useOpportunityStageMovement } from './useOpportunityStageMovement'
 import { useOpportunityListFilters } from './useOpportunityListFilters'
+import { useOpportunityDialogState } from './useOpportunityDialogState'
 import { displayOpportunityOrderType, formatOpportunityMoney } from '../utils/opportunityDisplay'
 
 export function useOpportunitiesPage() {
@@ -41,8 +42,6 @@ const { movingId, moveStage } = useOpportunityStageMovement({
   tenantId, canEdit, stages, items: kanbanRows, pagination: stagePagination,
   updateTotal: value => { total.value = value },
 })
-const dialogTab = ref<'details' | 'history'>('details')
-const dialogOpen = ref(false)
 const {
   recoveringId, recoverCandidate, askRecover, recover, resendCandidate, askResendToBackoffice, resendToBackoffice,
   confirmingSale, saleCandidate, askConfirmSale, confirmSale,
@@ -53,7 +52,6 @@ const {
   refreshOverview: () => { void commercialOverview.value?.refresh() },
   switchToOpen: () => switchSection('open'),
 })
-const editing = ref<Opportunity | null>(null)
 let version = 0
 async function load() {
   ++version
@@ -92,17 +90,11 @@ async function setup() {
     error.value = errorMessage(e)
   }
 }
-async function open(item: Opportunity | null = null, tab: 'details' | 'history' = 'details') {
-  dialogTab.value = tab
-  if (item) {
-    try {
-      const detail = await opportunitiesApi.show(tenantId.value, item.id)
-      editing.value = detail.data
-    } catch (e) { toast.error(errorMessage(e)); return }
-  } else editing.value = null
-  dialogOpen.value = true
-}
-function saved() { dialogOpen.value = false; toast.success('Oportunidade salva.'); reload(); void commercialOverview.value?.refresh() }
+const { dialogTab, dialogOpen, editing, open, saved } = useOpportunityDialogState({
+  tenantId,
+  reload: () => reload(),
+  refreshOverview: () => { void commercialOverview.value?.refresh() },
+})
 async function refreshRowsSilently(id: string, current: number) {
   const params = { ...applied.value, page: page.value }
   if (viewMode.value === 'list') {
