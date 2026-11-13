@@ -19,8 +19,11 @@ export function useSubscriptionUpgrade(
   const available = computed(() => plans.value.filter((plan) =>
     plan.id !== subscription.value?.plan.id &&
     plan.user_limit > (subscription.value?.limits.users ?? 0) &&
-    plan.storage_limit_mb >= (subscription.value?.limits.storage_mb ?? 0),
+    plan.storage_limit_mb >= (subscription.value?.limits.storage_mb ?? 0) &&
+    plan.currency === subscription.value?.currency &&
+    Number(plan.monthly_price) > Number(subscription.value?.monthly_price ?? 0),
   ))
+  const canUpgrade = computed(() => ['ACTIVE', 'TRIALING'].includes(subscription.value?.status ?? ''))
   const selected = computed(() => available.value.find((plan) => plan.id === selectedPlanId.value))
   const options = computed(() => available.value.map((plan) => ({
     value: plan.id,
@@ -50,7 +53,7 @@ export function useSubscriptionUpgrade(
   }
 
   async function confirm() {
-    if (!selected.value || saving.value) return
+    if (!canUpgrade.value || !selected.value || saving.value) return
     saving.value = true
     error.value = ''
     try {
@@ -71,5 +74,5 @@ export function useSubscriptionUpgrade(
     selectedPlanId.value = ''
   })
 
-  return { open, loading, saving, error, selectedPlanId, selected, options, available, show, close, confirm }
+  return { open, loading, saving, error, selectedPlanId, selected, options, available, canUpgrade, show, close, confirm }
 }
