@@ -8,7 +8,7 @@ import type { OrderType } from '@/features/order-types/api'
 const props = defineProps<{
   open: boolean
   orderTypes: OrderType[]
-  planOptions: { id: string | number; name: string }[]
+  planOptions: { id: string; name: string }[]
   typeId: string
   productId: string
   quantity: number
