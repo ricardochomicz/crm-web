@@ -59,6 +59,7 @@ const priorities: { value: EventPriority; label: string }[] = [
         @update:model-value="emit('update:type', String($event) as EventType)"
       />
     </label>
+    <slot name="schedule" />
     <div class="grid gap-4 sm:grid-cols-2">
       <label class="block space-y-2 text-sm font-semibold text-slate-700">
         Situação
