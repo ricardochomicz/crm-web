@@ -24,11 +24,12 @@ import { useOpportunityDialogClients } from '../composables/useOpportunityDialog
 import { useOpportunityFormState } from '../composables/useOpportunityFormState'
 import OpportunityLinesSection from './OpportunityLinesSection.vue'
 import OpportunityBatchImportDialog from './OpportunityBatchImportDialog.vue'
+import OpportunityDialogTabs, { type OpportunityDialogTab } from './OpportunityDialogTabs.vue'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
-const activeTab = ref<'details' | 'documents' | 'history' | 'comparison' | 'appointments' | 'proposal'>('details')
+const activeTab = ref<OpportunityDialogTab>('details')
 const { viewerTenant, showResponsible, canCreateClient } = useOpportunityDialogPermissions(
   computed(() => props.open),
   computed(() => props.tenantId),
@@ -90,14 +91,7 @@ watch(() => [props.open, props.opportunity] as const, () => {
   <AppDialog :open="open" :title="opportunity ? 'Editar oportunidade' : 'Nova oportunidade'"
     description="Organize a negociação, seus serviços e valores." :busy="busy" size="full" @close="emit('close')">
     <div v-if="opportunity && showResponsible" class="mb-3 flex items-center gap-2 text-sm text-slate-600"><span class="font-medium">Consultor responsável:</span><span class="font-semibold text-slate-900">{{ opportunity.assignee?.user?.name || "Não atribuído" }}</span></div>
-    <div v-if="opportunity" class="mb-5 flex gap-2 border-b border-stone-200 pb-3">
-        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'details' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'details'">Dados da oportunidade</button>
-        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'documents' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'documents'">Anexos do Cliente</button>
-        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'history' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'history'">Histórico</button>
-        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'appointments' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'appointments'">Agendamentos</button>
-        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'comparison' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'comparison'">Comparativo de operadoras</button>
-        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="activeTab === 'proposal' ? 'bg-orange-50 text-orange-700' : 'text-slate-600'" @click="activeTab = 'proposal'">Proposta comercial</button>
-    </div>
+    <OpportunityDialogTabs v-if="opportunity" v-model="activeTab" />
     <OpportunityProposalPanel v-if="open && opportunity && activeTab === 'proposal'" :opportunity="opportunity" :tenant-id="tenantId" :company-name="viewerTenant?.name ?? 'Empresa'" />
     <ClientDocumentsPanel v-if="open && opportunity && activeTab === 'documents'" :tenant-id="tenantId" :client-id="opportunity.client_id" :can-upload="!!viewerTenant?.access?.permissions.includes('clients.update')" />
     <OpportunityAppointmentsPanel v-if="open && opportunity && activeTab === 'appointments'" :tenant-id="tenantId" :opportunity-id="opportunity.id" :client-id="opportunity.client_id" :title="opportunity.title" />
