@@ -1,6 +1,6 @@
 import { onMounted, onUnmounted, watch, type Ref } from 'vue'
 import { opportunitiesApi, type FunnelStage } from '../api'
-import { subscribeOrders } from '@/services/realtime/orders'
+import { subscribeOrders, subscribeCommercialRealtime } from '@/services/realtime/orders'
 
 type SyncContext = {
   tenantId: Readonly<Ref<string>>
@@ -16,6 +16,7 @@ type SyncContext = {
 
 export function useOpportunityRealtimeSync(context: SyncContext) {
   let unsubscribe: (() => void) | undefined
+  let unsubscribeCommercial: (() => void) | undefined
   let timer: ReturnType<typeof setInterval> | undefined
   let refreshing = false
   let mounted = false
@@ -53,6 +54,8 @@ export function useOpportunityRealtimeSync(context: SyncContext) {
     ++refreshGeneration
     if (!mounted) return
     unsubscribe?.()
+    unsubscribeCommercial?.()
+    unsubscribeCommercial = subscribeCommercialRealtime(context.tenantId.value, () => { void refresh() })
     unsubscribe = subscribeOrders(context.tenantId.value, () => { void refresh() })
   }
 
@@ -67,6 +70,8 @@ export function useOpportunityRealtimeSync(context: SyncContext) {
     mounted = false
     ++refreshGeneration
     unsubscribe?.()
+    unsubscribeCommercial?.()
+    unsubscribeCommercial = undefined
     unsubscribe = undefined
     if (timer) clearInterval(timer)
     window.removeEventListener('focus', refresh)
