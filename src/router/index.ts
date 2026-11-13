@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/features/auth/store'
 import { authDestination } from '@/features/auth/navigation'
+import { startPageProgress, finishPageProgress } from '@/services/pageProgress'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   scrollBehavior: () => ({ top: 0 }),
@@ -190,6 +191,7 @@ const router = createRouter({
   ],
 })
 router.beforeEach(async (to) => {
+  startPageProgress('navigation')
   const auth = useAuthStore()
   try {
     await auth.initialize()
@@ -202,5 +204,7 @@ router.beforeEach(async (to) => {
 })
 router.afterEach((to) => {
   document.title = `${String(to.meta.title ?? 'CRM')} · TelecomHub`
+  finishPageProgress('navigation')
 })
+router.onError(() => finishPageProgress('navigation'))
 export default router
