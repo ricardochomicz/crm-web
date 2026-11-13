@@ -38,6 +38,7 @@ export function useClientForm({
   const form = ref<ClientInput>(blank())
   const editing = ref('')
   const modal = ref(false)
+  const saving = ref(false)
   const validationState = useFormValidation<keyof ClientInput>()
 
   const {
@@ -101,8 +102,17 @@ export function useClientForm({
   }
 
   async function save() {
-    if (busy.value) return
+    if (busy.value || saving.value) return
+    saving.value = true
 
+    try {
+      await persistClient()
+    } finally {
+      saving.value = false
+    }
+  }
+
+  async function persistClient() {
     validationState.clear()
     const validation = validateClient(form.value)
     if (Object.keys(validation).length) {
@@ -155,7 +165,7 @@ export function useClientForm({
       }
 
       await reloadClients()
-      if (selected.value?.id === response.data.id) {
+      if (!pendingContactClientId.value && selected.value?.id === response.data.id) {
         await showDetails(response.data.id)
       }
     } catch (error) {
@@ -176,6 +186,7 @@ export function useClientForm({
     form,
     editing,
     modal,
+    saving,
     validationState,
     classesForOperator,
     duplicate,
