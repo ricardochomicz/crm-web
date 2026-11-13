@@ -18,13 +18,13 @@ import type { Opportunity, OpportunityInput } from '../api'
 import type { OrderType } from '@/features/order-types/api'
 import type { Product } from '@/features/products/api'
 import type { TenantOperator } from '@/features/operators/api'
-import { clientsApi, type Client } from '@/features/clients/api'
+import type { Client } from '@/features/clients/api'
 import { useOpportunityDialogPermissions } from '../composables/useOpportunityDialogPermissions'
 import { useOpportunityLineSelection } from '../composables/useOpportunityLineSelection'
 import { useOpportunityBatchImport } from '../composables/useOpportunityBatchImport'
 import { useOpportunityFormSubmission } from '../composables/useOpportunityFormSubmission'
+import { useOpportunityDialogClients } from '../composables/useOpportunityDialogClients'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
-import type { Contact } from '@/features/clients/api'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
@@ -33,18 +33,6 @@ const { viewerTenant, showResponsible, canCreateClient } = useOpportunityDialogP
   computed(() => props.open),
   computed(() => props.tenantId),
 )
-const clientContacts = ref<Contact[]>([])
-const loadingClientContacts = ref(false)
-let contactRequestVersion = 0
-
-const quickClientOpen = ref(false)
-const availableClients = ref<Client[]>([])
-watch(() => [props.open, props.clients] as const, () => { if (props.open) availableClients.value = [...props.clients] }, { immediate: true })
-function onClientCreated(client: Client) {
-  availableClients.value = [...availableClients.value.filter(item => item.id !== client.id), client]
-  form.value.client_id = client.id
-  quickClientOpen.value = false
-}
 const filteredProducts = computed(() => props.products.filter(p => p.is_active && Number(p.operator_id) === Number(form.value.operator_id)))
 const operatorOptions = computed(() => props.operators.map(operator => ({ id: operator.id, name: operator.name })))
 const activePlanOptions = computed(() => filteredProducts.value.map(p => ({
@@ -55,6 +43,13 @@ const maxItems = MAX_OPPORTUNITY_ITEMS
 const lineCount = computed(() => opportunityLineCount(form.value.items))
 const blank = blankOpportunity
 const form = ref<OpportunityInput>(blank())
+const { availableClients, clientContacts, loadingClientContacts, quickClientOpen, onClientCreated } =
+  useOpportunityDialogClients(
+    computed(() => props.open),
+    computed(() => props.tenantId),
+    computed(() => props.clients),
+    form,
+  )
 const {
   editingLineIndex, selectedLineIndices, lineSearch, filteredLineIndices, showBulkEdit,
   allSelected, selectedItems, editingLine, otherNumbers,
@@ -72,21 +67,6 @@ const { busy, error, save } = useOpportunityFormSubmission({
   orderTypes: computed(() => props.orderTypes),
   filteredProducts,
   onSaved: () => emit('saved'),
-})
-watch(() => [props.open, props.tenantId, form.value.client_id] as const, async ([isOpen, tenantId, clientId]) => {
-  const current = ++contactRequestVersion
-  clientContacts.value = []
-  loadingClientContacts.value = false
-  if (!isOpen || !clientId) return
-  loadingClientContacts.value = true
-  try {
-    const result = await clientsApi.show(tenantId, clientId)
-    if (current === contactRequestVersion) clientContacts.value = result.data.contacts ?? []
-  } catch {
-    if (current === contactRequestVersion) clientContacts.value = []
-  } finally {
-    if (current === contactRequestVersion) loadingClientContacts.value = false
-  }
 })
 const totalMonthly = computed(() => opportunityTotal(form.value.items, 'monthly_unit_amount'))
 const totalOnce = computed(() => opportunityTotal(form.value.items, 'one_time_unit_amount'))
