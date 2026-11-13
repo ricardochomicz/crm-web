@@ -12,7 +12,7 @@ export type CommercialRadarItem = {
 
 export type CommercialRadarResponse = {
   items: CommercialRadarItem[]
-  summary: { total: number; urgent: number; high: number }
+  summary: { total: number; urgent: number; high: number; by_type: { opportunity: number; activity: number; order: number } }
 }
 
 export type CommercialRadarMember = { id: string; name: string }
@@ -22,8 +22,8 @@ export const radarApi = {
     request<{ data: CommercialRadarMember[] }>(
       '/api/v1/tenants/' + encodeURIComponent(tenantId) + '/commercial-radar/members',
     ),
-  list: (tenantId: string, memberId = '') =>
+  list: (tenantId: string, memberId = '', scope: 'mine' | 'team' = 'mine') =>
     request<{ data: CommercialRadarResponse }>(
-      '/api/v1/tenants/' + encodeURIComponent(tenantId) + '/commercial-radar' + (memberId ? '?member_id=' + encodeURIComponent(memberId) : ''),
+      '/api/v1/tenants/' + encodeURIComponent(tenantId) + '/commercial-radar' + (scope === 'team' ? '?scope=team' : memberId ? '?member_id=' + encodeURIComponent(memberId) : ''),
     ),
 }
