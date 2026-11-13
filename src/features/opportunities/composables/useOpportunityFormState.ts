@@ -4,7 +4,6 @@ import type { TenantOperator } from '@/features/operators/api'
 import { blankOpportunity } from '../utils/opportunityForm'
 
 interface Dependencies {
-  opportunity: Readonly<Ref<Opportunity | null>>
   operators: Readonly<Ref<TenantOperator[]>>
   onOperatorChanged: () => void
   confirmOperatorChange: () => boolean
