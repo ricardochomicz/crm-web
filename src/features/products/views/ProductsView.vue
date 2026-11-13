@@ -5,7 +5,7 @@ import ListTable from '@/components/ui/ListTable.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
-import ListFilters from '@/components/ui/ListFilters.vue'
+import ProductsListFilters from '../components/ProductsListFilters.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import { useProductsPage } from '../composables/useProductsPage'
@@ -78,48 +78,10 @@ const {
     </header>
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
     <template v-if="!loading && !error">
-      <ListFilters
-        :busy="filtersLoading"
-        :count-label="`${totalProducts} produto(s) encontrado(s)`"
-        @search="applyFilters"
-        @clear="clearFilters"
-      >
-        <label class="text-xs font-semibold text-slate-600"
-          >Buscar por nome
-          <input v-model="nameFilter" type="search" placeholder="Nome do produto" class="field" />
-        </label>
-        <label class="text-xs font-semibold text-slate-600"
-          >Operadora
-          <SearchSelect
-            v-model="operatorFilter"
-            :options="[
-              { value: '', label: 'Todas as operadoras' },
-              ...operators.map((o) => ({ value: String(o.id), label: o.name })),
-            ]"
-          />
-        </label>
-        <label class="text-xs font-semibold text-slate-600"
-          >Categoria
-          <SearchSelect
-            v-model="categoryFilter"
-            :options="[
-              { value: '', label: 'Todas as categorias' },
-              ...categories.map((c) => ({ value: c[0]!, label: c[1]! })),
-            ]"
-          />
-        </label>
-        <label class="text-xs font-semibold text-slate-600"
-          >Situação
-          <SearchSelect
-            v-model="statusFilter"
-            :options="[
-              { value: '', label: 'Todos' },
-              { value: 'active', label: 'Ativos' },
-              { value: 'inactive', label: 'Inativos' },
-            ]"
-          />
-        </label>
-      </ListFilters>
+      <ProductsListFilters v-model:name="nameFilter" v-model:operator="operatorFilter"
+        v-model:category="categoryFilter" v-model:status="statusFilter"
+        :total="totalProducts" :busy="filtersLoading" :operators="operators" :categories="categories"
+        @search="applyFilters" @clear="clearFilters" />
       <section class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
         <ListTable min-width="760px">
           <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
