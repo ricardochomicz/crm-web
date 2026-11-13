@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { timelineApi, type TimelineAttachment, type TimelineComment, type TimelineType } from '../api'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
+import { formatDatesInText } from '../utils/formatDatesInText'
 
 const props = defineProps<{
     tenantId: string
@@ -174,7 +175,7 @@ function formatted(date: string) {
                         <button type="button" class="secondary-button w-auto" @click="editingId = null">Cancelar</button>
                     </div>
                 </template>
-                <p v-else class="whitespace-pre-wrap break-words text-sm text-slate-700">{{ comment.content }}</p>
+                <p v-else class="whitespace-pre-wrap break-words text-sm text-slate-700">{{ formatDatesInText(comment.content) }}</p>
                 <div v-if="comment.attachments?.length" class="flex flex-wrap gap-2">
                     <button v-for="file in comment.attachments" :key="file.id" type="button" class="rounded-lg border border-stone-200 px-3 py-2 text-xs text-blue-700 hover:bg-blue-50" @click="download(file)">
                         📎 {{ file.original_name }}
