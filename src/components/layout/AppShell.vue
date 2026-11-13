@@ -2,6 +2,9 @@
 import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppNavigation from './AppNavigation.vue'
+import GlobalSearchTrigger from '@/features/global-search/components/GlobalSearchTrigger.vue'
+import GlobalSearchDialog from '@/features/global-search/components/GlobalSearchDialog.vue'
+import { useGlobalSearchShortcut } from '@/features/global-search/composables/useGlobalSearchShortcut'
 import NotificationBell from '@/features/calendar/components/NotificationBell.vue'
 import { can } from '@/features/tenants/types'
 import type { Tenant } from '@/features/tenants/types'
@@ -17,6 +20,8 @@ const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const menuOpen = ref(false)
+const globalSearchOpen = ref(false)
+useGlobalSearchShortcut(() => { if (route.params.tenantId) globalSearchOpen.value = true })
 const wideLayout = ref(true)
 const layoutPreferenceKey = 'crm:layout-width'
 onMounted(() => {
@@ -38,6 +43,7 @@ watch(
   () => route.fullPath,
   () => {
     menuOpen.value = false
+    globalSearchOpen.value = false
   },
 )
 const busy = ref(false)
@@ -87,6 +93,7 @@ async function logout() {
           <p class="mt-1 text-sm font-semibold text-slate-700">{{ title }}</p>
         </div>
         <div class="flex items-center gap-3">
+          <GlobalSearchTrigger v-if="tenant" @click="globalSearchOpen = true" />
           <NotificationBell v-if="tenant && can(tenant, 'calendar.view')" :tenant-id="tenant.id" />
           <RouterLink v-if="tenant?.role !== 'CONSULTANT'" to="/empresas" class="hidden min-w-0 items-center gap-3 rounded-xl border border-stone-200 px-3 py-2 text-left transition hover:border-orange-300 hover:bg-orange-50 sm:flex" aria-label="Selecionar ou trocar empresa">
             <span class="min-w-0"><span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Empresa atual</span><span class="block max-w-48 truncate text-xs font-semibold text-slate-800">{{ tenant?.name ?? 'Minhas empresas' }}</span></span>
@@ -131,6 +138,7 @@ async function logout() {
         </button>
       </nav>
     </header>
+    <GlobalSearchDialog v-if="tenant" :open="globalSearchOpen" :tenant-id="tenant.id" @close="globalSearchOpen = false" />
     <main id="main-content" class="mx-auto w-full px-5 py-8 transition-[max-width] duration-200 sm:px-9 sm:py-11" :class="wideLayout ? 'max-w-[1920px]' : 'max-w-7xl'">
       <p v-if="error" role="alert" class="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-800">
         {{ error }} <button class="underline" @click="logout">Tentar novamente</button>
