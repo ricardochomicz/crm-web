@@ -4,7 +4,7 @@ import AppCheckbox from '@/components/ui/AppCheckbox.vue'
 import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
 import AppCurrencyField from '@/components/ui/AppCurrencyField.vue'
 import { computed, ref, watch } from 'vue'
-import { blankOpportunity, opportunityLineCount, opportunityTotal, MAX_OPPORTUNITY_ITEMS } from '../utils/opportunityForm'
+import { opportunityLineCount, opportunityTotal, MAX_OPPORTUNITY_ITEMS } from '../utils/opportunityForm'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import OpportunityDetailsForm from './OpportunityDetailsForm.vue'
 import OpportunityReceipt from './OpportunityReceipt.vue'
@@ -24,6 +24,7 @@ import { useOpportunityLineSelection } from '../composables/useOpportunityLineSe
 import { useOpportunityBatchImport } from '../composables/useOpportunityBatchImport'
 import { useOpportunityFormSubmission } from '../composables/useOpportunityFormSubmission'
 import { useOpportunityDialogClients } from '../composables/useOpportunityDialogClients'
+import { useOpportunityFormState } from '../composables/useOpportunityFormState'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
@@ -41,8 +42,15 @@ const activePlanOptions = computed(() => filteredProducts.value.map(p => ({
 const typeName = (id: string) => props.orderTypes.find(type => type.id === id)?.name ?? 'Tipo anterior'
 const maxItems = MAX_OPPORTUNITY_ITEMS
 const lineCount = computed(() => opportunityLineCount(form.value.items))
-const blank = blankOpportunity
-const form = ref<OpportunityInput>(blank())
+const { form, changeOperator, initialize } = useOpportunityFormState({
+  opportunity: computed(() => props.opportunity),
+  operators: computed(() => props.operators),
+  onOperatorChanged: () => {
+    selectedLineIndices.value = []
+    batchProductId.value = ''
+  },
+  confirmOperatorChange: () => window.confirm('Alterar a operadora removerá as linhas e planos da oportunidade. Deseja continuar?'),
+})
 const { availableClients, clientContacts, loadingClientContacts, quickClientOpen, onClientCreated } =
   useOpportunityDialogClients(
     computed(() => props.open),
@@ -70,35 +78,14 @@ const { busy, error, save } = useOpportunityFormSubmission({
 })
 const totalMonthly = computed(() => opportunityTotal(form.value.items, 'monthly_unit_amount'))
 const totalOnce = computed(() => opportunityTotal(form.value.items, 'one_time_unit_amount'))
-function generateCode(): string {
-  const now = new Date()
-  const stamp = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0'), String(now.getHours()).padStart(2, '0'), String(now.getMinutes()).padStart(2, '0'), String(now.getSeconds()).padStart(2, '0')].join('')
-  return 'OP-' + stamp + '-' + Math.random().toString(36).slice(2, 6).toUpperCase()
-}
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-function changeOperator(id: number | null) {
-  if (id === form.value.operator_id) return
-  if (form.value.items.length && !window.confirm('Alterar a operadora removerá as linhas e planos da oportunidade. Deseja continuar?')) return
-  form.value.items = []
-  selectedLineIndices.value = []
-  batchProductId.value = ''
-  form.value.operator_id = id
-}
 watch(() => [props.open, props.opportunity] as const, () => {
   if (!props.open) return
   activeTab.value = props.opportunity ? (props.initialTab ?? 'details') : 'details'
   error.value = ''
   showImport.value = false
   resetSelection()
-  form.value = props.opportunity ? {
-    code: props.opportunity.code, title: props.opportunity.title,
-    client_id: props.opportunity.client_id, order_type_id: props.opportunity.order_type_id ?? '', operator_id: props.opportunity.operator_id,
-    description: props.opportunity.description,
-    expected_close_at: props.opportunity.expected_close_at?.slice(0, 10) ?? null,
-    estimated_monthly_amount: Number(props.opportunity.estimated_monthly_amount),
-    estimated_one_time_amount: Number(props.opportunity.estimated_one_time_amount),
-    items: (props.opportunity.items ?? []).map(item => ({ ...item, quantity: Number(item.quantity), monthly_unit_amount: Number(item.monthly_unit_amount), one_time_unit_amount: Number(item.one_time_unit_amount) })),
-  } : { ...blank(), code: generateCode(), operator_id: operatorOptions.value.length === 1 ? operatorOptions.value[0]!.id : null }
+  initialize(props.opportunity)
 }, { immediate: true })
 </script>
 <template>
