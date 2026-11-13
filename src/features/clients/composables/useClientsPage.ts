@@ -1,5 +1,5 @@
 import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { toast } from '@/services/toast'
 import { useClientContacts } from './useClientContacts'
 import { useClientForm } from './useClientForm'
@@ -12,6 +12,7 @@ import { can } from '@/features/tenants/types'
 import { clientsApi, type Client } from '../api'
 
 export function useClientsPage() {
+  const router = useRouter()
   const route = useRoute(),
     tenantId = computed(() => String(route.params.tenantId))
   const {
@@ -164,6 +165,26 @@ export function useClientsPage() {
     },
     { immediate: true },
   )
+
+  // The global search opens client details through a stable URL, even if the
+  // client is not on the current page of the list.
+  let clientLinkVersion = 0
+  watch([tenantId, () => route.query.cliente], async ([tenant, clientId]) => {
+    const version = ++clientLinkVersion
+    if (typeof clientId !== 'string' || !clientId || !tenant) return
+    try {
+      const loaded = await details(clientId)
+      if (version !== clientLinkVersion || !loaded) return
+    } catch {
+      // useClientDetails handles errors for inaccessible or missing clients.
+    }
+  }, { immediate: true })
+
+  watch(selected, value => {
+    if (value || !route.query.cliente) return
+    const { cliente: _ignored, ...query } = route.query
+    void router.replace({ query })
+  })
 
   function onActivitySaved() {
     activityClient.value = null
