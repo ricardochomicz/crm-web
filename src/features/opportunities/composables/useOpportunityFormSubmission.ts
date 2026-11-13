@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import { publishOpportunityChanged } from '../opportunityEvents'
 import { opportunitiesApi, type Opportunity, type OpportunityInput } from '../api'
 import type { OrderType } from '@/features/order-types/api'
 import type { Product } from '@/features/products/api'
@@ -66,6 +67,7 @@ export function useOpportunityFormSubmission(deps: Dependencies) {
       const opportunity = deps.opportunity.value
       if (opportunity) await opportunitiesApi.update(deps.tenantId.value, opportunity.id, payload)
       else await opportunitiesApi.create(deps.tenantId.value, payload)
+      publishOpportunityChanged(deps.tenantId.value)
       deps.onSaved()
     } catch (e) {
       error.value = errorMessage(e)
