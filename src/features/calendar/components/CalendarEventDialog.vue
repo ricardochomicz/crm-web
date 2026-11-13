@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, toRef } from 'vue'
+import { computed, watch, toRef } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import CalendarAssigneeField from './CalendarAssigneeField.vue'
@@ -9,13 +9,24 @@ import FormField from '@/components/ui/FormField.vue'
 import FormActions from '@/components/ui/FormActions.vue'
 import { useCalendarEventMutation } from '../composables/useCalendarEventMutation'
 import { useCalendarEventOptions } from '../composables/useCalendarEventOptions'
-import { emptyCalendarForm, localInput } from '../utils/calendarForm'
-import type { CalendarEvent, CalendarEventInput, EventType } from '../types'
+import { useCalendarEventForm } from '../composables/useCalendarEventForm'
+import type { CalendarEvent, EventType } from '../types'
 
 const props = defineProps<{ open: boolean; tenantId: string; event: CalendarEvent | null; date: string; canWrite: boolean; canDelete: boolean; opportunityId?: string; clientId?: string; opportunityTitle?: string; defaultType?: EventType; defaultAssigneeId?: string; initialTitle?: string; protocolId?: string }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
-const lockedLink = computed(() => !!props.opportunityId || !!props.clientId)
-const form = ref<CalendarEventInput>(emptyCalendarForm(''))
+const { form, title, lockedLink, changeClient } = useCalendarEventForm({
+  open: toRef(props, 'open'),
+  tenantId: toRef(props, 'tenantId'),
+  event: toRef(props, 'event'),
+  date: toRef(props, 'date'),
+  opportunityId: toRef(props, 'opportunityId'),
+  clientId: toRef(props, 'clientId'),
+  opportunityTitle: toRef(props, 'opportunityTitle'),
+  defaultType: toRef(props, 'defaultType'),
+  defaultAssigneeId: toRef(props, 'defaultAssigneeId'),
+  initialTitle: toRef(props, 'initialTitle'),
+  protocolId: toRef(props, 'protocolId'),
+})
 const { busy, error, save, remove } = useCalendarEventMutation({
   tenantId: toRef(props, 'tenantId'),
   event: toRef(props, 'event'),
@@ -41,12 +52,6 @@ const {
   clientId: computed(() => form.value.client_id),
 })
 
-function changeClient(value: string | number) {
-  form.value.client_id = String(value || '') || null
-  form.value.opportunity_id = null
-  if (!props.protocolId) form.value.protocol_id = null
-}
-
 const types: { value: EventType; label: string }[] = [
   { value: 'meeting', label: 'Reunião' }, { value: 'call', label: 'Ligação' },
   { value: 'visit', label: 'Visita' }, { value: 'task', label: 'Tarefa' },
@@ -54,22 +59,14 @@ const types: { value: EventType; label: string }[] = [
 ]
 const statuses = [{ value: 'pending', label: 'Pendente' }, { value: 'completed', label: 'Concluído' }, { value: 'cancelled', label: 'Cancelado' }]
 const priorities = [{ value: 'low', label: 'Baixa' }, { value: 'normal', label: 'Normal' }, { value: 'high', label: 'Alta' }]
-watch(() => [props.open, props.event, props.date] as const, () => {
-  if (!props.open) return
-  error.value = ''
-  clearOptionsError()
-  form.value = props.event
-    ? { title: props.event.title, description: props.event.description, type: props.event.type,
-        status: props.event.status, priority: props.event.priority, all_day: props.event.all_day,
-        starts_at: localInput(props.event.starts_at), ends_at: localInput(props.event.ends_at),
-        opportunity_id: props.event.opportunity_id, client_id: props.event.client_id, protocol_id: props.event.protocol_id ?? null, tenant_user_id: props.event.tenant_user_id }
-    : { ...emptyCalendarForm(props.date), type: props.defaultType ?? ('' as EventType), opportunity_id: props.opportunityId ?? null,
-        client_id: props.clientId ?? null,
-        tenant_user_id: props.defaultAssigneeId ?? null,
-        protocol_id: props.protocolId ?? null,
-        title: props.initialTitle ?? (props.opportunityTitle ? `Contato: ${props.opportunityTitle}` : '') }
-}, { immediate: true })
-const title = computed(() => props.event ? 'Editar compromisso' : 'Novo compromisso')
+watch(
+  () => [props.open, props.tenantId, props.event, props.date] as const,
+  () => {
+    if (!props.open) return
+    error.value = ''
+    clearOptionsError()
+  },
+)
 </script>
 <template>
   <AppDialog :open="open" :title="title" description="Organize suas atividades e compromissos." :busy="busy" @close="emit('close')">
