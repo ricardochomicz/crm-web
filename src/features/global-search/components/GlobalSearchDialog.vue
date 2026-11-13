@@ -26,6 +26,15 @@ const categories: { key: GlobalSearchCategory | 'all'; label: string }[] = [
   { key: 'opportunities', label: 'Oportunidades' },
   { key: 'orders', label: 'Pedidos' },
 ]
+const filterOptions = computed(() => categories.map(entry => ({
+  value: entry.key,
+  label: entry.label,
+  count: entry.key !== 'all' && query.value.trim().length >= 2 ? results.value[entry.key].length : undefined,
+})))
+function updateCategory(value: string) {
+  if (categories.some(entry => entry.key === value)) category.value = value as GlobalSearchCategory | 'all'
+  input.value?.focus()
+}
 const visibleRecent = computed(() => category.value === 'all' ? recent.value : recent.value.filter(item => item.type === category.value))
 const visibleCategories = computed(() => categories.filter(
   entry => entry.key !== 'all' && (category.value === 'all' || category.value === entry.key),
@@ -56,12 +65,7 @@ function choose(item: GlobalSearchItem) {
         :aria-activedescendant="items[active] && !loading ? optionId(items[active]!) : undefined"
         @keydown="keydown($event, choose)" />
       <AppFilterChips :model-value="category" label="Filtrar resultados por módulo"
-        :options="categories.map(entry => ({
-          value: entry.key,
-          label: entry.label,
-          count: entry.key !== 'all' && query.trim().length >= 2 ? results[entry.key as GlobalSearchCategory].length : undefined,
-        }))"
-        @update:model-value="category = $event as GlobalSearchCategory | 'all'; input?.focus()" />
+        :options="filterOptions" @update:model-value="updateCategory" />
       <div v-if="query.trim().length < 2" class="space-y-2">
         <div v-if="visibleRecent.length" class="flex items-center justify-between gap-3">
           <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Acessados recentemente</h3>
