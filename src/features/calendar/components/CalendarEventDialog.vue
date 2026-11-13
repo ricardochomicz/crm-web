@@ -142,11 +142,17 @@ async function save() {
       if (form.value.starts_at !== localInput(props.event.starts_at)) changes.starts_at = form.value.starts_at
       if (form.value.ends_at !== localInput(props.event.ends_at)) changes.ends_at = form.value.ends_at
       await calendarApi.update(props.tenantId, props.event.id, changes)
-    } else await calendarApi.create(props.tenantId, {
-      ...form.value,
-      status: form.value.status || 'pending',
-      priority: form.value.priority || 'normal',
-    })
+    } else {
+      // When no assignee is selected, omit the field so the API assigns
+      // the authenticated tenant member (the "Eu (padrão)" option).
+      const { tenant_user_id, ...values } = form.value
+      await calendarApi.create(props.tenantId, {
+        ...values,
+        ...(tenant_user_id ? { tenant_user_id } : {}),
+        status: form.value.status || 'pending',
+        priority: form.value.priority || 'normal',
+      })
+    }
     emit('saved')
   } catch (e) { error.value = errorMessage(e) }
   finally { busy.value = false }
