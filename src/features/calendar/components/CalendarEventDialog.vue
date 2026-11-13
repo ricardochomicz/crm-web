@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import CalendarAssigneeField from './CalendarAssigneeField.vue'
+import CalendarEventLinks from './CalendarEventLinks.vue'
 import FormField from '@/components/ui/FormField.vue'
 import FormActions from '@/components/ui/FormActions.vue'
 import { calendarApi } from '../api'
@@ -170,20 +171,20 @@ async function remove() {
   <AppDialog :open="open" :title="title" description="Organize suas atividades e compromissos." :busy="busy" @close="emit('close')">
     <form class="space-y-4" @submit.prevent="save">
       <fieldset :disabled="busy || !canWrite" class="space-y-4">
-        <div v-if="opportunityId || event?.opportunity_id || clientId || event?.client_id" class="space-y-1 rounded-lg bg-orange-50 p-3 text-sm text-orange-900">
-          <p class="font-semibold">Compromisso vinculado</p>
-          <p v-if="event?.client_name"><span class="font-medium">Cliente:</span> {{ event.client_name }}</p>
-          <p v-if="opportunityTitle || event?.opportunity_title"><span class="font-medium">Oportunidade:</span> {{ opportunityTitle || event?.opportunity_title }}</p>
-          <p v-if="!event?.client_name && !opportunityTitle && !event?.opportunity_title" class="text-orange-700">Vinculado ao cadastro do cliente ou à oportunidade.</p>
-        </div>
-        <label class="block space-y-2 text-sm font-semibold text-slate-700">Cliente (opcional)
-          <SearchSelect :model-value="form.client_id ?? ''" :options="clientOptions" placeholder="Selecione o cliente" :disabled="clientsLoading || lockedLink" @update:model-value="changeClient" />
-          <span v-if="clientsLoading" class="text-xs font-normal text-slate-500">Carregando clientes…</span>
-        </label>
-        <label class="block space-y-2 text-sm font-semibold text-slate-700">Oportunidade (opcional)
-          <SearchSelect  :model-value="form.opportunity_id ?? null" @update:model-value="value => form.opportunity_id = String(value || '') || null" :options="opportunityOptions" :placeholder="form.client_id ? 'Selecione a oportunidade' : 'Selecione primeiro um cliente'" :disabled="!form.client_id || opportunitiesLoading || lockedLink" />
-          <span v-if="opportunitiesLoading" class="text-xs font-normal text-slate-500">Carregando oportunidades…</span>
-        </label>
+        <CalendarEventLinks
+          :client-id="form.client_id"
+          :opportunity-id="form.opportunity_id"
+          :clients="clientOptions"
+          :opportunities="opportunityOptions"
+          :clients-loading="clientsLoading"
+          :opportunities-loading="opportunitiesLoading"
+          :locked="lockedLink"
+          :show-linked-notice="!!(opportunityId || event?.opportunity_id || clientId || event?.client_id)"
+          :linked-client-name="event?.client_name"
+          :linked-opportunity-title="opportunityTitle || event?.opportunity_title"
+          @update:client-id="changeClient"
+          @update:opportunity-id="value => form.opportunity_id = value"
+        />
         <CalendarAssigneeField
           v-model="form.tenant_user_id"
           :assignees="assignees"
