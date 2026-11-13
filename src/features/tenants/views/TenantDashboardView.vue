@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import DashboardMetricCard from '../components/DashboardMetricCard.vue'
 import ConsultantPrioritiesPanel from '@/features/commercial-priorities/components/ConsultantPrioritiesPanel.vue'
+import CommercialRadarPanel from '@/features/commercial-priorities/components/CommercialRadarPanel.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { useTenantDashboard } from '../composables/useTenantDashboard'
 import { opportunitiesApi, type CommercialOverview, type FunnelOverview } from '@/features/opportunities/api'
@@ -117,6 +118,8 @@ const attention = computed(() => overview.value ? [
           <button type="button" class="rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-slate-900 transition hover:bg-[#243154]" aria-label="Atualizar dashboard" @click="refresh">↻</button>
         </div>
       </header>
+
+      <CommercialRadarPanel :tenant-id="tenantId" :enabled="canSee" />
 
       <ConsultantPrioritiesPanel
         v-if="tenant.role === 'CONSULTANT' && canSee"
