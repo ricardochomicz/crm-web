@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import { publishOpportunityChanged } from '../opportunityEvents'
 import { opportunitiesApi, type FunnelStage, type Opportunity } from '../api'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
@@ -35,6 +36,7 @@ export function useOpportunityCommercialActions(context: ActionsContext) {
     recoveringId.value = item.id
     try {
       const result = await opportunitiesApi.recover(context.tenantId.value, item.id)
+      publishOpportunityChanged(context.tenantId.value)
       recoverCandidate.value = null
       toast.success(`Negociação recuperada: ${result.data.code}`)
       context.switchToOpen()
@@ -58,6 +60,7 @@ export function useOpportunityCommercialActions(context: ActionsContext) {
     context.movingId.value = item.id
     try {
       await opportunitiesApi.resendToBackoffice(context.tenantId.value, item.id)
+      publishOpportunityChanged(context.tenantId.value)
       resendCandidate.value = null
       toast.success('Pedido corrigido e reenviado ao Backoffice.')
       context.reload()
@@ -86,6 +89,7 @@ export function useOpportunityCommercialActions(context: ActionsContext) {
     markingLost.value = true
     try {
       await opportunitiesApi.markLost(context.tenantId.value, item.id, reason)
+      publishOpportunityChanged(context.tenantId.value)
       lostCandidate.value = null
       toast.success('Oportunidade marcada como perdida.')
       context.reload()
@@ -108,6 +112,7 @@ export function useOpportunityCommercialActions(context: ActionsContext) {
     confirmingSale.value = true
     try {
       await opportunitiesApi.confirmSale(context.tenantId.value, item.id)
+      publishOpportunityChanged(context.tenantId.value)
       saleCandidate.value = null
       toast.success('Venda confirmada. Pedido comercial criado.')
       context.reload()
