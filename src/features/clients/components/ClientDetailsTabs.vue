@@ -1,5 +1,5 @@
 <script setup lang="ts">
-export type ClientDetailsTab = 'data' | 'contacts' | 'contracts' | 'operators' | 'sellers' | 'history'
+type ClientDetailsTab = 'data' | 'contacts' | 'contracts' | 'operators' | 'sellers' | 'history'
 
 defineProps<{ modelValue: ClientDetailsTab }>()
 const emit = defineEmits<{ 'update:modelValue': [tab: ClientDetailsTab] }>()
