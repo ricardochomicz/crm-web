@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppDialog from '@/components/ui/AppDialog.vue'
+import AppFilterChips from '@/components/ui/AppFilterChips.vue'
 import GlobalSearchResult from './GlobalSearchResult.vue'
 import GlobalSearchStatus from './GlobalSearchStatus.vue'
 import { globalSearchDestination } from '../utils/globalSearchDestination'
@@ -54,15 +55,13 @@ function choose(item: GlobalSearchItem) {
         :aria-expanded="items.length > 0 && !loading" :aria-controls="listId"
         :aria-activedescendant="items[active] && !loading ? optionId(items[active]!) : undefined"
         @keydown="keydown($event, choose)" />
-      <div class="flex flex-wrap gap-2" role="group" aria-label="Filtrar resultados por módulo">
-        <button v-for="entry in categories" :key="entry.key" type="button"
-          class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-orange-600"
-          :class="category === entry.key ? 'border-orange-500 bg-orange-50 text-orange-800' : 'border-stone-200 text-slate-600 hover:bg-stone-50'"
-          :aria-pressed="category === entry.key" @click="category = entry.key; input?.focus()">
-          {{ entry.label }}
-          <span v-if="entry.key !== 'all' && query.trim().length >= 2" class="ml-1 opacity-60">{{ results[entry.key as GlobalSearchCategory].length }}</span>
-        </button>
-      </div>
+      <AppFilterChips :model-value="category" label="Filtrar resultados por módulo"
+        :options="categories.map(entry => ({
+          value: entry.key,
+          label: entry.label,
+          count: entry.key !== 'all' && query.trim().length >= 2 ? results[entry.key as GlobalSearchCategory].length : undefined,
+        }))"
+        @update:model-value="category = $event as GlobalSearchCategory | 'all'; input?.focus()" />
       <div v-if="query.trim().length < 2" class="space-y-2">
         <div v-if="visibleRecent.length" class="flex items-center justify-between gap-3">
           <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Acessados recentemente</h3>
