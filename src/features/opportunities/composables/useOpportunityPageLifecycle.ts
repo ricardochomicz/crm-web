@@ -20,15 +20,20 @@ interface OpportunityPageLifecycleDependencies {
 
 /** Resets tenant-scoped page state and loads reference data when the tenant changes. */
 export function useOpportunityPageLifecycle(deps: OpportunityPageLifecycleDependencies) {
-  async function setup() {
+  let generation = 0
+
+  async function setup(current: number, tenant: string) {
     try {
       await deps.loadReferenceData()
     } catch (e) {
-      deps.error.value = errorMessage(e)
+      if (current === generation && tenant === deps.tenantId.value) {
+        deps.error.value = errorMessage(e)
+      }
     }
   }
 
-  watch(deps.tenantId, () => {
+  watch(deps.tenantId, tenant => {
+    const current = ++generation
     deps.invalidateRefresh()
     deps.invalidate()
     deps.section.value = 'open'
@@ -36,7 +41,7 @@ export function useOpportunityPageLifecycle(deps: OpportunityPageLifecycleDepend
     deps.viewMode.value = 'kanban'
     deps.clearReferenceData()
     deps.page.value = 1
-    void setup()
+    void setup(current, tenant)
     deps.reload()
   }, { immediate: true })
 }
