@@ -11,6 +11,7 @@ import { useOpportunityCommercialActions } from './useOpportunityCommercialActio
 import { useOpportunityStageMovement } from './useOpportunityStageMovement'
 import { useOpportunityListFilters } from './useOpportunityListFilters'
 import { useOpportunityDialogState } from './useOpportunityDialogState'
+import { useOpportunityPageLifecycle } from './useOpportunityPageLifecycle'
 import { displayOpportunityOrderType, formatOpportunityMoney } from '../utils/opportunityDisplay'
 
 export function useOpportunitiesPage() {
@@ -83,13 +84,6 @@ async function changeView(mode: 'list' | 'kanban') {
   }
   reload()
 }
-async function setup() {
-  try {
-    await referenceData.load()
-  } catch (e) {
-    error.value = errorMessage(e)
-  }
-}
 const { dialogTab, dialogOpen, editing, open, saved } = useOpportunityDialogState({
   tenantId,
   reload: () => reload(),
@@ -120,7 +114,19 @@ useOpportunityRealtimeSync({
   refreshRows: refreshRowsSilently,
   refreshOverview: () => { void commercialOverview.value?.refresh() },
 })
-watch(tenantId, () => { ++version; list.invalidate(); section.value = 'open'; list.resetSection('open'); viewMode.value = 'kanban'; referenceData.clear(); page.value = 1; void setup(); reload() }, { immediate: true })
+useOpportunityPageLifecycle({
+  tenantId,
+  section,
+  viewMode,
+  page,
+  error,
+  invalidate: list.invalidate,
+  resetSection: list.resetSection,
+  clearReferenceData: referenceData.clear,
+  loadReferenceData: referenceData.load,
+  invalidateRefresh: () => { ++version },
+  reload,
+})
 watch(stages, (next, previous) => {
   if (viewMode.value === 'kanban' && next.length > 0 && previous.length === 0) reload()
 })
