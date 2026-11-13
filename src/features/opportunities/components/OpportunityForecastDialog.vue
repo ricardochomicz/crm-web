@@ -6,12 +6,14 @@ defineProps<{
   opportunity: Opportunity | null
   destinationStage: string
   modelValue: string
+  reason: string
   busy: boolean
 }>()
 const emit = defineEmits<{
   close: []
   confirm: []
   'update:modelValue': [value: string]
+  'update:reason': [value: string]
 }>()
 const today = () => [new Date().getFullYear(), String(new Date().getMonth() + 1).padStart(2, '0'), String(new Date().getDate()).padStart(2, '0')].join('-')
 </script>
@@ -43,9 +45,14 @@ const today = () => [new Date().getFullYear(), String(new Date().getMonth() + 1)
           @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
         />
       </label>
+      <label class="block text-sm font-semibold text-slate-700">
+        Motivo da prorrogação
+        <textarea class="field mt-2 w-full" rows="3" maxlength="500" :value="reason" :disabled="busy" placeholder="Explique por que a previsão foi alterada" @input="emit('update:reason', ($event.target as HTMLTextAreaElement).value)" />
+        <span class="mt-1 block text-xs text-slate-500">Obrigatório: mínimo de 10 caracteres.</span>
+      </label>
       <div class="flex justify-end gap-3 border-t pt-4">
         <button type="button" class="secondary-button w-auto" :disabled="busy" @click="emit('close')">Cancelar</button>
-        <button type="button" class="primary-button w-auto" :disabled="busy || !modelValue || modelValue < today()" @click="emit('confirm')">
+        <button type="button" class="primary-button w-auto" :disabled="busy || !modelValue || modelValue < today() || reason.trim().length < 10" @click="emit('confirm')">
           Atualizar e movimentar
         </button>
       </div>
