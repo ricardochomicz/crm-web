@@ -39,6 +39,8 @@ export const tenantApi = {
   select: (id: string) => mutate('/api/v1/active-tenant', { tenant_id: id }, 'PUT'),
   plans: () => request<{ data: Plan[] }>('/api/v1/subscription-plans'),
   create: (data: NewTenant) => mutate<{ data: Omit<Tenant, 'role'> }>('/api/v1/tenants', data),
+  upgradePlan: (id: string, planId: string) =>
+    mutate(`/api/v1/tenants/${encodeURIComponent(id)}/subscription/plan`, { subscription_plan_id: planId }, 'PATCH'),
   subscription: (id: string) =>
     request<{ data: Subscription }>(`/api/v1/tenants/${encodeURIComponent(id)}/subscription`),
 }
