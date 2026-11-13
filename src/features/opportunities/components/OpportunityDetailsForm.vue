@@ -1,34 +1,20 @@
 <script setup lang="ts">
 import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import type { Client, Contact } from '@/features/clients/api'
 import ClientPrimaryContactCard from '@/features/clients/components/ClientPrimaryContactCard.vue'
 import type { OrderType } from '@/features/order-types/api'
 import type { OpportunityInput } from '../api'
+import { useOpportunityClientSearch } from '../composables/useOpportunityClientSearch'
 const model = defineModel<OpportunityInput>({ required: true })
 const props = defineProps<{ clients: Client[]; orderTypes: OrderType[]; operators: { id: number; name: string }[]; canCreateClient?: boolean; clientContacts?: Contact[]; loadingClientContacts?: boolean }>()
 const emit = defineEmits<{ changeOperator: [id: number | null]; createClient: [] }>()
 const operatorValue = computed({ get: () => model.value.operator_id === null ? '' : String(model.value.operator_id), set: (value: string) => emit('changeOperator', value ? Number(value) : null) })
-const clientSearch = ref('')
-const clientMenuOpen = ref(false)
-const filteredClients = computed(() => {
-  const term = clientSearch.value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
-  const digits = term.replace(/\D/g, '')
-  return props.clients.filter(client => {
-    const name = client.company_name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-    return !term || name.includes(term) || (digits.length >= 2 && client.document.replace(/\D/g, '').includes(digits))
-  }).slice(0, 30)
-})
-function selectClient(client: Client) {
-  model.value.client_id = client.id
-  clientSearch.value = client.company_name + ' · ' + client.document
-  clientMenuOpen.value = false
-}
-watch(() => [model.value.client_id, props.clients] as const, () => {
-  if (clientMenuOpen.value) return
-  const selected = props.clients.find(client => client.id === model.value.client_id)
-  clientSearch.value = selected ? selected.company_name + ' · ' + selected.document : ''
-}, { immediate: true })
+const { clientSearch, clientMenuOpen, filteredClients, selectClient, onSearchInput } = useOpportunityClientSearch(
+  computed(() => props.clients),
+  computed(() => model.value.client_id),
+  id => { model.value.client_id = id },
+)
 </script>
 <template>
           <section class="space-y-4">
@@ -44,7 +30,7 @@ watch(() => [model.value.client_id, props.clients] as const, () => {
                   autocomplete="off" placeholder="Buscar por nome, CPF ou CNPJ" role="combobox"
                   aria-autocomplete="list" :aria-expanded="clientMenuOpen" aria-controls="opportunity-client-options"
                   @focus="clientMenuOpen = true"
-                  @input="model.client_id = ''; clientMenuOpen = true"
+                  @input="onSearchInput"
                   @keydown.esc="clientMenuOpen = false"
                   @keydown.enter.prevent="filteredClients.length && selectClient(filteredClients[0]!)"
                   @blur="clientMenuOpen = false" />
