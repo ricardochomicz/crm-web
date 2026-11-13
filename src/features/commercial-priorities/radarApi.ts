@@ -15,9 +15,15 @@ export type CommercialRadarResponse = {
   summary: { total: number; urgent: number; high: number }
 }
 
+export type CommercialRadarMember = { id: string; name: string }
+
 export const radarApi = {
-  list: (tenantId: string) =>
+  members: (tenantId: string) =>
+    request<{ data: CommercialRadarMember[] }>(
+      '/api/v1/tenants/' + encodeURIComponent(tenantId) + '/commercial-radar/members',
+    ),
+  list: (tenantId: string, memberId = '') =>
     request<{ data: CommercialRadarResponse }>(
-      '/api/v1/tenants/' + encodeURIComponent(tenantId) + '/commercial-radar',
+      '/api/v1/tenants/' + encodeURIComponent(tenantId) + '/commercial-radar' + (memberId ? '?member_id=' + encodeURIComponent(memberId) : ''),
     ),
 }
