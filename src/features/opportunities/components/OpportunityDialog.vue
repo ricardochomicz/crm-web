@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
-import AppAutocomplete from '@/components/ui/AppAutocomplete.vue'
-import AppCurrencyField from '@/components/ui/AppCurrencyField.vue'
 import { computed, ref, watch } from 'vue'
 import { opportunityLineCount, opportunityTotal, MAX_OPPORTUNITY_ITEMS } from '../utils/opportunityForm'
 import AppDialog from '@/components/ui/AppDialog.vue'
@@ -25,6 +23,7 @@ import { useOpportunityFormSubmission } from '../composables/useOpportunityFormS
 import { useOpportunityDialogClients } from '../composables/useOpportunityDialogClients'
 import { useOpportunityFormState } from '../composables/useOpportunityFormState'
 import OpportunityLinesSection from './OpportunityLinesSection.vue'
+import OpportunityBatchImportDialog from './OpportunityBatchImportDialog.vue'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
@@ -37,7 +36,7 @@ const { viewerTenant, showResponsible, canCreateClient } = useOpportunityDialogP
 const filteredProducts = computed(() => props.products.filter(p => p.is_active && Number(p.operator_id) === Number(form.value.operator_id)))
 const operatorOptions = computed(() => props.operators.map(operator => ({ id: operator.id, name: operator.name })))
 const activePlanOptions = computed(() => filteredProducts.value.map(p => ({
-  id: p.id, name: p.name + ' — ' + money(Number(p.price)),
+  id: String(p.id), name: p.name + ' — ' + money(Number(p.price)),
 })))
 const typeName = (id: string) => props.orderTypes.find(type => type.id === id)?.name ?? 'Tipo anterior'
 const maxItems = MAX_OPPORTUNITY_ITEMS
@@ -64,7 +63,7 @@ const {
 } = useOpportunityLineSelection(form, filteredProducts)
 const {
   showImport, pastedNumbers, batchProductId, batchTypeId, batchQuantity,
-  batchMonthly, batchError, parsedNumbers, selectedBatchType,
+  batchMonthly, batchError, parsedNumbers,
   openImport, addBatch,
 } = useOpportunityBatchImport(form, filteredProducts, computed(() => props.orderTypes))
 const { busy, error, save } = useOpportunityFormSubmission({
@@ -146,25 +145,20 @@ watch(() => [props.open, props.opportunity] as const, () => {
     @close="quickClientOpen = false" @created="onClientCreated" />
   <OpportunityBulkEditDialog :open="open && showBulkEdit" :items="selectedItems" :products="filteredProducts" :order-types="orderTypes" @close="showBulkEdit = false" @apply="applyBulk" />
   <OpportunityLineEditDialog :open="open && editingLineIndex !== null" :item="editingLine" :products="products" :order-types="orderTypes" :existing-numbers="otherNumbers" @close="editingLineIndex = null" @save="updateLine" />
-  <AppDialog :open="open && showImport" title="Importar linhas" description="Escolha o tipo de operação, informe as linhas e associe um plano ao lote." size="wide" @close="showImport = false">
-    <div class="space-y-4">
-      <AppAutocomplete v-model="batchTypeId" label="Tipo das linhas" placeholder="Buscar tipo das linhas" :options="orderTypes" />
-      <label v-if="selectedBatchType && !selectedBatchType.requires_number" class="block space-y-2 text-sm font-semibold">Quantidade de linhas novas
-        <input v-model.number="batchQuantity" class="field" type="number" min="1" :max="maxItems - form.items.length" />
-      </label>
-      <label v-else-if="selectedBatchType?.requires_number" class="block space-y-2 text-sm font-semibold">Números (um por linha)
-        <textarea v-model="pastedNumbers" class="field min-h-48 font-mono" rows="8" placeholder="00900000001&#10;00900000002&#10;00900000003" />
-      </label>
-      <div class="grid gap-4 sm:grid-cols-2">
-        <AppAutocomplete v-model="batchProductId" label="Plano do lote" placeholder="Buscar plano" :options="activePlanOptions" />
-        <AppCurrencyField v-model="batchMonthly" label="Valor mensal por linha" />
-      </div>
-      <p class="rounded-xl bg-stone-50 p-4 text-sm">{{ selectedBatchType && !selectedBatchType.requires_number ? batchQuantity : parsedNumbers.length }} linhas · Total mensal do lote: <strong>{{ money((selectedBatchType && !selectedBatchType.requires_number ? Number(batchQuantity) : parsedNumbers.length) * Number(batchMonthly || 0)) }}</strong></p>
-      <p v-if="batchError" role="alert" class="text-sm text-red-700">{{ batchError }}</p>
-      <div class="flex justify-end gap-3 border-t pt-4">
-        <button type="button" class="secondary-button w-auto" @click="showImport = false">Cancelar</button>
-        <button type="button" class="primary-button w-auto" @click="addBatch">Adicionar {{ selectedBatchType && !selectedBatchType.requires_number ? batchQuantity : parsedNumbers.length }} linhas</button>
-      </div>
-    </div>
-  </AppDialog>
+  <OpportunityBatchImportDialog
+    :open="open && showImport"
+    :order-types="orderTypes"
+    :plan-options="activePlanOptions"
+    v-model:type-id="batchTypeId"
+    v-model:product-id="batchProductId"
+    v-model:quantity="batchQuantity"
+    v-model:pasted-numbers="pastedNumbers"
+    v-model:monthly="batchMonthly"
+    :parsed-count="parsedNumbers.length"
+    :max-quantity="maxItems - form.items.length"
+    :error="batchError"
+    :money="money"
+    @close="showImport = false"
+    @add="addBatch"
+  />
 </template>
