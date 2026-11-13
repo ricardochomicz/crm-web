@@ -38,9 +38,9 @@ function createClient() {
   <div class="space-y-2">
     <label :for="id" class="block text-sm font-semibold text-slate-700">Cliente</label>
     <div class="relative">
-      <input  :id="id" v-model="clientSearch" class="field" type="search"
+      <input :id="id" v-model="clientSearch" class="field" type="search"
         autocomplete="off" placeholder="Buscar por nome, CPF ou CNPJ" role="combobox"
-        aria-autocomplete="list" :aria-expanded="clientMenuOpen"  :aria-controls="id + '-options'" :aria-activedescendant="clientMenuOpen && filteredClients[activeIndex] ? id + '-option-' + activeIndex : undefined"
+        aria-autocomplete="list" aria-haspopup="listbox" :aria-expanded="clientMenuOpen" :aria-controls="id + '-options'" :aria-activedescendant="clientMenuOpen && filteredClients[activeIndex] ? id + '-option-' + activeIndex : undefined"
         @focus="openMenu"
         @input="onSearchInput"
         @keydown="onKeydown"
