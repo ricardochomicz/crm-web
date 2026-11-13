@@ -55,11 +55,12 @@ const active = ref(0)
 const selected = computed(() =>
   props.options.find((o) => String(o.value) === String(props.modelValue)),
 )
-const filtered = computed(() =>
-  props.options.filter((o) =>
-    o.label.toLocaleLowerCase('pt-BR').includes(query.value.toLocaleLowerCase('pt-BR')),
-  ),
-)
+const normalize = (value: string) =>
+  value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('pt-BR').trim()
+const filtered = computed(() => {
+  const term = normalize(query.value)
+  return props.options.filter(option => normalize(option.label).includes(term))
+})
 watch(query, () => {
   active.value = 0
 })
@@ -83,6 +84,7 @@ function choose(option: Option) {
   emit('update:modelValue', option.value)
 }
 function onKeydown(event: KeyboardEvent) {
+  if (props.disabled) return
   if (event.key === 'Escape') {
     open.value = false
     query.value = ''
@@ -91,14 +93,21 @@ function onKeydown(event: KeyboardEvent) {
   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
     event.preventDefault()
     open.value = true
-    active.value = Math.max(
-      0,
-      Math.min(filtered.value.length - 1, active.value + (event.key === 'ArrowDown' ? 1 : -1)),
-    )
+    if (!filtered.value.length) return
+    const direction = event.key === 'ArrowDown' ? 1 : -1
+    let index = active.value
+    for (let step = 0; step < filtered.value.length; step++) {
+      index = (index + direction + filtered.value.length) % filtered.value.length
+      if (!filtered.value[index]?.disabled) {
+        active.value = index
+        break
+      }
+    }
   }
-  if (event.key === 'Enter' && open.value && filtered.value[active.value]) {
+  if (event.key === 'Enter' && open.value) {
     event.preventDefault()
-    choose(filtered.value[active.value]!)
+    const option = filtered.value[active.value]
+    if (option && !option.disabled) choose(option)
   }
 }
 function close() {
