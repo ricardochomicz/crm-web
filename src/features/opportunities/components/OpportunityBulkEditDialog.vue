@@ -13,6 +13,15 @@ const emit = defineEmits<{ close: []; apply: [changes: { order_type_id?: string;
 const changeType = ref(false)
 const changePlan = ref(false)
 const changePrice = ref(false)
+const priceConfirmed = ref(false)
+
+// A troca de plano exige que o valor mensal seja revisado explicitamente.
+watch(changePlan, selected => {
+  if (selected) {
+    changePrice.value = true
+    priceConfirmed.value = false
+  }
+})
 const typeId = ref('')
 const productId = ref('')
 const monthly = ref(0)
@@ -26,7 +35,7 @@ const invalidNumbers = computed(() => changeType.value && selectedType.value?.re
 watch(() => props.open, open => {
   if (!open) return
   changeType.value = false; changePlan.value = false; changePrice.value = false
-  typeId.value = ''; productId.value = ''; monthly.value = 0; error.value = ''
+  typeId.value = ''; productId.value = ''; monthly.value = 0; priceConfirmed.value = false; error.value = ''
 })
 function apply() {
   error.value = ''
@@ -34,6 +43,8 @@ function apply() {
   if (changeType.value && !selectedType.value) { error.value = 'Selecione um tipo válido.'; return }
   if (invalidNumbers.value) { error.value = 'Há linhas sem número. O tipo escolhido exige número para todas.'; return }
   if (changePlan.value && !props.products.some(p => p.id === productId.value && p.is_active)) { error.value = 'Selecione um plano ativo.'; return }
+  if (changePlan.value && !changePrice.value) { error.value = 'Ao alterar o plano, informe também o novo valor mensal.'; return }
+  if (changePlan.value && !priceConfirmed.value) { error.value = 'Revise e informe o valor mensal do novo plano antes de aplicar.'; return }
   if (changePrice.value && (!Number.isFinite(monthly.value) || monthly.value < 0)) { error.value = 'Valor mensal inválido.'; return }
   emit('apply', {
     ...(changeType.value ? { order_type_id: typeId.value } : {}),
@@ -60,11 +71,11 @@ function apply() {
         </div>
       </div>
       <div class="rounded-xl border border-stone-200 p-3 transition-colors" :class="changePrice ? 'border-orange-200 bg-orange-50/50' : 'bg-white'">
-        <AppCheckbox v-model="changePrice" label="Alterar valor mensal por linha" />
+        <AppCheckbox v-model="changePrice" label="Alterar valor mensal por linha" :disabled="changePlan" />
         <div class="min-w-0 flex-1">
           
-          <AppCurrencyField v-if="changePrice" v-model="monthly" label="Novo valor mensal" />
-          <p v-if="changePlan && !changePrice" class="mt-1 text-xs text-slate-500">Os valores negociados atuais serão preservados.</p>
+          <AppCurrencyField v-if="changePrice" v-model="monthly" label="Novo valor mensal" @update:model-value="priceConfirmed = true" />
+          <p v-if="changePlan" class="mt-2 text-xs text-orange-800">Ao trocar o plano, é obrigatório revisar e informar o novo valor mensal. O valor não será preenchido automaticamente.</p>
         </div>
       </div>
       <div class="rounded-xl bg-stone-50 p-4 text-sm">
