@@ -38,7 +38,7 @@ function onScheduleSaved() {
   scheduling.value = null
   toast.success('Compromisso agendado na oportunidade.')
 }
-const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages, viewMode, section, recoveringId, recoverCandidate, askRecover, recover, switchSection, kanbanRows, movingId, draggingOpportunity, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, stageStates, loadMoreKanban, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, forecastCandidate, forecastDate, cancelForecast, confirmForecast, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
+const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages, viewMode, section, recoveringId, recoverCandidate, askRecover, recover, switchSection, kanbanRows, movingId, draggingOpportunity, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, stageStates, loadMoreKanban, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, forecastCandidate, forecastDate, forecastReason, cancelForecast, confirmForecast, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
 useOpportunityDeepLink(tenantId, dialogOpen, open)
 const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = useOpportunityHighlights(tenantId)
 </script>
@@ -123,7 +123,7 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
       @close-sale="saleCandidate = null"
       @confirm-sale="confirmSale"
     />
-    <OpportunityForecastDialog :opportunity="forecastCandidate?.item ?? null" :destination-stage="stages.find(stage => stage.id === forecastCandidate?.stageId)?.name ?? ''" v-model="forecastDate" :busy="!!movingId" @close="cancelForecast" @confirm="confirmForecast" />
+    <OpportunityForecastDialog :opportunity="forecastCandidate?.item ?? null" :destination-stage="stages.find(stage => stage.id === forecastCandidate?.stageId)?.name ?? ''" v-model="forecastDate" v-model:reason="forecastReason" :busy="!!movingId" @close="cancelForecast" @confirm="confirmForecast" />
     <OpportunityDialog :initial-tab="dialogTab" :open="dialogOpen" :tenant-id="tenantId" :opportunity="editing" :clients="clients" :products="products" :operators="operators" :order-types="orderTypes" @close="dialogOpen = false" @saved="saved" />
   </AppShell>
 </template>
