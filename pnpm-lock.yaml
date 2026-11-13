@@ -11,6 +11,9 @@ importers:
       laravel-echo:
         specifier: ^2.2.0
         version: 2.6.3(pusher-js@8.6.0)
+      nprogress:
+        specifier: ^0.2.0
+        version: 0.2.0
       pinia:
         specifier: ^4.0.3
         version: 4.1.0(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.44(typescript@6.0.3))
@@ -101,6 +104,9 @@ importers:
         version: 3.3.14(typescript@6.0.3)
 
 packages:
+
+  nprogress@0.2.0:
+    resolution: {tarball: https://registry.npmjs.org/nprogress/-/nprogress-0.2.0.tgz}
 
   '@asamuzakjp/css-color@7.1.9':
     resolution: {integrity: sha512-vZ6JQVq8Ivgz6b/IBlAf90wZviXdluY13cQOPO+nJHbmXwGrPl2GcpqUY7a55/8ZVdfONXpCFMpRijOBCHNlcQ==}
@@ -2218,6 +2224,8 @@ packages:
     engines: {node: '>=10'}
 
 snapshots:
+
+  nprogress@0.2.0: {}
 
   '@asamuzakjp/css-color@7.1.9':
     dependencies:
