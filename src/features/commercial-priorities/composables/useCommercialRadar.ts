@@ -6,6 +6,7 @@ export function useCommercialRadar(
   tenantId: Readonly<Ref<string>>,
   enabled: Readonly<Ref<boolean>>,
   memberId?: Readonly<Ref<string>>,
+  scope?: Readonly<Ref<'mine' | 'team'>>,
 ) {
   const radar = ref<CommercialRadarResponse | null>(null)
   const loading = ref(false)
@@ -24,7 +25,7 @@ export function useCommercialRadar(
     const id = tenantId.value
     loading.value = true
     try {
-      const response = await radarApi.list(id, memberId?.value ?? '')
+      const response = await radarApi.list(id, memberId?.value ?? '', scope?.value ?? 'mine')
       if (current === version && id === tenantId.value) {
         radar.value = response.data
       }
@@ -35,7 +36,7 @@ export function useCommercialRadar(
     }
   }
 
-  watch([tenantId, enabled, ...(memberId ? [memberId] : [])], () => { void load() }, { immediate: true })
+  watch([tenantId, enabled, ...(memberId ? [memberId] : []), ...(scope ? [scope] : [])], () => { void load() }, { immediate: true })
 
   return { radar, loading, error, load }
 }
