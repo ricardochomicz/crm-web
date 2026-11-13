@@ -171,7 +171,10 @@ export function useClientsPage() {
   let clientLinkVersion = 0
   watch([tenantId, () => route.query.cliente], async ([tenant, clientId]) => {
     const version = ++clientLinkVersion
-    if (typeof clientId !== 'string' || !clientId || !tenant) return
+    if (typeof clientId !== 'string' || !clientId || !tenant) {
+      if (!clientId) selected.value = null
+      return
+    }
     try {
       const loaded = await details(clientId)
       if (version !== clientLinkVersion || !loaded) return
