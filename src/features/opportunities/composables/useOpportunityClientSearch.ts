@@ -33,12 +33,17 @@ export function useOpportunityClientSearch(
   }
 
   function openMenu() {
+    if (clientMenuOpen.value) return
+    // A selected label is not a search term: open with all clients visible.
+    if (selectedId.value) clientSearch.value = ''
     clientMenuOpen.value = true
     activeIndex.value = 0
   }
 
   function closeMenu() {
     clientMenuOpen.value = false
+    const selected = clients.value.find(client => client.id === selectedId.value)
+    clientSearch.value = selected ? selected.company_name + ' · ' + selected.document : ''
   }
 
   function onKeydown(event: KeyboardEvent) {
