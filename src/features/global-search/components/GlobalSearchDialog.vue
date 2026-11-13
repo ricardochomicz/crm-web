@@ -3,13 +3,15 @@ import { computed, nextTick, ref, useId, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import { useGlobalSearch } from '../composables/useGlobalSearch'
+import { useGlobalSearchRecent } from '../composables/useGlobalSearchRecent'
 import type { GlobalSearchCategory, GlobalSearchItem } from '../api/globalSearchApi'
 
-const props = defineProps<{ open: boolean; tenantId: string }>()
+const props = defineProps<{ open: boolean; tenantId: string; userId: string }>()
 const emit = defineEmits<{ close: [] }>()
 const router = useRouter()
 const isOpen = computed(() => props.open)
 const tenant = computed(() => props.tenantId || undefined)
+const { recent, remember, clear } = useGlobalSearchRecent(computed(() => props.tenantId), computed(() => props.userId))
 const { query, category, results, items, loading, error } = useGlobalSearch(tenant, isOpen)
 const input = ref<HTMLInputElement | null>(null)
 const list = ref<HTMLElement | null>(null)
@@ -21,6 +23,7 @@ const categories: { key: GlobalSearchCategory | 'all'; label: string }[] = [
   { key: 'opportunities', label: 'Oportunidades' },
   { key: 'orders', label: 'Pedidos' },
 ]
+const visibleRecent = computed(() => category.value === 'all' ? recent.value : recent.value.filter(item => item.type === category.value))
 const visibleCategories = computed(() => categories.filter(
   entry => entry.key !== 'all' && (category.value === 'all' || category.value === entry.key),
 ) as { key: GlobalSearchCategory; label: string }[])
@@ -42,6 +45,7 @@ function destination(item: GlobalSearchItem) {
   return { path: base + '/pedidos', query: { pedido: item.id } }
 }
 function choose(item: GlobalSearchItem) {
+  remember(item)
   emit('close')
   void router.push(destination(item))
 }
@@ -82,7 +86,19 @@ function optionId(item: GlobalSearchItem) {
           <span v-if="entry.key !== 'all' && query.trim().length >= 2" class="ml-1 opacity-60">{{ results[entry.key as GlobalSearchCategory].length }}</span>
         </button>
       </div>
-      <p v-if="query.trim().length < 2" class="text-sm text-slate-500">Digite pelo menos 2 caracteres para pesquisar.</p>
+      <div v-if="query.trim().length < 2" class="space-y-2">
+        <div v-if="visibleRecent.length" class="flex items-center justify-between gap-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Acessados recentemente</h3>
+          <button type="button" class="text-xs font-semibold text-orange-700 hover:underline" @click="clear">Limpar histórico</button>
+        </div>
+        <button v-for="item in visibleRecent" :key="item.type + item.id" type="button"
+          class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-orange-50" @click="choose(item)">
+          <span class="min-w-0 flex-1"><span class="block truncate text-sm font-semibold text-slate-800">{{ item.title }}</span>
+            <span class="block truncate text-xs text-slate-500">{{ item.subtitle }}</span></span>
+          <span class="text-xs text-slate-400">{{ categories.find(entry => entry.key === item.type)?.label }}</span>
+        </button>
+        <p v-if="!visibleRecent.length" class="text-sm text-slate-500">Digite pelo menos 2 caracteres para pesquisar.</p>
+      </div>
       <p v-else-if="loading" role="status" class="text-sm text-slate-500">Pesquisando...</p>
       <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
       <div v-if="!loading && !error && query.trim().length >= 2" :id="listId" ref="list" role="listbox"
