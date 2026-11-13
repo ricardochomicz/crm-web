@@ -36,6 +36,8 @@ export interface NewTenant {
 }
 export interface Subscription {
   status: string
+  monthly_price: string
+  currency: string
   plan: { id: string; name: string | null }
   limits: { users: number; storage_mb: number }
   usage: { users: number; reserved_invitations: number }
