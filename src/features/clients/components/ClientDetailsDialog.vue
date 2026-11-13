@@ -5,7 +5,6 @@ import ClientContractsPanel from './ClientContractsPanel.vue'
 import ClientOverviewPanel from './ClientOverviewPanel.vue'
 import ClientSellersHistory from './ClientSellersHistory.vue'
 import ClientDetailsTabs from './ClientDetailsTabs.vue'
-import type { ClientDetailsTab } from './ClientDetailsTabs.vue'
 import ClientContractConsolidationDialog from './ClientContractConsolidationDialog.vue'
 import ClientOperatorClassifications from './ClientOperatorClassifications.vue'
 import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
@@ -29,7 +28,7 @@ const emit = defineEmits<{
   consolidated: []
 }>()
 const consolidationOpen = ref(false)
-const activeTab = ref<ClientDetailsTab>('data')
+const activeTab = ref<'data' | 'contacts' | 'contracts' | 'operators' | 'sellers' | 'history'>('data')
 const historyOrigin = ref<'client' | 'opportunity' | 'commercial_order' | 'protocol'>('client')
 watch(() => props.client?.id, () => {
   consolidationOpen.value = false
