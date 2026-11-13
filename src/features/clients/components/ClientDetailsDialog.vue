@@ -7,9 +7,8 @@ import ClientSellersHistory from './ClientSellersHistory.vue'
 import ClientDetailsTabs from './ClientDetailsTabs.vue'
 import ClientContractConsolidationDialog from './ClientContractConsolidationDialog.vue'
 import ClientOperatorClassifications from './ClientOperatorClassifications.vue'
-import TimelinePanel from '@/features/timeline/components/TimelinePanel.vue'
+import ClientHistoryPanel from './ClientHistoryPanel.vue'
 import ClientContactsPanel from './ClientContactsPanel.vue'
-import ClientProtocolHistory from './ClientProtocolHistory.vue'
 import type { Client, Classification, Contact, Seller } from '../api'
 
 const props = defineProps<{
@@ -29,11 +28,9 @@ const emit = defineEmits<{
 }>()
 const consolidationOpen = ref(false)
 const activeTab = ref<'data' | 'contacts' | 'contracts' | 'operators' | 'sellers' | 'history'>('data')
-const historyOrigin = ref<'client' | 'opportunity' | 'commercial_order' | 'protocol'>('client')
 watch(() => props.client?.id, () => {
   consolidationOpen.value = false
   activeTab.value = props.initialTab ?? 'data'
-  historyOrigin.value = 'client'
 }, { immediate: true })
 watch(() => props.initialTab, value => { activeTab.value = value ?? 'data' })
 </script>
@@ -56,32 +53,12 @@ watch(() => props.initialTab, value => { activeTab.value = value ?? 'data' })
           :writable="writable"
           @edit="(contact) => emit('edit-contact', contact)"
         />
-        <div v-if="activeTab === 'history' && client" class="space-y-4">
-          <div class="flex flex-wrap gap-2 border-b border-stone-200 pb-3" aria-label="Filtrar histórico por origem">
-            <button
-              v-for="category in [
-                { id: 'client', label: 'Cliente' },
-                { id: 'opportunity', label: 'Oportunidades' },
-                { id: 'commercial_order', label: 'Pedidos' },
-                { id: 'protocol', label: 'Protocolos' },
-              ] as const"
-              :key="category.id"
-              type="button"
-              class="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-              :class="historyOrigin === category.id ? 'bg-orange-100 text-orange-900' : 'bg-stone-100 text-slate-600 hover:bg-stone-200'"
-              :aria-pressed="historyOrigin === category.id"
-              @click="historyOrigin = category.id"
-            >
-              {{ category.label }}
-            </button>
-          </div>
-          <TimelinePanel v-if="historyOrigin !== 'protocol'" :tenant-id="tenantId" type="client" :subject-id="client.id" :origin-filter="historyOrigin" :can-write="writable && historyOrigin === 'client'" />
-          <ClientProtocolHistory
-            v-else
-            :tenant-id="tenantId"
-            :client-id="client.id"
-          />
-        </div>
+        <ClientHistoryPanel
+          v-if="activeTab === 'history'"
+          :tenant-id="tenantId"
+          :client-id="client.id"
+          :writable="writable"
+        />
         <ClientSellersHistory
           v-if="activeTab === 'sellers'"
           :client="client"
