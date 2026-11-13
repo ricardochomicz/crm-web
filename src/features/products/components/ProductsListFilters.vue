@@ -21,7 +21,7 @@ const operatorOptions = computed(() => [
 ])
 const categoryOptions = computed(() => [
   { value: '', label: 'Todas as categorias' },
-  ...props.categories.map(c => ({ value: c[0], label: c[1] })),
+  ...props.categories.map(c => ({ value: c[0]!, label: c[1]! })),
 ])
 const statusOptions = [
   { value: '', label: 'Todos' },
