@@ -35,37 +35,52 @@ watch(() => props.client?.id, () => {
 watch(() => props.initialTab, value => { activeTab.value = value ?? 'data' })
 </script>
 <template>
-      <AppDialog :open="!!client" :title="client?.company_name ?? 'Detalhes do cliente'" description="Dados cadastrais, contratos, contatos e histórico do cliente." size="full" @close="emit('close')">
-        <div v-if="client" class="space-y-4">
-        <ClientDetailsTabs v-model="activeTab" />
-        <ClientOverviewPanel v-if="activeTab === 'data'" :client="client" />
-        <ClientOperatorClassifications v-if="activeTab === 'operators'" :client="client" :classes="classes" :writable="writable" :busy="busy" @save="(operatorId, classificationId) => emit('save-operator-classification', operatorId, classificationId)" />
-        <ClientContractsPanel
-          v-if="activeTab === 'contracts'"
-          :client="client"
-          :tenant-id="tenantId"
-          :writable="writable"
-          @consolidate="consolidationOpen = true"
-        />
-        <ClientContactsPanel
-          v-if="activeTab === 'contacts'"
-          :contacts="client.contacts ?? []"
-          :writable="writable"
-          @edit="(contact) => emit('edit-contact', contact)"
-        />
-        <ClientHistoryPanel
-          v-if="activeTab === 'history'"
-          :tenant-id="tenantId"
-          :client-id="client.id"
-          :writable="writable"
-        />
-        <ClientSellersHistory
-          v-if="activeTab === 'sellers'"
-          :client="client"
-          :sellers="sellers"
-        />
-        </div>
-      </AppDialog>
+  <AppDialog
+    :open="!!client"
+    :title="client?.company_name ?? 'Detalhes do cliente'"
+    description="Dados cadastrais, contratos, contatos e histórico do cliente."
+    size="full"
+    @close="emit('close')"
+  >
+    <div v-if="client" class="space-y-4">
+      <ClientDetailsTabs v-model="activeTab" />
+      <ClientOverviewPanel v-if="activeTab === 'data'" :client="client" />
+      <ClientOperatorClassifications
+        v-if="activeTab === 'operators'"
+        :client="client"
+        :classes="classes"
+        :writable="writable"
+        :busy="busy"
+        @save="(operatorId, classificationId) =>
+          emit('save-operator-classification', operatorId, classificationId)"
+      />
+      <ClientContractsPanel
+        v-if="activeTab === 'contracts'"
+        :client="client"
+        :tenant-id="tenantId"
+        :writable="writable"
+        @consolidate="consolidationOpen = true"
+      />
+      <ClientContactsPanel
+        v-if="activeTab === 'contacts'"
+        :contacts="client.contacts ?? []"
+        :writable="writable"
+        @edit="(contact) => emit('edit-contact', contact)"
+      />
+      <ClientHistoryPanel
+        v-if="activeTab === 'history'"
+        :tenant-id="tenantId"
+        :client-id="client.id"
+        :writable="writable"
+      />
+      <ClientSellersHistory
+        v-if="activeTab === 'sellers'"
+        :client="client"
+        :sellers="sellers"
+      />
+    </div>
+  </AppDialog>
+
   <ClientContractConsolidationDialog
     :open="consolidationOpen && !!client"
     :tenant-id="tenantId"
