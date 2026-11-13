@@ -24,19 +24,22 @@ export function useOpportunityStageMovement(context: MovementContext) {
   const movingId = ref<string | null>(null)
   const forecastCandidate = ref<{ item: Opportunity; stageId: string } | null>(null)
   const forecastDate = ref('')
+  const forecastReason = ref('')
   const today = () => [new Date().getFullYear(), String(new Date().getMonth() + 1).padStart(2, '0'), String(new Date().getDate()).padStart(2, '0')].join('-')
 
   function cancelForecast() {
     forecastCandidate.value = null
     forecastDate.value = ''
+    forecastReason.value = ''
   }
 
   async function confirmForecast() {
     const candidate = forecastCandidate.value
-    if (!candidate || !forecastDate.value || forecastDate.value < today()) return
+    if (!candidate || !forecastDate.value || forecastDate.value < today() || forecastReason.value.trim().length < 10) return
     const date = forecastDate.value
+    const reason = forecastReason.value.trim()
     cancelForecast()
-    await persistMove(candidate.item, candidate.stageId, date)
+    await persistMove(candidate.item, candidate.stageId, date, reason)
   }
 
   async function moveStage(id: string, stageId: string) {
@@ -53,7 +56,7 @@ export function useOpportunityStageMovement(context: MovementContext) {
     await persistMove(item, stageId)
   }
 
-  async function persistMove(item: Opportunity, stageId: string, expectedCloseAt?: string) {
+  async function persistMove(item: Opportunity, stageId: string, expectedCloseAt?: string, forecastReason?: string) {
     const id = item.id
     const tenant = context.tenantId.value
     const previousStageId = item.funnel_stage_id
@@ -62,7 +65,7 @@ export function useOpportunityStageMovement(context: MovementContext) {
     movingId.value = id
     setStage(stageId)
     try {
-      const result = await opportunitiesApi.moveStage(tenant, id, stageId, expectedCloseAt)
+      const result = await opportunitiesApi.moveStage(tenant, id, stageId, expectedCloseAt, forecastReason)
       if (tenant !== context.tenantId.value) return
       setStage(result.data.funnel_stage_id)
       publishOpportunityChanged(tenant)
@@ -88,5 +91,5 @@ export function useOpportunityStageMovement(context: MovementContext) {
     }
   }
 
-  return { movingId, moveStage, forecastCandidate, forecastDate, cancelForecast, confirmForecast }
+  return { movingId, moveStage, forecastCandidate, forecastDate, forecastReason, cancelForecast, confirmForecast }
 }
