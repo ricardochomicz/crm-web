@@ -4,7 +4,6 @@ import { opportunitiesApi, type Opportunity } from '../api'
 import { useOpportunityStagePagination } from './useOpportunityStagePagination'
 import type OpportunityCommercialOverview from '../components/OpportunityCommercialOverview.vue'
 import { errorMessage } from '@/lib/feedback'
-import { toast } from '@/services/toast'
 import { useOpportunityRealtimeSync } from './useOpportunityRealtimeSync'
 import { useOpportunityReferenceData } from './useOpportunityReferenceData'
 import { useOpportunityCommercialActions } from './useOpportunityCommercialActions'
@@ -12,6 +11,7 @@ import { useOpportunityStageMovement } from './useOpportunityStageMovement'
 import { useOpportunityListFilters } from './useOpportunityListFilters'
 import { useOpportunityDialogState } from './useOpportunityDialogState'
 import { useOpportunityPageLifecycle } from './useOpportunityPageLifecycle'
+import { useOpportunityViewNavigation } from './useOpportunityViewNavigation'
 import { displayOpportunityOrderType, formatOpportunityMoney } from '../utils/opportunityDisplay'
 
 export function useOpportunitiesPage() {
@@ -20,17 +20,6 @@ const referenceData = useOpportunityReferenceData(tenantId)
 const { tenant, clients, products, operators, orderTypes, stages, canCreate, canEdit } = referenceData
 const viewMode = ref<'list' | 'kanban'>('kanban')
 const section = ref<'open' | 'closed'>('open')
-function switchSection(next: 'open' | 'closed') {
-    section.value = next
-    list.resetSection(next)
-    viewMode.value = next === 'closed' ? 'list' : 'kanban'
-    if (next === 'open' && stages.value.length === 0) {
-        void opportunitiesApi.stages(tenantId.value).then(result => {
-            stages.value = result.data
-        }).catch(e => toast.error(errorMessage(e)))
-    }
-    reload()
-}
 const draggingOpportunity = ref(false)
 const commercialOverview = ref<InstanceType<typeof OpportunityCommercialOverview> | null>(null)
 const list = useOpportunityListFilters(tenantId, section, () => reload())
@@ -77,13 +66,11 @@ function loadMoreKanban(stageId: string) {
   stagePagination.loadMore(stageId)
 }
 function reload() { if (viewMode.value === 'kanban') void loadKanban(); else void load() }
-async function changeView(mode: 'list' | 'kanban') {
-  viewMode.value = mode
-  if (mode === 'kanban') {
-    try { stages.value = (await opportunitiesApi.stages(tenantId.value)).data } catch (e) { toast.error(errorMessage(e)) }
-  }
-  reload()
-}
+const { switchSection, changeView } = useOpportunityViewNavigation({
+  tenantId, section, viewMode, stages,
+  resetSection: list.resetSection,
+  reload,
+})
 const { dialogTab, dialogOpen, editing, open, saved } = useOpportunityDialogState({
   tenantId,
   reload: () => reload(),
