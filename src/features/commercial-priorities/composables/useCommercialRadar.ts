@@ -13,6 +13,7 @@ export function useCommercialRadar(
   const loading = ref(false)
   const error = ref('')
   let version = 0
+  let foregroundRequests = 0
 
   async function load(silent = false) {
     const current = ++version
@@ -26,7 +27,10 @@ export function useCommercialRadar(
     }
 
     const id = tenantId.value
-    if (!silent) loading.value = true
+    if (!silent) {
+      ++foregroundRequests
+      loading.value = true
+    }
     try {
       const response = await radarApi.list(id, memberId?.value ?? '', scope?.value ?? 'mine')
       if (current === version && id === tenantId.value) {
@@ -35,7 +39,10 @@ export function useCommercialRadar(
     } catch (failure) {
       if (current === version && !silent) error.value = errorMessage(failure)
     } finally {
-      if (current === version && !silent) loading.value = false
+      if (!silent) {
+        --foregroundRequests
+        if (foregroundRequests === 0) loading.value = false
+      }
     }
   }
 
