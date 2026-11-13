@@ -3,6 +3,7 @@ import { computed, nextTick, ref, useId, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import GlobalSearchResult from './GlobalSearchResult.vue'
+import { globalSearchDestination } from '../utils/globalSearchDestination'
 import { useGlobalSearch } from '../composables/useGlobalSearch'
 import { useGlobalSearchRecent } from '../composables/useGlobalSearchRecent'
 import type { GlobalSearchCategory, GlobalSearchItem } from '../api/globalSearchApi'
@@ -39,16 +40,10 @@ watch(() => props.open, async open => {
 })
 watch(items, () => { active.value = 0 })
 
-function destination(item: GlobalSearchItem) {
-  const base = '/empresas/' + encodeURIComponent(props.tenantId)
-  if (item.type === 'clients') return { path: base + '/clientes', query: { cliente: item.id } }
-  if (item.type === 'opportunities') return { path: base + '/oportunidades', query: { oportunidade: item.id } }
-  return { path: base + '/pedidos', query: { pedido: item.id } }
-}
 function choose(item: GlobalSearchItem) {
   remember(item)
   emit('close')
-  void router.push(destination(item))
+  void router.push(globalSearchDestination(props.tenantId, item))
 }
 async function move(direction: number) {
   if (!items.value.length) return
