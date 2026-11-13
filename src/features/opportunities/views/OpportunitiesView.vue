@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { toast } from '@/services/toast'
 import AppIcon from '@/components/ui/AppIcon.vue'
+import AppTabs from '@/components/ui/AppTabs.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
@@ -21,6 +22,21 @@ import { useOpportunityDeepLink } from '../composables/useOpportunityDeepLink'
 import { useOpportunityHighlights } from '../composables/useOpportunityHighlights'
 import { opportunityAgeClass, opportunityAgeLabel } from '../utils/opportunityAge'
 
+const sectionOptions = [
+  { id: 'open', label: 'Em aberto' },
+  { id: 'closed', label: 'Encerradas' },
+]
+const viewOptions = [
+  { id: 'list', label: '☷ Lista' },
+  { id: 'kanban', label: '▦ Kanban' },
+]
+function selectSection(value: string) {
+  if (value === 'open' || value === 'closed') switchSection(value)
+}
+function selectView(value: string) {
+  if (value === 'list' || value === 'kanban') void changeView(value)
+}
+
 const scheduling = ref<{ id: string; client_id?: string | null; title: string } | null>(null)
 function onScheduleSaved() {
   scheduling.value = null
@@ -36,19 +52,26 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
       <div><p class="eyebrow">COMERCIAL</p><h1 class="mt-3 text-3xl font-semibold">Oportunidades</h1><p class="mt-2 text-sm text-slate-500">Acompanhe negociações sem misturar pedidos e carteira.</p></div>
       <button v-if="canCreate" type="button" class="primary-button w-auto" @click="open()">+ Nova oportunidade</button>
     </header>
-    <div class="mb-5 inline-flex rounded-xl border border-stone-200 bg-white p-1 shadow-sm" role="group" aria-label="Situação das oportunidades">
-      <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="section === 'open' ? 'bg-orange-50 text-orange-700' : 'text-slate-600 hover:bg-stone-50'" @click="switchSection('open')">Em aberto</button>
-      <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="section === 'closed' ? 'bg-orange-50 text-orange-700' : 'text-slate-600 hover:bg-stone-50'" @click="switchSection('closed')">Encerradas</button>
+    <div class="mb-5">
+      <AppTabs
+        :model-value="section"
+        :options="sectionOptions"
+        aria-label="Situação das oportunidades"
+        @update:model-value="selectSection"
+      />
     </div>
     <OpportunityCommercialOverview ref="commercialOverview" :tenant-id="tenantId" />
     <div v-if="section === 'closed'" class="mb-3 text-xs text-slate-500">Histórico de oportunidades ganhas e perdidas. Utilize os filtros para pesquisar por cliente, período e situação.</div>
     <OpportunityFiltersPanel v-model="filters" :section="section" :types="orderTypes" :busy="loading" :count="total" @search="applyFilters" @clear="clearFilters" />
     <div v-if="section === 'open'" class="mb-4 flex flex-wrap items-center justify-end gap-2">
       <button v-if="viewMode === 'kanban'" type="button" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-stone-200 bg-white px-4 text-sm font-semibold leading-none shadow-sm transition hover:bg-stone-50" :class="showHighlightsOnly ? 'border-amber-300 bg-amber-50 text-amber-800' : 'text-slate-600'" :aria-pressed="showHighlightsOnly" @click="showHighlightsOnly = !showHighlightsOnly"><AppIcon name="star" class="h-4 w-4 shrink-0" /> <span>{{ showHighlightsOnly ? 'Mostrar todas' : 'Somente destaques' }}</span></button>
-      <div class="inline-flex rounded-xl border border-stone-200 bg-white p-1 shadow-sm" role="group" aria-label="Visualização das oportunidades">
-        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="viewMode === 'list' ? 'bg-orange-50 text-orange-700' : 'text-slate-600 hover:bg-stone-50'" @click="changeView('list')">☷ Lista</button>
-        <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold" :class="viewMode === 'kanban' ? 'bg-orange-50 text-orange-700' : 'text-slate-600 hover:bg-stone-50'" @click="changeView('kanban')">▦ Kanban</button>
-      </div>
+      <AppTabs
+        :model-value="viewMode"
+        :options="viewOptions"
+        aria-label="Visualização das oportunidades"
+        @update:model-value="selectView"
+      />
+    </div>
     </div>
     <AsyncNotice :loading="loading" :error="error" @retry="reload" />
     <div v-if="section === 'open' && viewMode === 'kanban' && !loading && !error">
