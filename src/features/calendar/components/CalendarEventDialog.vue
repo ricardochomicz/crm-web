@@ -43,6 +43,15 @@ watch(() => [props.open, props.tenantId] as const, async ([open, tenantId]) => {
   finally { clientsLoading.value = false }
 }, { immediate: true })
 const form = ref<CalendarEventInput>(emptyCalendarForm(''))
+const { busy, error, save, remove } = useCalendarEventMutation({
+  tenantId: toRef(props, 'tenantId'),
+  event: toRef(props, 'event'),
+  canWrite: toRef(props, 'canWrite'),
+  canDelete: toRef(props, 'canDelete'),
+  form,
+  onSaved: () => emit('saved'),
+})
+
 
 let opportunitiesRequest = 0
 watch(() => [props.open, props.tenantId, form.value.client_id] as const, async ([open, tenantId, clientId]) => {
@@ -94,14 +103,6 @@ watch(() => [props.open, props.event, props.date] as const, () => {
         title: props.initialTitle ?? (props.opportunityTitle ? `Contato: ${props.opportunityTitle}` : '') }
 }, { immediate: true })
 const title = computed(() => props.event ? 'Editar compromisso' : 'Novo compromisso')
-const { busy, error, save, remove } = useCalendarEventMutation({
-  tenantId: toRef(props, 'tenantId'),
-  event: toRef(props, 'event'),
-  canWrite: toRef(props, 'canWrite'),
-  canDelete: toRef(props, 'canDelete'),
-  form,
-  onSaved: () => emit('saved'),
-})
 </script>
 <template>
   <AppDialog :open="open" :title="title" description="Organize suas atividades e compromissos." :busy="busy" @close="emit('close')">
