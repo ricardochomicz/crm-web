@@ -29,7 +29,7 @@ const { rows, filters, applied, page, total, lastPage, perPage, loading, error,
 const stagePagination = useOpportunityStagePagination(tenantId, stages, applied)
 const kanbanRows = stagePagination.items
 const stageStates = stagePagination.states
-const { movingId, moveStage } = useOpportunityStageMovement({
+const { movingId, moveStage, forecastCandidate, forecastDate, cancelForecast, confirmForecast } = useOpportunityStageMovement({
   tenantId, canEdit, stages, items: kanbanRows, pagination: stagePagination,
   updateTotal: value => { total.value = value },
 })
@@ -147,6 +147,10 @@ const money = formatOpportunityMoney
         reload,
         changeView,
         moveStage,
+        forecastCandidate,
+        forecastDate,
+        cancelForecast,
+        confirmForecast,
         applyFilters,
         clearFilters,
         changePage,
