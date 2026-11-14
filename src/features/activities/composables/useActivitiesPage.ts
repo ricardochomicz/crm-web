@@ -26,7 +26,7 @@ export function useActivitiesPage() {
   const hasLoaded = ref(false)
   const error = ref('')
   const scope = ref<'mine' | 'team'>('mine')
-  const filter = ref<'pending' | 'overdue' | 'completed' | 'cancelled' | 'all'>('pending')
+  const filter = ref<'pending' | 'overdue' | 'critical' | 'completed' | 'cancelled' | 'all'>('pending')
   const search = ref('')
   const appliedSearch = ref('')
   const dialogOpen = activityLink.dialogOpen
@@ -42,7 +42,9 @@ export function useActivitiesPage() {
   const urgency = (event: CalendarEvent) => activityUrgency(event, now.value)
   const isOverdue = (event: CalendarEvent) => urgency(event) === 'overdue'
   const visible = computed(() => events.value.filter(event => {
-    if (filter.value === 'pending' || filter.value === 'overdue') return event.status === 'pending'
+    if (filter.value === 'pending' || filter.value === 'overdue' || filter.value === 'critical') {
+      return event.status === 'pending'
+    }
     if (filter.value === 'completed') return event.status === 'completed'
     if (filter.value === 'cancelled') return event.status === 'cancelled'
     return true
