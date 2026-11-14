@@ -18,6 +18,24 @@ export type Opportunity = {
   assignee?: { id: string; mobile_phone?: string | null; secondary_phone?: string | null; user?: { id: string; name: string } | null } | null
   stage?: { id: string; name: string }; operator?: { id: number; name: string }
 }
+export type OpportunityForecastChange = {
+  id: string
+  previous_date: string | null
+  new_date: string
+  previous_stage_id: string | null
+  new_stage_id: string | null
+  reason: string | null
+  created_at: string | null
+  author_name: string
+  kind: 'initial' | 'extension' | 'advance'
+}
+export type OpportunityForecastHistoryPage = {
+  data: OpportunityForecastChange[]
+  current_page: number
+  last_page: number
+  total: number
+}
+
 export type OpportunityInput = {
   forecast_reason?: string
   code: string; title: string; client_id: string; order_type_id: string; operator_id: number | null
@@ -76,6 +94,8 @@ export const opportunitiesApi = {
   confirmSale: (tenantId: string, id: string) =>
     mutate<{ data: { id: string; status: string } }>(base(tenantId) + '/' + encodeURIComponent(id) + '/confirm-sale', {}, 'POST'),
   moveStage: (tenantId: string, id: string, funnel_stage_id: string, expected_close_at?: string, forecast_reason?: string) => mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id) + '/stage', { funnel_stage_id, ...(expected_close_at ? { expected_close_at } : {}), ...(forecast_reason ? { forecast_reason } : {}) }, 'PATCH'),
+  forecastHistory: (tenantId: string, id: string, page = 1) =>
+    request<OpportunityForecastHistoryPage>(base(tenantId) + '/' + encodeURIComponent(id) + '/forecast-history?page=' + page),
   show: (tenantId: string, id: string) => request<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id)),
   create: (tenantId: string, data: OpportunityInput) => mutate<{ data: Opportunity }>(base(tenantId), data),
   update: (tenantId: string, id: string, data: OpportunityInput) => mutate<{ data: Opportunity }>(base(tenantId) + '/' + encodeURIComponent(id), data, 'PATCH'),
