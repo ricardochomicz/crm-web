@@ -3,6 +3,7 @@ import { useRoute } from 'vue-router'
 import { useActivityDeepLink } from '../composables/useActivityDeepLink'
 import { calendarApi } from '@/features/calendar/api'
 import { subscribeActivityChanged } from '@/features/calendar/activityEvents'
+import { subscribeCommercialRealtime } from '@/services/realtime/orders'
 import type { CalendarEvent } from '@/features/calendar/types'
 import { tenantApi } from '@/features/tenants/api'
 import { can, type Tenant } from '@/features/tenants/types'
@@ -39,6 +40,21 @@ const overview = ref({ total: 0, pending: 0, overdue: 0, completed: 0, cancelled
 const overviewLoading = ref(false)
 const overviewError = ref('')
 let unsubscribeActivityChanged: (() => void) | undefined
+let unsubscribeRealtime: (() => void) | undefined
+let refreshTimer: ReturnType<typeof setTimeout> | undefined
+let pollingTimer: ReturnType<typeof setInterval> | undefined
+function scheduleRefresh() {
+  if (document.hidden) return
+  if (refreshTimer) clearTimeout(refreshTimer)
+  refreshTimer = setTimeout(() => {
+    refreshTimer = undefined
+    void load()
+    void loadOverview()
+  }, 250)
+}
+function onVisibilityChange() {
+  if (!document.hidden) scheduleRefresh()
+}
 let overviewVersion = 0
 async function loadOverview() {
   const current = ++overviewVersion
@@ -73,13 +89,21 @@ async function load() {
 onMounted(() => {
   unsubscribeActivityChanged = subscribeActivityChanged(id => {
     if (id === tenantId) {
-      void load()
-      void loadOverview()
+      scheduleRefresh()
     }
   })
+  unsubscribeRealtime = subscribeCommercialRealtime(tenantId, scheduleRefresh)
+  document.addEventListener('visibilitychange', onVisibilityChange)
+  window.addEventListener('focus', scheduleRefresh)
+  pollingTimer = setInterval(scheduleRefresh, 60000)
 })
 onUnmounted(() => {
   unsubscribeActivityChanged?.()
+  unsubscribeRealtime?.()
+  if (refreshTimer) clearTimeout(refreshTimer)
+  if (pollingTimer) clearInterval(pollingTimer)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  window.removeEventListener('focus', scheduleRefresh)
   version++
   overviewVersion++
 })
