@@ -36,6 +36,8 @@ export function useActivitiesPage() {
     pending: number
     overdue: number
     completed: number
+    completed_7d: number
+    completed_30d: number
     critical: number
   }[]>([])
   const teamSummaryLoading = ref(false)
