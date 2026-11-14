@@ -21,6 +21,10 @@ const {
   error,
   scope,
   filter,
+  consultantId,
+  consultants,
+  consultantsError,
+  loadConsultants,
   search,
   appliedSearch,
   dialogOpen,
@@ -107,7 +111,7 @@ const {
     </p>
     <ListFilters
       :count-label="pagination.total + ' atividade(s) encontrada(s)'"
-      :columns="3"
+      :columns="4"
       collapsible
       :initially-collapsed="true"
       @search="submitSearch"
@@ -146,6 +150,22 @@ const {
             { value: 'team', label: 'Atividades da equipe' },
           ]"
         />
+      </div>
+      <div v-if="canTeam && scope === 'team'">
+        <label class="mb-1 block text-xs font-semibold text-slate-600">Consultor</label>
+        <SearchSelect
+          v-model="consultantId"
+          :options="[
+            { value: '', label: 'Todos os consultores' },
+            ...consultants.map(member => ({ value: member.id, label: member.name })),
+          ]"
+        />
+        <p v-if="consultantsError" role="alert" class="mt-1 text-xs text-red-700">
+          Não foi possível carregar os consultores.
+          <button type="button" class="font-semibold underline" @click="loadConsultants()">
+            Tentar novamente
+          </button>
+        </p>
       </div>
     </ListFilters>
     <p v-if="activityLinkLoading" class="mb-3 text-sm text-slate-500">Abrindo atividade…</p>
