@@ -41,6 +41,7 @@ export type OrderActivationOverview = {
     previous_period: { from: string; to: string }
     previous_total: { lines: number; monthly: string }
     total: { lines: number; monthly: string }
+    previous_by_type: { order_type_id: string | null; name: string; lines: number; monthly: string }[]
     by_type: { order_type_id: string | null; name: string; lines: number; monthly: string }[]
 }
 
