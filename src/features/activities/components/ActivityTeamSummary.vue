@@ -38,7 +38,7 @@ const emit = defineEmits<{
     <p v-if="error" role="alert" class="p-4 text-sm text-red-700">
       Não foi possível atualizar o painel: {{ error }}
     </p>
-    <div v-if="rows.length" class="overflow-x-auto">
+    <div v-if="rows.length" class="overflow-x-auto px-4 pb-4">
       <table class="w-full min-w-[650px] text-left text-sm">
         <thead class="bg-stone-50 text-xs uppercase text-slate-500">
           <tr>
