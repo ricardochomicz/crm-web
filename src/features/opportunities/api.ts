@@ -65,6 +65,7 @@ export type CommercialOverview = {
     future: CommercialMetric
     unscheduled: CommercialMetric
     won: CommercialMetric
+    won_with_orders?: CommercialMetric
     lost: CommercialMetric
     conversion_rate: number | null
     period: { from: string; to: string }
