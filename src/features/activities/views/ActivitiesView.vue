@@ -9,6 +9,8 @@ import CalendarEventHistoryDialog from '@/features/calendar/components/CalendarE
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import { useActivitiesPage } from '../composables/useActivitiesPage'
 const {
+  refreshing,
+  refreshError,
   tenantId,
   activityLinkLoading,
   activityLinkError,
@@ -138,6 +140,13 @@ const {
     <p v-if="activityLinkLoading" class="mb-3 text-sm text-slate-500">Abrindo atividade…</p>
     <p v-if="activityLinkError" role="alert" class="mb-3 text-sm text-red-700">
       Não foi possível abrir a atividade: {{ activityLinkError }}
+    </p>
+    <p v-if="refreshing" role="status" class="mb-3 text-xs text-slate-500">
+      Sincronizando atividades…
+    </p>
+    <p v-if="refreshError" role="alert" class="mb-3 text-sm text-amber-700">
+      Não foi possível atualizar os dados. A última listagem foi mantida.
+      <button type="button" class="font-semibold underline" @click="load">Tentar novamente</button>
     </p>
     <AsyncNotice :loading="loading" :error="error" label="Carregando atividades…" @retry="load" />
     <section
