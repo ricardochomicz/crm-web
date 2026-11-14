@@ -34,6 +34,8 @@ const {
   canDelete,
   canTeam,
   isOverdue,
+  urgency,
+  activityUrgencyLabels,
   visible,
   overview,
   overviewLoading,
@@ -75,7 +77,7 @@ const {
         Tentar novamente
       </button>
     </p>
-    <div class="mb-5 grid gap-3 sm:grid-cols-3">
+    <div class="mb-5 grid gap-3 sm:grid-cols-4">
       <button
         v-for="item in [
           { key: 'pending', label: 'Pendentes', count: overview.pending },
@@ -96,6 +98,10 @@ const {
         </p>
       </button>
     </div>
+    <p class="mb-4 text-sm text-slate-600">
+      <span class="font-semibold text-amber-700">{{ overview.due_soon }}</span>
+      atividade(s) pendente(s) vencem nas próximas 24 horas.
+    </p>
     <ListFilters
       :count-label="pagination.total + ' atividade(s) encontrada(s)'"
       :columns="3"
@@ -169,6 +175,17 @@ const {
           <tr v-for="event in visible" :key="event.id" class="border-t border-stone-100">
             <td class="p-4">
               <p class="font-semibold text-slate-800">{{ event.title }}</p>
+              <span
+                v-if="urgency(event) !== 'normal'"
+                class="mt-1 inline-flex rounded-md px-2 py-0.5 text-xs font-semibold"
+                :class="{
+                  'bg-red-50 text-red-700': urgency(event) === 'overdue',
+                  'bg-amber-50 text-amber-800': urgency(event) === 'due-soon',
+                  'bg-orange-50 text-orange-700': urgency(event) === 'high',
+                }"
+              >
+                {{ activityUrgencyLabels[urgency(event)] }}
+              </span>
               <p v-if="event.description" class="mt-1 line-clamp-2 text-xs text-slate-500">
                 {{ event.description }}
               </p>
