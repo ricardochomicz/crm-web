@@ -3,6 +3,7 @@ import { publishOpportunityChanged } from '../opportunityEvents'
 import { opportunitiesApi, type FunnelStage, type Opportunity } from '../api'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
+import { localToday, isValidFutureForecastDate } from '../utils/forecastDate'
 
 type StagePagination = {
   updateStage: (id: string, stageId: string | null) => void
@@ -25,7 +26,6 @@ export function useOpportunityStageMovement(context: MovementContext) {
   const forecastCandidate = ref<{ item: Opportunity; stageId: string } | null>(null)
   const forecastDate = ref('')
   const forecastReason = ref('')
-  const today = () => [new Date().getFullYear(), String(new Date().getMonth() + 1).padStart(2, '0'), String(new Date().getDate()).padStart(2, '0')].join('-')
 
   function cancelForecast() {
     forecastCandidate.value = null
@@ -35,7 +35,7 @@ export function useOpportunityStageMovement(context: MovementContext) {
 
   async function confirmForecast() {
     const candidate = forecastCandidate.value
-    if (!candidate || !forecastDate.value || forecastDate.value < today() || forecastReason.value.trim().length < 10) return
+    if (!candidate || !context.canEdit.value || movingId.value || !isValidFutureForecastDate(forecastDate.value) || forecastReason.value.trim().length < 10) return
     const date = forecastDate.value
     const reason = forecastReason.value.trim()
     cancelForecast()
@@ -48,9 +48,10 @@ export function useOpportunityStageMovement(context: MovementContext) {
     if (!item || item.funnel_stage_id === stageId) return
 
     const forecast = item.expected_close_at?.slice(0, 10)
-    if (forecast && forecast < today()) {
+    if (forecast && forecast < localToday()) {
       forecastCandidate.value = { item, stageId }
       forecastDate.value = ''
+      forecastReason.value = ''
       return
     }
     await persistMove(item, stageId)
