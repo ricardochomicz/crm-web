@@ -43,6 +43,13 @@ const emit = defineEmits<{
                   Atrasada
                 </span>
               </div>
+              <span
+                v-if="(item.forecast_extensions_count ?? 0) >= 2"
+                class="mt-1 inline-flex rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900"
+                :title="`${item.forecast_extensions_count} prorrogações registradas desde a ativação da auditoria`"
+              >
+                Previsão prorrogada {{ item.forecast_extensions_count }}×
+              </span>
               <small
                 v-if="opportunityAgeLabel(item.created_at)"
                 class="mt-1 block text-xs"
