@@ -39,7 +39,11 @@ const canEdit = computed(() => can(tenant.value, 'calendar.update') && !!tenant.
 const canDelete = computed(() => can(tenant.value, 'calendar.delete') && !!tenant.value?.access?.allows_operational_writes)
 const canTeam = computed(() => can(tenant.value, 'calendar.team.view'))
 const isOverdue = (event: CalendarEvent) => event.status === 'pending' && new Date(event.ends_at).getTime() < now.value
-const visible = computed(() => events.value)
+const visible = computed(() => events.value.filter(event => {
+  if (filter.value === 'pending' || filter.value === 'overdue') return event.status === 'pending'
+  if (filter.value === 'completed') return event.status === 'completed'
+  return true
+}))
 const overview = ref({ total: 0, pending: 0, overdue: 0, completed: 0, cancelled: 0 })
 const overviewLoading = ref(false)
 const overviewError = ref('')
@@ -89,7 +93,10 @@ async function load(background = false) {
     // Reutiliza a agenda existente: nenhum segundo cadastro de tarefas é criado.
     const response = await calendarApi.activities(tenantId, { scope: scope.value, status: filter.value, search: appliedSearch.value, page: page.value, per_page: 20 })
     if (current === version) {
-      events.value = response.data
+      // Never reintroduce a completed item while its reconciliation is pending.
+      events.value = response.data.filter(item =>
+        !completingIds.value.includes(item.id) || item.status !== 'pending'
+      )
       pagination.value = response.meta
       now.value = Date.now()
       hasLoaded.value = true
@@ -149,7 +156,10 @@ async function complete(event: CalendarEvent) {
   completingIds.value = [...completingIds.value, event.id]
   try {
     await calendarApi.update(tenantId, event.id, { status: 'completed' })
-    // The server confirmed the change: update the row before Reverb refreshes it.
+    // Invalidate requests started before the write, so stale results cannot undo it.
+    ++version
+    loading.value = false
+    refreshing.value = false
     events.value = events.value.map(item =>
       item.id === event.id ? { ...item, status: 'completed' } : item
     )
