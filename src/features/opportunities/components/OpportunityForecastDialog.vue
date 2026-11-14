@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import type { Opportunity } from '../api'
+import { localToday, isValidFutureForecastDate } from '../utils/forecastDate'
 
 const props = defineProps<{
   opportunity: Opportunity | null
@@ -16,8 +17,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
   'update:reason': [value: string]
 }>()
-const today = () => [new Date().getFullYear(), String(new Date().getMonth() + 1).padStart(2, '0'), String(new Date().getDate()).padStart(2, '0')].join('-')
-const dateValid = computed(() => /^\d{4}-\d{2}-\d{2}$/.test(props.modelValue) && props.modelValue >= today())
+const dateValid = computed(() => isValidFutureForecastDate(props.modelValue))
 const reasonValid = computed(() => props.reason.trim().length >= 10)
 const canConfirm = computed(() => !!props.opportunity && !props.busy && dateValid.value && reasonValid.value)
 </script>
@@ -42,7 +42,7 @@ const canConfirm = computed(() => !!props.opportunity && !props.busy && dateVali
         <input
           type="date"
           class="field mt-2 w-full"
-          :min="today()"
+          :min="localToday()"
           :value="modelValue"
           :disabled="busy"
           required
