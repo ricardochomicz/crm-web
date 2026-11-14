@@ -20,6 +20,7 @@ const tenant = ref<Tenant>()
 const events = ref<CalendarEvent[]>([])
 const loading = ref(false)
 const refreshing = ref(false)
+const completingIds = ref<string[]>([])
 const refreshError = ref('')
 const hasLoaded = ref(false)
 const error = ref('')
@@ -143,13 +144,24 @@ void tenantApi.show(tenantId).then(r => { tenant.value = r.data }).catch(e => { 
 function create() { selected.value = null; dialogOpen.value = true }
 function edit(event: CalendarEvent) { if (scope.value !== 'mine') return; selected.value = event; dialogOpen.value = true }
 async function complete(event: CalendarEvent) {
-  if (!canEdit.value || scope.value !== 'mine' || event.status !== 'pending') return
+  if (!canEdit.value || scope.value !== 'mine' || event.status !== 'pending' ||
+    completingIds.value.includes(event.id)) return
+  completingIds.value = [...completingIds.value, event.id]
   try {
     await calendarApi.update(tenantId, event.id, { status: 'completed' })
+    // The server confirmed the change: update the row before Reverb refreshes it.
+    events.value = events.value.map(item =>
+      item.id === event.id ? { ...item, status: 'completed' } : item
+    )
     toast.success('Tarefa concluída.')
-  } catch (e) { toast.error(errorMessage(e)) }
+    scheduleRefresh()
+  } catch (e) {
+    toast.error(errorMessage(e))
+  } finally {
+    completingIds.value = completingIds.value.filter(id => id !== event.id)
+  }
 }
 function saved() { activityLink.close(); toast.success('Atividade salva.') }
 
-return { refreshing, refreshError, tenantId, activityLinkLoading, activityLinkError, tenant, events, loading, error, scope, filter, search, appliedSearch, dialogOpen, selected, historyEvent, now, page, pagination, canCreate, canEdit, canDelete, canTeam, isOverdue, visible, overview, overviewLoading, overviewError, loadOverview, dateLabel, load, submitSearch, clearFilters, changePage, create, edit, complete, saved }
+return { completingIds, refreshing, refreshError, tenantId, activityLinkLoading, activityLinkError, tenant, events, loading, error, scope, filter, search, appliedSearch, dialogOpen, selected, historyEvent, now, page, pagination, canCreate, canEdit, canDelete, canTeam, isOverdue, visible, overview, overviewLoading, overviewError, loadOverview, dateLabel, load, submitSearch, clearFilters, changePage, create, edit, complete, saved }
 }
