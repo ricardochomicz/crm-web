@@ -17,6 +17,7 @@ export type Opportunity = {
   stage?: { id: string; name: string }; operator?: { id: number; name: string }
 }
 export type OpportunityInput = {
+  forecast_reason?: string
   code: string; title: string; client_id: string; order_type_id: string; operator_id: number | null
   description: string | null; expected_close_at: string | null
   estimated_monthly_amount: number; estimated_one_time_amount: number; items: OpportunityItem[]
