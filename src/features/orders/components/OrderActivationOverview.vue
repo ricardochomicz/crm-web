@@ -127,19 +127,17 @@ watch(expanded, (open) => { if (open) { void loadTypes(); if (!overview.value) v
           <h3 class="text-sm font-semibold text-slate-800">Desempenho por tipo de pedido</h3>
           <span class="text-xs text-slate-500">Quantidade e valor mensal apresentados juntos · comparação com mês anterior</span>
         </div>
-        <div v-if="breakdown.length" class="mt-3 grid gap-3 lg:grid-cols-2" :class="loading ? 'opacity-60' : ''">
+        <div v-if="breakdown.length" class="mt-3 grid gap-3" :class="[loading ? 'opacity-60' : '', breakdown.length > 1 ? 'lg:grid-cols-2' : 'grid-cols-1']" :class="loading ? 'opacity-60' : ''">
           <article v-for="item in breakdown" :key="item.id" class="rounded-xl border border-stone-200 bg-white p-4">
             <h4 class="font-semibold text-slate-900">{{ item.name }}</h4>
             <div class="mt-3 grid grid-cols-2 gap-3">
               <div class="rounded-lg bg-stone-50 px-3 py-2">
                 <p class="text-xs text-slate-500">Linhas ativadas</p>
                 <p class="mt-1 text-xl font-bold tabular-nums">{{ item.lines }}</p>
-                <p class="mt-1 text-xs text-slate-500">{{ change(item.lines, item.previousLines) }}</p>
               </div>
               <div class="rounded-lg bg-stone-50 px-3 py-2">
                 <p class="text-xs text-slate-500">Valor mensal das linhas</p>
                 <p class="mt-1 text-lg font-bold tabular-nums">{{ money(String(item.monthly)) }}</p>
-                <p class="mt-1 text-xs text-slate-500">{{ change(item.monthly, item.previousMonthly) }}</p>
               </div>
             </div>
             <div class="mt-4 grid grid-cols-2 gap-4">
