@@ -40,6 +40,7 @@ export function useOpportunityFormState(deps: Dependencies) {
       operator_id: opportunity.operator_id,
       description: opportunity.description,
       expected_close_at: opportunity.expected_close_at?.slice(0, 10) ?? null,
+      forecast_reason: '',
       estimated_monthly_amount: Number(opportunity.estimated_monthly_amount),
       estimated_one_time_amount: Number(opportunity.estimated_one_time_amount),
       items: (opportunity.items ?? []).map(item => ({
