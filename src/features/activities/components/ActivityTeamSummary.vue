@@ -16,6 +16,8 @@ defineProps<{
     completed_7d: number
     completed_30d: number
     completed_period: number
+    won_opportunities_period: number
+    orders_period: number
     critical: number
   }[]
   loading: boolean
@@ -53,7 +55,7 @@ function clearPeriod() {
       <div>
         <h2 class="font-semibold text-slate-800">Produtividade por consultor</h2>
         <p class="mt-1 text-xs text-slate-500">
-          Selecione um consultor para filtrar as atividades e os indicadores. Os períodos são móveis e consideram a data de conclusão.
+          Selecione um consultor para filtrar as atividades e os indicadores. Os períodos são móveis e consideram a data de conclusão. Oportunidades e pedidos vinculados não representam conversão causal.
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -106,7 +108,7 @@ function clearPeriod() {
       Não foi possível atualizar o painel: {{ error }}
     </p>
     <div v-if="rows.length" class="overflow-x-auto px-4 pb-4">
-      <table class="w-full min-w-[580px] text-left text-sm">
+      <table class="w-full min-w-[760px] text-left text-sm">
         <thead class="bg-stone-50 text-xs uppercase text-slate-500">
           <tr>
             <th class="p-3">Consultor</th>
@@ -116,7 +118,9 @@ function clearPeriod() {
             <th v-if="view === 'performance'" class="p-3 text-right">Concluídas (total)</th>
             <th v-if="view === 'performance'" class="p-3 text-right">Últimos 7 dias</th>
             <th v-if="view === 'performance'" class="p-3 text-right">Últimos 30 dias</th>
-            <th v-if="view === 'performance' && period" class="p-3 text-right">Período selecionado</th>
+            <th v-if="view === 'performance' && period" class="p-3 text-right">Concluídas no período</th>
+            <th v-if="view === 'performance'" class="p-3 text-right">Oportunidades ganhas vinculadas</th>
+            <th v-if="view === 'performance'" class="p-3 text-right">Pedidos vinculados</th>
           </tr>
         </thead>
         <tbody>
@@ -143,6 +147,8 @@ function clearPeriod() {
             <td v-if="view === 'performance'" class="p-3 text-right font-semibold text-slate-800 tabular-nums">{{ row.completed_7d }}</td>
             <td v-if="view === 'performance'" class="p-3 text-right font-semibold text-slate-800 tabular-nums">{{ row.completed_30d }}</td>
             <td v-if="view === 'performance' && period" class="p-3 text-right font-semibold text-orange-700 tabular-nums">{{ row.completed_period }}</td>
+            <td v-if="view === 'performance'" class="p-3 text-right font-semibold text-slate-800 tabular-nums">{{ row.won_opportunities_period }}</td>
+            <td v-if="view === 'performance'" class="p-3 text-right font-semibold text-slate-800 tabular-nums">{{ row.orders_period }}</td>
           </tr>
         </tbody>
       </table>
