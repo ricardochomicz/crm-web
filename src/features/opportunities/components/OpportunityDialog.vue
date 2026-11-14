@@ -25,6 +25,7 @@ import { useOpportunityFormState } from '../composables/useOpportunityFormState'
 import OpportunityLinesSection from './OpportunityLinesSection.vue'
 import OpportunityBatchImportDialog from './OpportunityBatchImportDialog.vue'
 import OpportunityDialogTabs from './OpportunityDialogTabs.vue'
+import OpportunityForecastHistory from './OpportunityForecastHistory.vue'
 type OpportunityDialogTab = 'details' | 'documents' | 'history' | 'appointments' | 'comparison' | 'proposal'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
 
@@ -101,7 +102,10 @@ watch(() => [props.open, props.opportunity] as const, () => {
     <ClientDocumentsPanel v-if="open && opportunity && activeTab === 'documents'" :tenant-id="tenantId" :client-id="opportunity.client_id" :can-upload="!!viewerTenant?.access?.permissions.includes('clients.update')" />
     <OpportunityAppointmentsPanel v-if="open && opportunity && activeTab === 'appointments'" :tenant-id="tenantId" :opportunity-id="opportunity.id" :client-id="opportunity.client_id" :title="opportunity.title" />
     <OpportunityComparisonPanel v-if="open && opportunity && activeTab === 'comparison'" :tenant-id="tenantId" :opportunity-id="opportunity.id" :products="products" :operators="operators" />
-    <TimelinePanel v-if="open && opportunity && activeTab === 'history'" :tenant-id="tenantId" type="opportunity" :subject-id="opportunity.id" :can-write="true" />
+    <div v-if="open && opportunity && activeTab === 'history'" class="space-y-5">
+      <OpportunityForecastHistory :tenant-id="tenantId" :opportunity-id="opportunity.id" />
+      <TimelinePanel :tenant-id="tenantId" type="opportunity" :subject-id="opportunity.id" :can-write="true" />
+    </div>
     <form id="opportunity-details-form" v-show="activeTab === 'details'" class="flex flex-col gap-5" @submit.prevent="save">
       <div class="grid flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
         <fieldset :disabled="busy" class="min-w-0 space-y-6">
