@@ -48,6 +48,12 @@ const { dragging, hover, canDrag, resetDrag, startDrag, overStage, leaveStage, d
               <span v-if="/para correção/i.test(stage.name)" class="mb-2 inline-block rounded-md bg-rose-100 px-2 py-1 text-xs font-bold text-rose-800">Devolvida pelo Backoffice</span>
               <p class="text-sm font-semibold text-slate-800">{{ item.title }}</p>
               <p class="mt-3 text-sm text-slate-600">{{ item.client?.company_name || 'Cliente não informado' }}</p>
+              <span v-if="(item.forecast_extensions_count ?? 0) >= 2"
+                class="mt-2 inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900"
+                :aria-label="`${item.forecast_extensions_count} prorrogações da previsão registradas`"
+                :title="`${item.forecast_extensions_count} prorrogações registradas desde a ativação do histórico estruturado`">
+                Previsão prorrogada {{ item.forecast_extensions_count }}×
+              </span>
               <p class="mt-3 text-sm font-bold text-slate-900">{{ money(item.estimated_monthly_amount) }}/mês</p>
               <p
                 v-if="item.expected_close_at || opportunityAgeLabel(item.created_at)"
