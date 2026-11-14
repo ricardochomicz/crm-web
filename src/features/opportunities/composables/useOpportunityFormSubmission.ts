@@ -52,6 +52,11 @@ export function useOpportunityFormSubmission(deps: Dependencies) {
     if (!form.client_id) { error.value = 'Selecione um cliente.'; return }
     if (!form.order_type_id) { error.value = 'Selecione o tipo da negociação.'; return }
     if (!form.expected_close_at) { error.value = 'Informe a previsão de fechamento da oportunidade.'; return }
+    const previousForecast = deps.opportunity.value?.expected_close_at?.slice(0, 10)
+    if (previousForecast && form.expected_close_at > previousForecast && (form.forecast_reason ?? '').trim().length < 10) {
+      error.value = 'Informe uma justificativa de pelo menos 10 caracteres para prorrogar a previsão.'
+      return
+    }
     if (!validateLines()) return
 
     busy.value = true
