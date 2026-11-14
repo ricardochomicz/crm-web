@@ -13,6 +13,8 @@ const loading = ref(false)
 const error = ref('')
 const overview = ref<OrderActivationOverview | null>(null)
 const availableTypes = ref<{ value: string; label: string }[]>([])
+const typesError = ref('')
+let typesVersion = 0
 let version = 0
 const money = (amount: string) => Number(amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const monthLabel = computed(() => {
@@ -37,11 +39,6 @@ async function refresh() {
     const response = await ordersApi.activationOverview(props.tenantId, from, to, orderTypeId.value || undefined)
     if (current === version) {
       overview.value = response.data
-      if (!orderTypeId.value) {
-        availableTypes.value = response.data.by_type
-          .filter(row => row.order_type_id)
-          .map(row => ({ value: row.order_type_id!, label: row.name }))
-      }
     }
   } catch (exception) {
     if (current === version) { error.value = errorMessage(exception); overview.value = null }
@@ -49,8 +46,29 @@ async function refresh() {
     if (current === version) loading.value = false
   }
 }
-watch(() => props.tenantId, () => { version++; overview.value = null; availableTypes.value = []; if (expanded.value) void refresh() })
-watch(expanded, (open) => { if (open && !overview.value) void refresh() })
+async function loadTypes() {
+  const current = ++typesVersion
+  typesError.value = ''
+  try {
+    const response = await ordersApi.orderTypes()
+    if (current === typesVersion) {
+      availableTypes.value = response.data.map(type => ({ value: type.id, label: type.name }))
+    }
+  } catch (exception) {
+    if (current === typesVersion) {
+      availableTypes.value = []
+      typesError.value = errorMessage(exception)
+    }
+  }
+}
+watch(() => props.tenantId, () => {
+  version++
+  overview.value = null
+  orderTypeId.value = ''
+  availableTypes.value = []
+  if (expanded.value) { void loadTypes(); void refresh() }
+})
+watch(expanded, (open) => { if (open) { void loadTypes(); if (!overview.value) void refresh() } })
 </script>
 
 <template>
@@ -70,6 +88,7 @@ watch(expanded, (open) => { if (open && !overview.value) void refresh() })
         <div>
           <label class="mb-1 block text-xs font-semibold text-slate-600">Tipo de pedido da linha</label>
           <SearchSelect v-model="orderTypeId" :options="typeOptions" placeholder="Todos os tipos" />
+          <p v-if="typesError" class="mt-1 text-xs text-rose-700" role="alert">Não foi possível carregar os tipos: {{ typesError }}</p>
         </div>
         <button type="submit" class="primary-button w-auto" :disabled="loading">{{ loading ? 'Consultando…' : 'Consultar' }}</button>
       </form>
