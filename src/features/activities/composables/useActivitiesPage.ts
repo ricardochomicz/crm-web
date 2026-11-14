@@ -30,6 +30,34 @@ export function useActivitiesPage() {
   const consultantId = ref('')
   const consultants = ref<{ id: string; name: string }[]>([])
   const consultantsError = ref('')
+  const teamSummary = ref<{
+    tenant_user_id: string
+    name: string
+    pending: number
+    overdue: number
+    completed: number
+    critical: number
+  }[]>([])
+  const teamSummaryLoading = ref(false)
+  const teamSummaryError = ref('')
+  let teamSummaryVersion = 0
+  async function loadTeamSummary() {
+    if (!canTeam.value || scope.value !== 'team') return
+
+    const current = ++teamSummaryVersion
+    teamSummaryLoading.value = teamSummary.value.length === 0
+    teamSummaryError.value = ''
+
+    try {
+      const response = await calendarApi.activitiesTeamSummary(tenantId)
+      if (current === teamSummaryVersion) teamSummary.value = response.data
+    } catch (e) {
+      if (current === teamSummaryVersion) teamSummaryError.value = errorMessage(e)
+    } finally {
+      if (current === teamSummaryVersion) teamSummaryLoading.value = false
+    }
+  }
+
   const search = ref('')
   const appliedSearch = ref('')
   const dialogOpen = activityLink.dialogOpen
@@ -67,6 +95,7 @@ export function useActivitiesPage() {
       refreshTimer = undefined
       void load(true)
       void loadOverview(true)
+      void loadTeamSummary()
     }, 250)
   }
   function onVisibilityChange() {
@@ -154,6 +183,7 @@ export function useActivitiesPage() {
     window.removeEventListener('focus', scheduleRefresh)
     version++
     overviewVersion++
+    teamSummaryVersion++
   })
   watch([scope, filter, appliedSearch, consultantId], () => {
     if (page.value !== 1) page.value = 1
@@ -164,6 +194,10 @@ export function useActivitiesPage() {
   watch(scope, value => {
     if (value !== 'team') consultantId.value = ''
   })
+  watch([scope, canTeam], ([currentScope, allowed]) => {
+    if (allowed && currentScope === 'team') void loadTeamSummary()
+    else teamSummaryVersion++
+  }, { immediate: true })
   watch(canTeam, allowed => {
     if (allowed && !consultants.value.length) void loadConsultants()
   })
@@ -247,7 +281,8 @@ export function useActivitiesPage() {
   return {
     completingIds, refreshing, refreshError, tenantId, activityLinkLoading,
     activityLinkError, tenant, events, loading, error, scope, filter,
-    consultantId, consultants, consultantsError, loadConsultants, search,
+    consultantId, consultants, consultantsError, loadConsultants,
+    teamSummary, teamSummaryLoading, teamSummaryError, loadTeamSummary, search,
     appliedSearch, dialogOpen, selected, historyEvent, now, page, pagination,
     canCreate, canEdit, canDelete, canTeam, isOverdue, urgency,
     activityUrgencyLabels, visible, overview,
