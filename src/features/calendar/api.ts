@@ -32,6 +32,8 @@ export const calendarApi = {
       pending: number
       overdue: number
       completed: number
+      completed_7d: number
+      completed_30d: number
       critical: number
     }[] }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/activities/team-summary`)
   },
