@@ -43,6 +43,7 @@ export type OrderActivationOverview = {
 }
 
 export const ordersApi = {
+    orderTypes: () => request<{ data: { id: string; name: string }[] }>('/api/v1/order-types'),
     activationOverview: (tenantId: string, from: string, to: string, orderTypeId?: string) => {
         const params = new URLSearchParams({ date_from: from, date_to: to })
         if (orderTypeId) params.set('order_type_id', orderTypeId)
