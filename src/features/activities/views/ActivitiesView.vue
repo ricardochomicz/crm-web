@@ -9,6 +9,7 @@ import CalendarEventHistoryDialog from '@/features/calendar/components/CalendarE
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import { useActivitiesPage } from '../composables/useActivitiesPage'
 const {
+  completingIds,
   refreshing,
   refreshError,
   tenantId,
@@ -212,6 +213,8 @@ const {
                 <button
                   v-if="canEdit && event.status === 'pending'"
                   class="secondary-button w-auto"
+                  :disabled="completingIds.includes(event.id)"
+                  :aria-busy="completingIds.includes(event.id)"
                   @click="complete(event)"
                 >
                   Concluir</button
