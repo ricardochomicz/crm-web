@@ -6,6 +6,7 @@ import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import ListTable from '@/components/ui/ListTable.vue'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import OrderDetailsPanel from '../components/OrderDetailsPanel.vue'
+import OrderActivationOverview from '../components/OrderActivationOverview.vue'
 import OrdersListFilters from '../components/OrdersListFilters.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import { can } from '@/features/tenants/types'
@@ -42,6 +43,7 @@ const date = (value: string) => value?.slice(0, 10).split('-').reverse().join('/
             <h1 class="mt-3 text-3xl font-semibold">Pedidos comerciais</h1>
             <p class="mt-2 text-sm text-slate-500">Acompanhe os pedidos originados das oportunidades ganhas.</p>
         </header>
+        <OrderActivationOverview :tenant-id="tenantId" />
         <div class="mb-5 grid gap-3 sm:grid-cols-3">
             <button v-for="item in quickViewCards" :key="item.key" type="button" class="rounded-2xl border bg-white p-4 text-left shadow-sm transition hover:border-orange-300" :class="quickView === item.key ? 'border-orange-500 ring-1 ring-orange-200' : 'border-stone-200'" @click="selectQuickView(item.key)">
                 <p class="text-sm text-slate-500">{{ item.label }}</p><p class="mt-2 text-2xl font-semibold text-slate-800">{{ item.count }}</p>
