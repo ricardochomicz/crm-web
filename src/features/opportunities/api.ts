@@ -7,6 +7,8 @@ export type OpportunityItem = {
 export type Opportunity = {
   items?: OpportunityItem[];
   forecast_changes_count?: number;
+  forecast_extensions_count?: number;
+  forecast_advances_count?: number;
   parent_opportunity_id?: string | null; lost_reason?: string | null; closed_at?: string | null;
   id: string; code: string; title: string; created_at?: string | null; status: 'open' | 'won' | 'lost' | 'cancelled'
   client_id: string; tenant_user_id: string; funnel_stage_id: string | null
@@ -39,6 +41,7 @@ export type OpportunityFilters = {
 }
 export type CommercialMetric = { count: number; monthly: string }
 export type CommercialOverview = {
+    forecast_revisions?: { extensions: number; advances: number }
     open_period: CommercialMetric
     overdue: CommercialMetric
     future: CommercialMetric
