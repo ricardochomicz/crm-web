@@ -61,7 +61,7 @@ async function refresh() {
         if (version === requestVersion) busy.value = false
     }
 }
-watch(() => props.tenantId, () => {
+watch(tenantId, () => {
     overview.value = null
     void refresh()
 }, { immediate: true })
