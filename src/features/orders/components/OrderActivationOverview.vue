@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { opportunitiesApi } from '@/features/opportunities/api'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
+import { ordersApi, type OrderActivationOverview } from '../api'
 import { errorMessage } from '@/lib/feedback'
 
 const props = defineProps<{ tenantId: string }>()
 const now = new Date()
 const month = ref(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+const expanded = ref(false)
+const orderTypeId = ref('')
 const loading = ref(false)
 const error = ref('')
-const lines = ref<{ count: number; monthly: string } | null>(null)
+const overview = ref<OrderActivationOverview | null>(null)
+const availableTypes = ref<{ value: string; label: string }[]>([])
 let version = 0
 const money = (amount: string) => Number(amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const monthLabel = computed(() => {
@@ -17,6 +21,7 @@ const monthLabel = computed(() => {
     ? new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(year, number - 1, 1)))
     : 'Selecione o mês'
 })
+const typeOptions = computed(() => [{ value: '', label: 'Todos os tipos' }, ...availableTypes.value])
 async function refresh() {
   const [year, number] = month.value.split('-').map(Number)
   if (!year || !number || number < 1 || number > 12) {
@@ -29,43 +34,72 @@ async function refresh() {
   try {
     const from = `${month.value}-01`
     const to = `${month.value}-${String(new Date(year, number, 0).getDate()).padStart(2, '0')}`
-    const response = await opportunitiesApi.overview(props.tenantId, from, to)
-    if (current === version) lines.value = response.data.activated_lines ?? null
+    const response = await ordersApi.activationOverview(props.tenantId, from, to, orderTypeId.value || undefined)
+    if (current === version) {
+      overview.value = response.data
+      if (!orderTypeId.value) {
+        availableTypes.value = response.data.by_type
+          .filter(row => row.order_type_id)
+          .map(row => ({ value: row.order_type_id!, label: row.name }))
+      }
+    }
   } catch (exception) {
-    if (current === version) { error.value = errorMessage(exception); lines.value = null }
+    if (current === version) { error.value = errorMessage(exception); overview.value = null }
   } finally {
     if (current === version) loading.value = false
   }
 }
-watch(() => props.tenantId, () => { version++; lines.value = null; void refresh() }, { immediate: true })
+watch(() => props.tenantId, () => { version++; overview.value = null; availableTypes.value = []; if (expanded.value) void refresh() })
+watch(expanded, (open) => { if (open && !overview.value) void refresh() })
 </script>
 
 <template>
-  <section class="mb-5 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5" aria-label="Ativações comerciais">
-    <div class="flex flex-wrap items-end justify-between gap-3">
+  <section class="mb-5 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm" aria-label="Visão gerencial de ativações">
+    <button type="button" class="flex w-full items-center justify-between gap-3 p-4 text-left sm:p-5" :aria-expanded="expanded" @click="expanded = !expanded">
       <div>
-        <h2 class="text-base font-semibold text-slate-900">Ativações comerciais</h2>
-        <p class="mt-1 text-xs text-slate-500">Linhas ativadas e valor mensal correspondente · {{ monthLabel }}</p>
+        <h2 class="text-base font-semibold text-slate-900">Visão gerencial · Ativações comerciais</h2>
+        <p class="mt-1 text-xs text-slate-500">Linhas ativadas, receita mensal e tipos de pedido · {{ monthLabel }}</p>
       </div>
-      <form class="flex flex-wrap items-end gap-2" @submit.prevent="refresh">
+      <span class="text-sm font-medium text-slate-600">{{ expanded ? 'Recolher ▲' : 'Expandir ▼' }}</span>
+    </button>
+    <div v-if="expanded" class="border-t border-stone-100 p-4 sm:p-5">
+      <form class="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end" @submit.prevent="refresh">
         <label class="text-xs font-semibold text-slate-600">Mês de ativação
-          <input v-model="month" type="month" class="field mt-1" required />
+          <input v-model="month" type="month" class="field mt-1 w-full" required />
         </label>
+        <div>
+          <label class="mb-1 block text-xs font-semibold text-slate-600">Tipo de pedido da linha</label>
+          <SearchSelect v-model="orderTypeId" :options="typeOptions" placeholder="Todos os tipos" />
+        </div>
         <button type="submit" class="primary-button w-auto" :disabled="loading">{{ loading ? 'Consultando…' : 'Consultar' }}</button>
       </form>
+      <p v-if="error" class="mt-3 text-sm text-rose-700" role="alert">{{ error }}</p>
+      <template v-if="overview">
+        <div class="mt-4 grid gap-3 sm:grid-cols-2" :class="loading ? 'opacity-60' : ''">
+          <div class="rounded-xl border border-stone-100 bg-stone-50 p-4">
+            <p class="text-xs text-slate-600">Total de linhas ativadas</p>
+            <p class="mt-2 text-2xl font-semibold tabular-nums">{{ overview.total.lines }}</p>
+          </div>
+          <div class="rounded-xl border border-stone-100 bg-stone-50 p-4">
+            <p class="text-xs text-slate-600">Valor mensal das linhas ativadas</p>
+            <p class="mt-2 text-2xl font-semibold tabular-nums">{{ money(overview.total.monthly) }}</p>
+          </div>
+        </div>
+        <div class="mt-4 overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="border-b border-stone-200 text-xs uppercase text-slate-500"><tr><th class="py-3">Tipo de pedido</th><th class="py-3 text-right">Linhas</th><th class="py-3 text-right">Valor mensal</th></tr></thead>
+            <tbody>
+              <tr v-for="item in overview.by_type" :key="item.order_type_id ?? 'none'" class="border-b border-stone-100">
+                <td class="py-3">{{ item.name }}</td><td class="py-3 text-right tabular-nums">{{ item.lines }}</td><td class="py-3 text-right tabular-nums">{{ money(item.monthly) }}</td>
+              </tr>
+              <tr v-if="!overview.by_type.length"><td colspan="3" class="py-4 text-slate-500">Nenhuma linha ativada no período.</td></tr>
+            </tbody>
+            <tfoot class="font-semibold"><tr><td class="pt-3">Total</td><td class="pt-3 text-right">{{ overview.total.lines }}</td><td class="pt-3 text-right">{{ money(overview.total.monthly) }}</td></tr></tfoot>
+          </table>
+        </div>
+      </template>
+      <p v-else-if="loading" class="mt-3 text-sm text-slate-500">Carregando ativações…</p>
+      <p class="mt-3 text-xs text-slate-500">Considera a data e o tipo de cada linha ativada, inclusive em pedidos parcialmente ativados. Valor mensal ativado não significa faturamento recebido.</p>
     </div>
-    <p v-if="error" class="mt-3 text-sm text-rose-700" role="alert">{{ error }}</p>
-    <div v-if="lines" class="mt-4 grid gap-3 sm:grid-cols-2" :class="loading ? 'opacity-60' : ''">
-      <div class="rounded-xl border border-stone-100 bg-stone-50 p-4">
-        <p class="text-xs text-slate-600">Linhas ativadas no período</p>
-        <p class="mt-2 text-2xl font-semibold tabular-nums">{{ lines.count }}</p>
-      </div>
-      <div class="rounded-xl border border-stone-100 bg-stone-50 p-4">
-        <p class="text-xs text-slate-600">Valor mensal das linhas ativadas</p>
-        <p class="mt-2 text-2xl font-semibold tabular-nums">{{ money(lines.monthly) }}</p>
-      </div>
-    </div>
-    <p v-else-if="loading" class="mt-3 text-sm text-slate-500">Carregando ativações…</p>
-    <p class="mt-3 text-xs text-slate-500">Considera ativações parciais de pedidos vinculados às oportunidades visíveis para você. Não representa faturamento recebido.</p>
   </section>
 </template>
