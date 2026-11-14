@@ -25,7 +25,8 @@ export const calendarApi = {
     const query = new URLSearchParams({ from, to, scope })
     return request<{ data: CalendarEvent[] }>(`${base(tenantId)}?${query}`)
   },
-  activitiesTeamSummary(tenantId: string) {
+  activitiesTeamSummary(tenantId: string, period?: { from: string; to: string }) {
+    const query = period ? `?${new URLSearchParams(period)}` : ''
     return request<{ data: {
       tenant_user_id: string
       name: string
