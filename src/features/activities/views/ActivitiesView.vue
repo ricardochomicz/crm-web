@@ -101,6 +101,9 @@ const {
     <p class="mb-4 text-sm text-slate-600">
       <span class="font-semibold text-amber-700">{{ overview.due_soon }}</span>
       atividade(s) pendente(s) vencem nas próximas 24 horas.
+      <button type="button" class="ml-2 font-semibold text-orange-700 underline" @click="filter = 'critical'">
+        Ver tarefas críticas
+      </button>
     </p>
     <ListFilters
       :count-label="pagination.total + ' atividade(s) encontrada(s)'"
@@ -128,6 +131,7 @@ const {
             { value: 'all', label: 'Todas as situações' },
             { value: 'pending', label: 'Pendentes' },
             { value: 'overdue', label: 'Atrasadas' },
+            { value: 'critical', label: 'Críticas (prazo ou prioridade)' },
             { value: 'completed', label: 'Concluídas' },
             { value: 'cancelled', label: 'Canceladas' },
           ]"
