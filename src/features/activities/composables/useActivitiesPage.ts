@@ -9,6 +9,7 @@ import { tenantApi } from '@/features/tenants/api'
 import { can, type Tenant } from '@/features/tenants/types'
 import { errorMessage } from '@/lib/feedback'
 import { toast } from '@/services/toast'
+import { activityUrgency, activityUrgencyLabels } from '../utils/activityUrgency'
 
 export function useActivitiesPage() {
   const route = useRoute()
@@ -38,14 +39,15 @@ export function useActivitiesPage() {
   const canEdit = computed(() => can(tenant.value, 'calendar.update') && !!tenant.value?.access?.allows_operational_writes)
   const canDelete = computed(() => can(tenant.value, 'calendar.delete') && !!tenant.value?.access?.allows_operational_writes)
   const canTeam = computed(() => can(tenant.value, 'calendar.team.view'))
-  const isOverdue = (event: CalendarEvent) => event.status === 'pending' && new Date(event.ends_at).getTime() < now.value
+  const urgency = (event: CalendarEvent) => activityUrgency(event, now.value)
+  const isOverdue = (event: CalendarEvent) => urgency(event) === 'overdue'
   const visible = computed(() => events.value.filter(event => {
     if (filter.value === 'pending' || filter.value === 'overdue') return event.status === 'pending'
     if (filter.value === 'completed') return event.status === 'completed'
     if (filter.value === 'cancelled') return event.status === 'cancelled'
     return true
   }))
-  const overview = ref({ total: 0, pending: 0, overdue: 0, completed: 0, cancelled: 0 })
+  const overview = ref({ total: 0, pending: 0, overdue: 0, due_soon: 0, completed: 0, cancelled: 0 })
   const overviewLoading = ref(false)
   const overviewError = ref('')
   const overviewRefreshing = ref(false)
@@ -220,7 +222,8 @@ export function useActivitiesPage() {
     completingIds, refreshing, refreshError, tenantId, activityLinkLoading,
     activityLinkError, tenant, events, loading, error, scope, filter, search,
     appliedSearch, dialogOpen, selected, historyEvent, now, page, pagination,
-    canCreate, canEdit, canDelete, canTeam, isOverdue, visible, overview,
+    canCreate, canEdit, canDelete, canTeam, isOverdue, urgency,
+    activityUrgencyLabels, visible, overview,
     overviewLoading, overviewRefreshing, overviewError, loadOverview, dateLabel,
     load, submitSearch, clearFilters, changePage, create, edit, complete, saved,
   }
