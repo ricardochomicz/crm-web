@@ -8,6 +8,7 @@ import SearchSelect from '@/components/ui/SearchSelect.vue'
 import CalendarEventHistoryDialog from '@/features/calendar/components/CalendarEventHistoryDialog.vue'
 import CalendarEventDialog from '@/features/calendar/components/CalendarEventDialog.vue'
 import { useActivitiesPage } from '../composables/useActivitiesPage'
+import ActivityTeamSummary from '../components/ActivityTeamSummary.vue'
 const {
   completingIds,
   refreshing,
@@ -25,6 +26,10 @@ const {
   consultants,
   consultantsError,
   loadConsultants,
+  teamSummary,
+  teamSummaryLoading,
+  teamSummaryError,
+  loadTeamSummary,
   search,
   appliedSearch,
   dialogOpen,
@@ -109,6 +114,15 @@ const {
         Ver tarefas críticas
       </button>
     </p>
+    <ActivityTeamSummary
+      v-if="canTeam && scope === 'team'"
+      :rows="teamSummary"
+      :loading="teamSummaryLoading"
+      :error="teamSummaryError"
+      :selected-id="consultantId"
+      @select="consultantId = $event"
+      @retry="loadTeamSummary"
+    />
     <ListFilters
       :count-label="pagination.total + ' atividade(s) encontrada(s)'"
       :columns="4"
