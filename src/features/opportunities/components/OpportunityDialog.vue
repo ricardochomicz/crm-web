@@ -105,7 +105,7 @@ watch(() => [props.open, props.opportunity] as const, () => {
     <form id="opportunity-details-form" v-show="activeTab === 'details'" class="flex flex-col gap-5" @submit.prevent="save">
       <div class="grid flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_350px]">
         <fieldset :disabled="busy" class="min-w-0 space-y-6">
-          <OpportunityDetailsForm v-model="form" :clients="availableClients" :can-create-client="canCreateClient" :client-contacts="clientContacts" :loading-client-contacts="loadingClientContacts" :order-types="orderTypes" :operators="operatorOptions" @change-operator="changeOperator" @create-client="quickClientOpen = true" />
+          <OpportunityDetailsForm v-model="form" :previous-forecast="opportunity?.expected_close_at" :clients="availableClients" :can-create-client="canCreateClient" :client-contacts="clientContacts" :loading-client-contacts="loadingClientContacts" :order-types="orderTypes" :operators="operatorOptions" @change-operator="changeOperator" @create-client="quickClientOpen = true" />
           <OpportunityLinesSection
             :items="form.items"
             :max-items="maxItems"
