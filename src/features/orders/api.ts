@@ -36,7 +36,18 @@ export type CommercialOrder = {
     activation_summary?: { total: number; active: number; pending: number }
 }
 
+export type OrderActivationOverview = {
+    period: { from: string; to: string }
+    total: { lines: number; monthly: string }
+    by_type: { order_type_id: string | null; name: string; lines: number; monthly: string }[]
+}
+
 export const ordersApi = {
+    activationOverview: (tenantId: string, from: string, to: string, orderTypeId?: string) => {
+        const params = new URLSearchParams({ date_from: from, date_to: to })
+        if (orderTypeId) params.set('order_type_id', orderTypeId)
+        return request<{ data: OrderActivationOverview }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders/activation-overview?${params}`)
+    },
     show: (tenantId: string, id: string) =>
         request<{ data: CommercialOrder }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders/${id}`),
     updateWorkflow: (tenantId: string, id: string, data: { order_status_id: string; expected_activation_at: string | null; correction_reason?: string }) =>
