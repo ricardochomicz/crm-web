@@ -30,6 +30,8 @@ const {
   teamSummaryLoading,
   teamSummaryError,
   loadTeamSummary,
+  performancePeriod,
+  setPerformancePeriod,
   search,
   appliedSearch,
   dialogOpen,
@@ -120,6 +122,8 @@ const {
       :loading="teamSummaryLoading"
       :error="teamSummaryError"
       :selected-id="consultantId"
+      :period="performancePeriod"
+      @period-change="setPerformancePeriod"
       @select="consultantId = $event"
       @retry="loadTeamSummary"
     />
