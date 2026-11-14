@@ -25,14 +25,15 @@ export const calendarApi = {
     const query = new URLSearchParams({ from, to, scope })
     return request<{ data: CalendarEvent[] }>(`${base(tenantId)}?${query}`)
   },
-  activitiesOverview(tenantId: string, filters: { scope: 'mine' | 'team'; search?: string }) {
+  activitiesOverview(tenantId: string, filters: { scope: 'mine' | 'team'; search?: string; tenant_user_id?: string }) {
     const query = new URLSearchParams({ scope: filters.scope })
     if (filters.search?.trim()) query.set('search', filters.search.trim())
+    if (filters.tenant_user_id) query.set('tenant_user_id', filters.tenant_user_id)
     return request<{ data: { total: number; pending: number; overdue: number; due_soon: number; completed: number; cancelled: number } }>(
       `/api/v1/tenants/${encodeURIComponent(tenantId)}/activities/overview?${query}`,
     )
   },
-  activities(tenantId: string, filters: { scope: 'mine' | 'team'; status: string; search?: string; page: number; per_page: number }) {
+  activities(tenantId: string, filters: { scope: 'mine' | 'team'; status: string; search?: string; tenant_user_id?: string; page: number; per_page: number }) {
     const query = new URLSearchParams()
     for (const [key, value] of Object.entries(filters)) {
       if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) continue
