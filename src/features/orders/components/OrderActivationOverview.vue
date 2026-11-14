@@ -44,6 +44,13 @@ const breakdown = computed(() => {
 const change = (current: number, previous: number) => previous === 0
   ? (current === 0 ? '—' : 'Sem base anterior')
   : `${((current - previous) / previous * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
+const trend = (current: number, previous: number) => {
+  if (previous === 0) return current === 0 ? { label: 'Sem movimentação nos dois períodos', tone: 'text-slate-500' } : { label: 'Sem base de comparação no mês anterior', tone: 'text-slate-500' }
+  const variation = (current - previous) / previous * 100
+  if (variation === 0) return { label: 'Estável em relação ao mês anterior', tone: 'text-slate-600' }
+  const amount = Math.abs(variation).toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+  return { label: `${amount}% de ${variation > 0 ? 'alta' : 'queda'} em relação ao mês anterior`, tone: variation > 0 ? 'text-emerald-700' : 'text-rose-700' }
+}
 const percentage = (value: number, max: number) => `${Math.max(0, Math.min(100, max > 0 ? value / max * 100 : 0))}%`
 async function refresh() {
   const [year, number] = month.value.split('-').map(Number)
@@ -153,6 +160,16 @@ watch(expanded, (open) => { if (open) { void loadTypes(); if (!overview.value) v
                     <div class="h-2 rounded-full bg-stone-100"><div class="h-full rounded-full" :class="index ? 'bg-orange-500' : 'bg-slate-400'" :style="{ width: percentage(value, Math.max(item.monthly, item.previousMonthly)) }"></div></div>
                   </div>
                 </div>
+              </div>
+            </div>
+            <div class="mt-4 grid gap-2 rounded-lg border border-stone-100 bg-stone-50/70 p-3 sm:grid-cols-2">
+              <div>
+                <p class="text-xs font-semibold text-slate-600">Evolução das linhas</p>
+                <p class="mt-1 text-sm font-medium" :class="trend(item.lines, item.previousLines).tone">{{ trend(item.lines, item.previousLines).label }}</p>
+              </div>
+              <div>
+                <p class="text-xs font-semibold text-slate-600">Evolução do valor mensal</p>
+                <p class="mt-1 text-sm font-medium" :class="trend(item.monthly, item.previousMonthly).tone">{{ trend(item.monthly, item.previousMonthly).label }}</p>
               </div>
             </div>
           </article>
