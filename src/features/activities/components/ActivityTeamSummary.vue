@@ -6,6 +6,8 @@ defineProps<{
     pending: number
     overdue: number
     completed: number
+    completed_7d: number
+    completed_30d: number
     critical: number
   }[]
   loading: boolean
@@ -25,7 +27,7 @@ const emit = defineEmits<{
       <div>
         <h2 class="font-semibold text-slate-800">Produtividade por consultor</h2>
         <p class="mt-1 text-xs text-slate-500">
-          Selecione um consultor para filtrar as atividades e os indicadores.
+          Selecione um consultor para filtrar as atividades e os indicadores. Os períodos são móveis e consideram a data de conclusão.
         </p>
       </div>
       <button type="button" class="secondary-button w-auto" @click="emit('retry')">
@@ -39,14 +41,16 @@ const emit = defineEmits<{
       Não foi possível atualizar o painel: {{ error }}
     </p>
     <div v-if="rows.length" class="overflow-x-auto px-4 pb-4">
-      <table class="w-full min-w-[650px] text-left text-sm">
+      <table class="w-full min-w-[850px] text-left text-sm">
         <thead class="bg-stone-50 text-xs uppercase text-slate-500">
           <tr>
             <th class="p-3">Consultor</th>
             <th class="p-3 text-right">Pendentes</th>
             <th class="p-3 text-right">Atrasadas</th>
             <th class="p-3 text-right">Críticas</th>
-            <th class="p-3 text-right">Concluídas</th>
+            <th class="p-3 text-right">Concluídas (total)</th>
+            <th class="p-3 text-right">Últimos 7 dias</th>
+            <th class="p-3 text-right">Últimos 30 dias</th>
           </tr>
         </thead>
         <tbody>
@@ -70,6 +74,8 @@ const emit = defineEmits<{
             <td class="p-3 text-right font-semibold text-red-700 tabular-nums">{{ row.overdue }}</td>
             <td class="p-3 text-right font-semibold text-orange-700 tabular-nums">{{ row.critical }}</td>
             <td class="p-3 text-right tabular-nums">{{ row.completed }}</td>
+            <td class="p-3 text-right font-semibold text-slate-800 tabular-nums">{{ row.completed_7d }}</td>
+            <td class="p-3 text-right font-semibold text-slate-800 tabular-nums">{{ row.completed_30d }}</td>
           </tr>
         </tbody>
       </table>
