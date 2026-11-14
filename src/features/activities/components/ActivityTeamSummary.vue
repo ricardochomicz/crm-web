@@ -55,7 +55,7 @@ function clearPeriod() {
       <div>
         <h2 class="font-semibold text-slate-800">Produtividade por consultor</h2>
         <p class="mt-1 text-xs text-slate-500">
-          Selecione um consultor para filtrar as atividades e os indicadores. Os períodos são móveis e consideram a data de conclusão. Oportunidades e pedidos vinculados não representam conversão causal.
+          Selecione um consultor para filtrar as atividades e os indicadores. Os períodos são móveis e consideram a data de conclusão. Oportunidades e pedidos vinculados consideram o período selecionado (30 dias por padrão) e não representam conversão causal.
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
