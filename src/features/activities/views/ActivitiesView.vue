@@ -70,7 +70,7 @@ const {
     </header>
     <p v-if="overviewError" role="alert" class="mb-3 text-sm text-red-700">
       Indicadores indisponíveis: {{ overviewError }}
-      <button type="button" class="font-semibold underline" @click="loadOverview">
+      <button type="button" class="font-semibold underline" @click="loadOverview()">
         Tentar novamente
       </button>
     </p>
@@ -146,9 +146,9 @@ const {
     </p>
     <p v-if="refreshError" role="alert" class="mb-3 text-sm text-amber-700">
       Não foi possível atualizar os dados. A última listagem foi mantida.
-      <button type="button" class="font-semibold underline" @click="load">Tentar novamente</button>
+      <button type="button" class="font-semibold underline" @click="load()">Tentar novamente</button>
     </p>
-    <AsyncNotice :loading="loading" :error="error" label="Carregando atividades…" @retry="load" />
+    <AsyncNotice :loading="loading" :error="error" label="Carregando atividades…" @retry="load()" />
     <section
       v-if="!loading && !error"
       class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm"
