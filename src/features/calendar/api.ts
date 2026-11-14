@@ -25,6 +25,16 @@ export const calendarApi = {
     const query = new URLSearchParams({ from, to, scope })
     return request<{ data: CalendarEvent[] }>(`${base(tenantId)}?${query}`)
   },
+  activitiesTeamSummary(tenantId: string) {
+    return request<{ data: {
+      tenant_user_id: string
+      name: string
+      pending: number
+      overdue: number
+      completed: number
+      critical: number
+    }[] }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/activities/team-summary`)
+  },
   activitiesOverview(tenantId: string, filters: { scope: 'mine' | 'team'; search?: string; tenant_user_id?: string }) {
     const query = new URLSearchParams({ scope: filters.scope })
     if (filters.search?.trim()) query.set('search', filters.search.trim())
