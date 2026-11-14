@@ -2,6 +2,9 @@
 import { ref } from 'vue'
 
 const view = ref<'operational' | 'performance'>('operational')
+const from = ref('')
+const to = ref('')
+const periodError = ref('')
 
 defineProps<{
   rows: {
@@ -12,17 +15,36 @@ defineProps<{
     completed: number
     completed_7d: number
     completed_30d: number
+    completed_period: number
     critical: number
   }[]
   loading: boolean
   error: string
   selectedId: string
+  period: { from: string; to: string } | null
 }>()
 
 const emit = defineEmits<{
   select: [consultantId: string]
   retry: []
+  periodChange: [period: { from: string; to: string } | null]
 }>()
+
+function applyPeriod() {
+  if (!from.value || !to.value || from.value > to.value) {
+    periodError.value = 'Informe um período válido com data inicial e final.'
+    return
+  }
+  periodError.value = ''
+  emit('periodChange', { from: from.value, to: to.value })
+}
+
+function clearPeriod() {
+  from.value = ''
+  to.value = ''
+  periodError.value = ''
+  emit('periodChange', null)
+}
 </script>
 
 <template>
@@ -60,6 +82,23 @@ const emit = defineEmits<{
         </button>
       </div>
     </div>
+    <div v-if="view === 'performance'" class="flex flex-wrap items-end gap-3 border-b border-stone-100 px-4 py-3">
+      <label class="text-xs font-semibold text-slate-600">
+        Data inicial
+        <input v-model="from" type="date" class="field mt-1 block" />
+      </label>
+      <label class="text-xs font-semibold text-slate-600">
+        Data final
+        <input v-model="to" type="date" class="field mt-1 block" />
+      </label>
+      <button type="button" class="secondary-button w-auto" @click="applyPeriod">
+        Aplicar período
+      </button>
+      <button v-if="period" type="button" class="secondary-button w-auto" @click="clearPeriod">
+        Limpar período
+      </button>
+      <span v-if="periodError" role="alert" class="text-xs text-red-700">{{ periodError }}</span>
+    </div>
     <p v-if="loading" role="status" class="p-4 text-sm text-slate-500">
       Carregando produtividade da equipe…
     </p>
@@ -77,6 +116,7 @@ const emit = defineEmits<{
             <th v-if="view === 'performance'" class="p-3 text-right">Concluídas (total)</th>
             <th v-if="view === 'performance'" class="p-3 text-right">Últimos 7 dias</th>
             <th v-if="view === 'performance'" class="p-3 text-right">Últimos 30 dias</th>
+            <th v-if="view === 'performance' && period" class="p-3 text-right">Período selecionado</th>
           </tr>
         </thead>
         <tbody>
@@ -102,6 +142,7 @@ const emit = defineEmits<{
             <td v-if="view === 'performance'" class="p-3 text-right tabular-nums">{{ row.completed }}</td>
             <td v-if="view === 'performance'" class="p-3 text-right font-semibold text-slate-800 tabular-nums">{{ row.completed_7d }}</td>
             <td v-if="view === 'performance'" class="p-3 text-right font-semibold text-slate-800 tabular-nums">{{ row.completed_30d }}</td>
+            <td v-if="view === 'performance' && period" class="p-3 text-right font-semibold text-orange-700 tabular-nums">{{ row.completed_period }}</td>
           </tr>
         </tbody>
       </table>
