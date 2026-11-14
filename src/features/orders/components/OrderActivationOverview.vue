@@ -38,7 +38,8 @@ async function refresh() {
   error.value = ''
   try {
     const from = `${month.value}-01`
-    const to = `${month.value}-${String(new Date(year, number, 0).getDate()).padStart(2, '0')}`
+    const endDay = month.value === `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}` ? new Date().getDate() : new Date(year, number, 0).getDate()
+    const to = `${month.value}-${String(endDay).padStart(2, '0')}`
     const response = await ordersApi.activationOverview(props.tenantId, from, to, orderTypeIds.value)
     if (current === version) {
       overview.value = response.data
