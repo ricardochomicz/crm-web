@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
+const view = ref<'operational' | 'performance'>('operational')
+
 defineProps<{
   rows: {
     tenant_user_id: string
@@ -30,9 +34,31 @@ const emit = defineEmits<{
           Selecione um consultor para filtrar as atividades e os indicadores. Os períodos são móveis e consideram a data de conclusão.
         </p>
       </div>
-      <button type="button" class="secondary-button w-auto" @click="emit('retry')">
-        Atualizar
-      </button>
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="inline-flex rounded-xl border border-stone-200 bg-stone-50 p-1" role="group" aria-label="Visão de produtividade">
+          <button
+            type="button"
+            class="rounded-lg px-3 py-2 text-xs font-semibold transition"
+            :class="view === 'operational' ? 'bg-white text-orange-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+            :aria-pressed="view === 'operational'"
+            @click="view = 'operational'"
+          >
+            Operacional
+          </button>
+          <button
+            type="button"
+            class="rounded-lg px-3 py-2 text-xs font-semibold transition"
+            :class="view === 'performance' ? 'bg-white text-orange-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'"
+            :aria-pressed="view === 'performance'"
+            @click="view = 'performance'"
+          >
+            Desempenho
+          </button>
+        </div>
+        <button type="button" class="secondary-button w-auto" @click="emit('retry')">
+          Atualizar
+        </button>
+      </div>
     </div>
     <p v-if="loading" role="status" class="p-4 text-sm text-slate-500">
       Carregando produtividade da equipe…
@@ -41,16 +67,16 @@ const emit = defineEmits<{
       Não foi possível atualizar o painel: {{ error }}
     </p>
     <div v-if="rows.length" class="overflow-x-auto px-4 pb-4">
-      <table class="w-full min-w-[850px] text-left text-sm">
+      <table class="w-full min-w-[580px] text-left text-sm">
         <thead class="bg-stone-50 text-xs uppercase text-slate-500">
           <tr>
             <th class="p-3">Consultor</th>
-            <th class="p-3 text-right">Pendentes</th>
-            <th class="p-3 text-right">Atrasadas</th>
-            <th class="p-3 text-right">Críticas</th>
-            <th class="p-3 text-right">Concluídas (total)</th>
-            <th class="p-3 text-right">Últimos 7 dias</th>
-            <th class="p-3 text-right">Últimos 30 dias</th>
+            <th v-if="view === 'operational'" class="p-3 text-right">Pendentes</th>
+            <th v-if="view === 'operational'" class="p-3 text-right">Atrasadas</th>
+            <th v-if="view === 'operational'" class="p-3 text-right">Críticas</th>
+            <th v-if="view === 'performance'" class="p-3 text-right">Concluídas (total)</th>
+            <th v-if="view === 'performance'" class="p-3 text-right">Últimos 7 dias</th>
+            <th v-if="view === 'performance'" class="p-3 text-right">Últimos 30 dias</th>
           </tr>
         </thead>
         <tbody>
@@ -70,12 +96,12 @@ const emit = defineEmits<{
                 {{ row.name }}
               </button>
             </td>
-            <td class="p-3 text-right tabular-nums">{{ row.pending }}</td>
-            <td class="p-3 text-right font-semibold text-red-700 tabular-nums">{{ row.overdue }}</td>
-            <td class="p-3 text-right font-semibold text-orange-700 tabular-nums">{{ row.critical }}</td>
-            <td class="p-3 text-right tabular-nums">{{ row.completed }}</td>
-            <td class="p-3 text-right font-semibold text-slate-800 tabular-nums">{{ row.completed_7d }}</td>
-            <td class="p-3 text-right font-semibold text-slate-800 tabular-nums">{{ row.completed_30d }}</td>
+            <td v-if="view === 'operational'" class="p-3 text-right tabular-nums">{{ row.pending }}</td>
+            <td v-if="view === 'operational'" class="p-3 text-right font-semibold text-red-700 tabular-nums">{{ row.overdue }}</td>
+            <td v-if="view === 'operational'" class="p-3 text-right font-semibold text-orange-700 tabular-nums">{{ row.critical }}</td>
+            <td v-if="view === 'performance'" class="p-3 text-right tabular-nums">{{ row.completed }}</td>
+            <td v-if="view === 'performance'" class="p-3 text-right font-semibold text-slate-800 tabular-nums">{{ row.completed_7d }}</td>
+            <td v-if="view === 'performance'" class="p-3 text-right font-semibold text-slate-800 tabular-nums">{{ row.completed_30d }}</td>
           </tr>
         </tbody>
       </table>
