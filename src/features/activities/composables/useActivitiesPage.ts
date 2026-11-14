@@ -27,6 +27,9 @@ export function useActivitiesPage() {
   const error = ref('')
   const scope = ref<'mine' | 'team'>('mine')
   const filter = ref<'pending' | 'overdue' | 'critical' | 'completed' | 'cancelled' | 'all'>('pending')
+  const consultantId = ref('')
+  const consultants = ref<{ id: string; name: string }[]>([])
+  const consultantsError = ref('')
   const search = ref('')
   const appliedSearch = ref('')
   const dialogOpen = activityLink.dialogOpen
@@ -76,7 +79,8 @@ export function useActivitiesPage() {
     else overviewLoading.value = true
     overviewError.value = ''
     try {
-      const response = await calendarApi.activitiesOverview(tenantId, { scope: scope.value, search: appliedSearch.value })
+      const response = await calendarApi.activitiesOverview(tenantId, { scope: scope.value, search: appliedSearch.value,
+        tenant_user_id: scope.value === 'team' ? consultantId.value || undefined : undefined })
       if (current === overviewVersion) overview.value = response.data
     } catch (e) {
       if (current === overviewVersion) overviewError.value = errorMessage(e)
@@ -101,7 +105,9 @@ export function useActivitiesPage() {
     }
     try {
       // Reutiliza a agenda existente: nenhum segundo cadastro de tarefas é criado.
-      const response = await calendarApi.activities(tenantId, { scope: scope.value, status: filter.value, search: appliedSearch.value, page: page.value, per_page: 20 })
+      const response = await calendarApi.activities(tenantId, { scope: scope.value, status: filter.value, search: appliedSearch.value,
+        tenant_user_id: scope.value === 'team' ? consultantId.value || undefined : undefined,
+        page: page.value, per_page: 20 })
       if (current === version) {
         // Never reintroduce a completed item while its reconciliation is pending.
         events.value = response.data.filter(item =>
@@ -128,6 +134,7 @@ export function useActivitiesPage() {
     }
   }
   onMounted(() => {
+    if (canTeam.value) void loadConsultants()
     unsubscribeActivityChanged = subscribeActivityChanged(id => {
       if (id === tenantId) {
         scheduleRefresh()
@@ -148,12 +155,28 @@ export function useActivitiesPage() {
     version++
     overviewVersion++
   })
-  watch([scope, filter, appliedSearch], () => {
+  watch([scope, filter, appliedSearch, consultantId], () => {
     if (page.value !== 1) page.value = 1
     else void load()
   }, { immediate: true })
   watch(page, () => { void load() })
-  watch([scope, appliedSearch], () => { void loadOverview() }, { immediate: true })
+  watch([scope, appliedSearch, consultantId], () => { void loadOverview() }, { immediate: true })
+  watch(scope, value => {
+    if (value !== 'team') consultantId.value = ''
+  })
+  watch(canTeam, allowed => {
+    if (allowed && !consultants.value.length) void loadConsultants()
+  })
+  async function loadConsultants() {
+    consultantsError.value = ''
+    try {
+      const response = await calendarApi.assignees(tenantId)
+      consultants.value = response.data
+    } catch (e) {
+      consultantsError.value = errorMessage(e)
+    }
+  }
+
   function submitSearch() {
     const next = search.value.trim()
     if (appliedSearch.value !== next) {
@@ -167,11 +190,12 @@ export function useActivitiesPage() {
   }
   function clearFilters() {
     const changed = appliedSearch.value !== '' || filter.value !== 'all' ||
-      scope.value !== 'mine' || page.value !== 1
+      scope.value !== 'mine' || consultantId.value !== '' || page.value !== 1
     search.value = ''
     appliedSearch.value = ''
     filter.value = 'all'
     scope.value = 'mine'
+    consultantId.value = ''
     page.value = 1
     if (!changed) {
       void load()
@@ -222,7 +246,8 @@ export function useActivitiesPage() {
 
   return {
     completingIds, refreshing, refreshError, tenantId, activityLinkLoading,
-    activityLinkError, tenant, events, loading, error, scope, filter, search,
+    activityLinkError, tenant, events, loading, error, scope, filter,
+    consultantId, consultants, consultantsError, loadConsultants, search,
     appliedSearch, dialogOpen, selected, historyEvent, now, page, pagination,
     canCreate, canEdit, canDelete, canTeam, isOverdue, urgency,
     activityUrgencyLabels, visible, overview,
