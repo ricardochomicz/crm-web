@@ -77,7 +77,7 @@ const {
         Tentar novamente
       </button>
     </p>
-    <div class="mb-5 grid gap-3 sm:grid-cols-4">
+    <div class="mb-5 grid gap-3 sm:grid-cols-3">
       <button
         v-for="item in [
           { key: 'pending', label: 'Pendentes', count: overview.pending },
