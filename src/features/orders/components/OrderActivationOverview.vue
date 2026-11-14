@@ -23,10 +23,28 @@ const monthLabel = computed(() => {
     ? new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(year, number - 1, 1)))
     : 'Selecione o mês'
 })
-const metric = ref<'lines' | 'monthly'>('monthly')
-const change = (current: number, previous: number) => previous === 0 ? (current === 0 ? '0%' : 'Novo') : `${((current - previous) / previous * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
-const barValues = computed(() => overview.value ? [Number(overview.value.previous_total[metric.value]), Number(overview.value.total[metric.value])] : [0, 0])
-const barMax = computed(() => Math.max(1, ...barValues.value))
+const breakdown = computed(() => {
+  if (!overview.value) return []
+  const current = overview.value.by_type
+  const previous = overview.value.previous_by_type ?? []
+  const ids = new Set([...current, ...previous].map(item => item.order_type_id))
+  return [...ids].map(id => {
+    const currentRow = current.find(item => item.order_type_id === id)
+    const previousRow = previous.find(item => item.order_type_id === id)
+    return {
+      id: id ?? 'unclassified',
+      name: currentRow?.name ?? previousRow?.name ?? 'Sem tipo definido',
+      lines: currentRow?.lines ?? 0,
+      monthly: Number(currentRow?.monthly ?? 0),
+      previousLines: previousRow?.lines ?? 0,
+      previousMonthly: Number(previousRow?.monthly ?? 0),
+    }
+  }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+})
+const change = (current: number, previous: number) => previous === 0
+  ? (current === 0 ? '—' : 'Sem base anterior')
+  : `${((current - previous) / previous * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
+const percentage = (value: number, max: number) => `${Math.max(0, Math.min(100, max > 0 ? value / max * 100 : 0))}%`
 async function refresh() {
   const [year, number] = month.value.split('-').map(Number)
   if (!year || !number || number < 1 || number > 12) {
@@ -98,59 +116,49 @@ watch(expanded, (open) => { if (open) { void loadTypes(); if (!overview.value) v
       </form>
       <p v-if="error" class="mt-3 text-sm text-rose-700" role="alert">{{ error }}</p>
       <template v-if="overview">
-        <div class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.65fr)]" :class="loading ? 'opacity-60' : ''">
-          <div class="grid grid-cols-2 gap-2 lg:grid-cols-1">
-            <div class="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3">
-              <div class="min-w-0">
-                <p class="text-xs font-medium text-slate-500">Linhas ativadas</p>
-                <p class="mt-1 text-xl font-bold tabular-nums text-slate-900">{{ overview.total.lines }}</p>
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+          <h3 class="text-sm font-semibold text-slate-800">Desempenho por tipo de pedido</h3>
+          <span class="text-xs text-slate-500">Quantidade e valor mensal apresentados juntos · comparação com mês anterior</span>
+        </div>
+        <div v-if="breakdown.length" class="mt-3 grid gap-3 lg:grid-cols-2" :class="loading ? 'opacity-60' : ''">
+          <article v-for="item in breakdown" :key="item.id" class="rounded-xl border border-stone-200 bg-white p-4">
+            <h4 class="font-semibold text-slate-900">{{ item.name }}</h4>
+            <div class="mt-3 grid grid-cols-2 gap-3">
+              <div class="rounded-lg bg-stone-50 px-3 py-2">
+                <p class="text-xs text-slate-500">Linhas ativadas</p>
+                <p class="mt-1 text-xl font-bold tabular-nums">{{ item.lines }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ change(item.lines, item.previousLines) }}</p>
               </div>
-              <span class="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold" :class="overview.total.lines >= overview.previous_total.lines ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'">{{ change(overview.total.lines, overview.previous_total.lines) }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3">
-              <div class="min-w-0">
-                <p class="text-xs font-medium text-slate-500">Receita mensal ativada</p>
-                <p class="mt-1 text-xl font-bold tabular-nums text-slate-900">{{ money(overview.total.monthly) }}</p>
+              <div class="rounded-lg bg-stone-50 px-3 py-2">
+                <p class="text-xs text-slate-500">Valor mensal das linhas</p>
+                <p class="mt-1 text-lg font-bold tabular-nums">{{ money(String(item.monthly)) }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ change(item.monthly, item.previousMonthly) }}</p>
               </div>
-              <span class="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold" :class="Number(overview.total.monthly) >= Number(overview.previous_total.monthly) ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'">{{ change(Number(overview.total.monthly), Number(overview.previous_total.monthly)) }}</span>
             </div>
-          </div>
-          <div class="rounded-xl border border-stone-200 p-4">
-            <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="mt-4 grid grid-cols-2 gap-4">
               <div>
-                <h3 class="text-sm font-semibold text-slate-800">Evolução das ativações</h3>
-                <p class="mt-1 text-xs text-slate-500">Comparação com o período equivalente anterior</p>
+                <p class="mb-2 text-xs font-medium text-slate-600">Linhas</p>
+                <div class="space-y-2">
+                  <div v-for="(value, index) in [item.previousLines, item.lines]" :key="index">
+                    <div class="mb-1 flex justify-between gap-2 text-xs text-slate-500"><span>{{ index ? 'Atual' : 'Anterior' }}</span><span>{{ value }}</span></div>
+                    <div class="h-2 rounded-full bg-stone-100"><div class="h-full rounded-full" :class="index ? 'bg-orange-500' : 'bg-slate-400'" :style="{ width: percentage(value, Math.max(item.lines, item.previousLines)) }"></div></div>
+                  </div>
+                </div>
               </div>
-              <div class="flex gap-1 rounded-lg bg-stone-100 p-1">
-                <button type="button" class="rounded-md px-3 py-1.5 text-xs font-medium" :class="metric === 'monthly' ? 'bg-white text-orange-700 shadow-sm' : 'text-slate-600'" @click="metric = 'monthly'">Receita</button>
-                <button type="button" class="rounded-md px-3 py-1.5 text-xs font-medium" :class="metric === 'lines' ? 'bg-white text-orange-700 shadow-sm' : 'text-slate-600'" @click="metric = 'lines'">Linhas</button>
+              <div>
+                <p class="mb-2 text-xs font-medium text-slate-600">Valor mensal</p>
+                <div class="space-y-2">
+                  <div v-for="(value, index) in [item.previousMonthly, item.monthly]" :key="index">
+                    <div class="mb-1 flex justify-between gap-2 text-xs text-slate-500"><span>{{ index ? 'Atual' : 'Anterior' }}</span><span>{{ money(String(value)) }}</span></div>
+                    <div class="h-2 rounded-full bg-stone-100"><div class="h-full rounded-full" :class="index ? 'bg-orange-500' : 'bg-slate-400'" :style="{ width: percentage(value, Math.max(item.monthly, item.previousMonthly)) }"></div></div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div class="mt-5 space-y-4">
-              <div v-for="(value, index) in barValues" :key="index" class="space-y-1.5">
-                <div class="flex justify-between gap-3 text-xs"><span class="text-slate-500">{{ index === 0 ? 'Mês anterior' : 'Período selecionado' }}</span><strong class="tabular-nums text-slate-800">{{ metric === 'monthly' ? money(String(value)) : value }}</strong></div>
-                <div class="h-3 overflow-hidden rounded-full bg-stone-100"><div class="h-full rounded-full transition-all duration-300" :class="index === 0 ? 'bg-slate-400' : 'bg-orange-500'" :style="{ width: `${value / barMax * 100}%` }"></div></div>
-              </div>
-            </div>
-            <p class="mt-4 text-xs text-slate-500">{{ overview.previous_period.from.split('-').reverse().join('/') }} a {{ overview.previous_period.to.split('-').reverse().join('/') }} <span class="mx-1">×</span> {{ overview.period.from.split('-').reverse().join('/') }} a {{ overview.period.to.split('-').reverse().join('/') }}</p>
-          </div>
+          </article>
         </div>
-        <div class="mt-4 flex items-center justify-between gap-3">
-          <h3 class="text-sm font-semibold text-slate-800">Ativações por tipo de pedido</h3>
-          <span class="text-xs text-slate-500">{{ overview.by_type.length }} tipo(s) no período</span>
-        </div>
-        <div class="mt-4 overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead class="border-b border-stone-200 text-xs uppercase text-slate-500"><tr><th class="py-3">Tipo de pedido</th><th class="py-3 text-right">Linhas</th><th class="py-3 text-right">Valor mensal</th></tr></thead>
-            <tbody>
-              <tr v-for="item in overview.by_type" :key="item.order_type_id ?? 'none'" class="border-b border-stone-100">
-                <td class="py-3">{{ item.name }}</td><td class="py-3 text-right tabular-nums">{{ item.lines }}</td><td class="py-3 text-right tabular-nums">{{ money(item.monthly) }}</td>
-              </tr>
-              <tr v-if="!overview.by_type.length"><td colspan="3" class="py-4 text-slate-500">Nenhuma linha ativada no período.</td></tr>
-            </tbody>
-            <tfoot class="font-semibold"><tr><td class="pt-3">Total</td><td class="pt-3 text-right">{{ overview.total.lines }}</td><td class="pt-3 text-right">{{ money(overview.total.monthly) }}</td></tr></tfoot>
-          </table>
-        </div>
+        <p v-else class="mt-4 rounded-xl border border-dashed border-stone-200 p-5 text-sm text-slate-500">Nenhuma ativação encontrada nos períodos comparados.</p>
+        <p class="mt-3 text-xs text-slate-500">Comparação: {{ overview.previous_period.from.split('-').reverse().join('/') }} a {{ overview.previous_period.to.split('-').reverse().join('/') }} × {{ overview.period.from.split('-').reverse().join('/') }} a {{ overview.period.to.split('-').reverse().join('/') }}.</p>
       </template>
       <p v-else-if="loading" class="mt-3 text-sm text-slate-500">Carregando ativações…</p>
       <p class="mt-3 text-xs text-slate-500">Considera a data e o tipo de cada linha ativada, inclusive em pedidos parcialmente ativados. Valor mensal ativado não significa faturamento recebido.</p>
