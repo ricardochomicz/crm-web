@@ -106,6 +106,17 @@ defineExpose({ refresh })
                 <p class="mt-1 text-xs font-medium text-slate-600">{{ currency(item.metric.monthly) }}/mês</p>
             </div>
         </div>
+        <div v-if="overview?.forecast_revisions" class="mt-3 grid gap-3 sm:grid-cols-2" aria-label="Revisões de previsão no período">
+            <div class="rounded-xl border border-amber-200 bg-amber-50/60 p-3">
+                <p class="text-xs font-semibold text-amber-900">Previsões prorrogadas</p>
+                <p class="mt-1 text-2xl font-semibold tabular-nums text-amber-950">{{ overview.forecast_revisions.extensions }}</p>
+            </div>
+            <div class="rounded-xl border border-sky-200 bg-sky-50/60 p-3">
+                <p class="text-xs font-semibold text-sky-900">Previsões antecipadas</p>
+                <p class="mt-1 text-2xl font-semibold tabular-nums text-sky-950">{{ overview.forecast_revisions.advances }}</p>
+            </div>
+            <p class="text-xs text-slate-500 sm:col-span-2">Alterações registradas no período selecionado, apenas para oportunidades atualmente abertas e visíveis para você. O histórico anterior à auditoria estruturada não entra nestes totais.</p>
+        </div>
         <div v-else-if="busy" class="py-5 text-sm text-slate-500">Carregando indicadores comerciais…</div>
         <div v-if="overview" class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-3 text-xs text-slate-500">
             <span>Taxa de conversão: <strong class="text-slate-800">{{ overview.conversion_rate === null ? '—' : overview.conversion_rate.toLocaleString('pt-BR') + '%' }}</strong></span>
