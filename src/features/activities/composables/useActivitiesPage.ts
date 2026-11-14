@@ -38,6 +38,10 @@ export function useActivitiesPage() {
     completed: number
     completed_7d: number
     completed_30d: number
+    completed_period: number
+    followed_opportunities_period: number
+    won_opportunities_period: number
+    opportunities_with_orders_period: number
     critical: number
   }[]>([])
   const teamSummaryLoading = ref(false)
