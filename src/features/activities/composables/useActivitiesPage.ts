@@ -42,7 +42,13 @@ export function useActivitiesPage() {
   }[]>([])
   const teamSummaryLoading = ref(false)
   const teamSummaryError = ref('')
+  const performancePeriod = ref<{ from: string; to: string } | null>(null)
   let teamSummaryVersion = 0
+  function setPerformancePeriod(period: { from: string; to: string } | null) {
+    performancePeriod.value = period
+    void loadTeamSummary()
+  }
+
   async function loadTeamSummary() {
     if (!canTeam.value || scope.value !== 'team') return
 
@@ -51,7 +57,7 @@ export function useActivitiesPage() {
     teamSummaryError.value = ''
 
     try {
-      const response = await calendarApi.activitiesTeamSummary(tenantId)
+      const response = await calendarApi.activitiesTeamSummary(tenantId, performancePeriod.value ?? undefined)
       if (current === teamSummaryVersion) teamSummary.value = response.data
     } catch (e) {
       if (current === teamSummaryVersion) teamSummaryError.value = errorMessage(e)
@@ -284,7 +290,8 @@ export function useActivitiesPage() {
     completingIds, refreshing, refreshError, tenantId, activityLinkLoading,
     activityLinkError, tenant, events, loading, error, scope, filter,
     consultantId, consultants, consultantsError, loadConsultants,
-    teamSummary, teamSummaryLoading, teamSummaryError, loadTeamSummary, search,
+    teamSummary, teamSummaryLoading, teamSummaryError, loadTeamSummary,
+    performancePeriod, setPerformancePeriod, search,
     appliedSearch, dialogOpen, selected, historyEvent, now, page, pagination,
     canCreate, canEdit, canDelete, canTeam, isOverdue, urgency,
     activityUrgencyLabels, visible, overview,
