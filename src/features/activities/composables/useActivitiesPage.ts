@@ -19,6 +19,9 @@ const activityLinkError = activityLink.error
 const tenant = ref<Tenant>()
 const events = ref<CalendarEvent[]>([])
 const loading = ref(false)
+const refreshing = ref(false)
+const refreshError = ref('')
+const hasLoaded = ref(false)
 const error = ref('')
 const scope = ref<'mine' | 'team'>('mine')
 const filter = ref<'pending' | 'overdue' | 'completed' | 'all'>('pending')
@@ -48,33 +51,39 @@ function scheduleRefresh() {
   if (refreshTimer) clearTimeout(refreshTimer)
   refreshTimer = setTimeout(() => {
     refreshTimer = undefined
-    void load()
-    void loadOverview()
+    void load(true)
+    void loadOverview(true)
   }, 250)
 }
 function onVisibilityChange() {
   if (!document.hidden) scheduleRefresh()
 }
 let overviewVersion = 0
-async function loadOverview() {
+async function loadOverview(background = false) {
   const current = ++overviewVersion
-  overviewLoading.value = true
-  overviewError.value = ''
+  if (!background) overviewLoading.value = true
+  if (!background) overviewError.value = ''
   try {
     const response = await calendarApi.activitiesOverview(tenantId, { scope: scope.value, search: appliedSearch.value })
     if (current === overviewVersion) overview.value = response.data
   } catch (e) {
-    if (current === overviewVersion) overviewError.value = errorMessage(e)
+    if (current === overviewVersion && !background) overviewError.value = errorMessage(e)
   } finally {
-    if (current === overviewVersion) overviewLoading.value = false
+    if (current === overviewVersion && !background) overviewLoading.value = false
   }
 }
 const dateLabel = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
 let version = 0
-async function load() {
+async function load(background = false) {
   const current = ++version
-  loading.value = true
-  error.value = ''
+  const silent = background && hasLoaded.value
+  if (silent) {
+    refreshing.value = true
+    refreshError.value = ''
+  } else {
+    loading.value = true
+    error.value = ''
+  }
   try {
     // Reutiliza a agenda existente: nenhum segundo cadastro de tarefas é criado.
     const response = await calendarApi.activities(tenantId, { scope: scope.value, status: filter.value, search: appliedSearch.value, page: page.value, per_page: 20 })
@@ -82,9 +91,23 @@ async function load() {
       events.value = response.data
       pagination.value = response.meta
       now.value = Date.now()
+      hasLoaded.value = true
+      refreshError.value = ''
+      if (page.value > response.meta.last_page && response.meta.last_page > 0) {
+        page.value = response.meta.last_page
+      }
     }
-  } catch (e) { if (current === version) error.value = errorMessage(e) }
-  finally { if (current === version) loading.value = false }
+  } catch (e) {
+    if (current === version) {
+      if (silent) refreshError.value = errorMessage(e)
+      else error.value = errorMessage(e)
+    }
+  } finally {
+    if (current === version) {
+      loading.value = false
+      refreshing.value = false
+    }
+  }
 }
 onMounted(() => {
   unsubscribeActivityChanged = subscribeActivityChanged(id => {
@@ -128,5 +151,5 @@ async function complete(event: CalendarEvent) {
 }
 function saved() { activityLink.close(); toast.success('Atividade salva.') }
 
-return { tenantId, activityLinkLoading, activityLinkError, tenant, events, loading, error, scope, filter, search, appliedSearch, dialogOpen, selected, historyEvent, now, page, pagination, canCreate, canEdit, canDelete, canTeam, isOverdue, visible, overview, overviewLoading, overviewError, loadOverview, dateLabel, load, submitSearch, clearFilters, changePage, create, edit, complete, saved }
+return { refreshing, refreshError, tenantId, activityLinkLoading, activityLinkError, tenant, events, loading, error, scope, filter, search, appliedSearch, dialogOpen, selected, historyEvent, now, page, pagination, canCreate, canEdit, canDelete, canTeam, isOverdue, visible, overview, overviewLoading, overviewError, loadOverview, dateLabel, load, submitSearch, clearFilters, changePage, create, edit, complete, saved }
 }
