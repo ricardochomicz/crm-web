@@ -98,33 +98,46 @@ watch(expanded, (open) => { if (open) { void loadTypes(); if (!overview.value) v
       </form>
       <p v-if="error" class="mt-3 text-sm text-rose-700" role="alert">{{ error }}</p>
       <template v-if="overview">
-        <div class="mt-4 grid gap-3 sm:grid-cols-2" :class="loading ? 'opacity-60' : ''">
-          <div class="rounded-xl border border-stone-100 bg-stone-50 p-4">
-            <p class="text-xs text-slate-600">Total de linhas ativadas</p>
-            <p class="mt-2 text-2xl font-semibold tabular-nums">{{ overview.total.lines }}</p>
+        <div class="mt-4 grid gap-3 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.65fr)]" :class="loading ? 'opacity-60' : ''">
+          <div class="grid grid-cols-2 gap-2 lg:grid-cols-1">
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3">
+              <div class="min-w-0">
+                <p class="text-xs font-medium text-slate-500">Linhas ativadas</p>
+                <p class="mt-1 text-xl font-bold tabular-nums text-slate-900">{{ overview.total.lines }}</p>
+              </div>
+              <span class="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold" :class="overview.total.lines >= overview.previous_total.lines ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'">{{ change(overview.total.lines, overview.previous_total.lines) }}</span>
+            </div>
+            <div class="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3">
+              <div class="min-w-0">
+                <p class="text-xs font-medium text-slate-500">Receita mensal ativada</p>
+                <p class="mt-1 text-xl font-bold tabular-nums text-slate-900">{{ money(overview.total.monthly) }}</p>
+              </div>
+              <span class="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold" :class="Number(overview.total.monthly) >= Number(overview.previous_total.monthly) ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'">{{ change(Number(overview.total.monthly), Number(overview.previous_total.monthly)) }}</span>
+            </div>
           </div>
-          <div class="rounded-xl border border-stone-100 bg-stone-50 p-4">
-            <p class="text-xs text-slate-600">Valor mensal das linhas ativadas</p>
-            <p class="mt-2 text-2xl font-semibold tabular-nums">{{ money(overview.total.monthly) }}</p>
+          <div class="rounded-xl border border-stone-200 p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 class="text-sm font-semibold text-slate-800">Evolução das ativações</h3>
+                <p class="mt-1 text-xs text-slate-500">Comparação com o período equivalente anterior</p>
+              </div>
+              <div class="flex gap-1 rounded-lg bg-stone-100 p-1">
+                <button type="button" class="rounded-md px-3 py-1.5 text-xs font-medium" :class="metric === 'monthly' ? 'bg-white text-orange-700 shadow-sm' : 'text-slate-600'" @click="metric = 'monthly'">Receita</button>
+                <button type="button" class="rounded-md px-3 py-1.5 text-xs font-medium" :class="metric === 'lines' ? 'bg-white text-orange-700 shadow-sm' : 'text-slate-600'" @click="metric = 'lines'">Linhas</button>
+              </div>
+            </div>
+            <div class="mt-5 space-y-4">
+              <div v-for="(value, index) in barValues" :key="index" class="space-y-1.5">
+                <div class="flex justify-between gap-3 text-xs"><span class="text-slate-500">{{ index === 0 ? 'Mês anterior' : 'Período selecionado' }}</span><strong class="tabular-nums text-slate-800">{{ metric === 'monthly' ? money(String(value)) : value }}</strong></div>
+                <div class="h-3 overflow-hidden rounded-full bg-stone-100"><div class="h-full rounded-full transition-all duration-300" :class="index === 0 ? 'bg-slate-400' : 'bg-orange-500'" :style="{ width: `${value / barMax * 100}%` }"></div></div>
+              </div>
+            </div>
+            <p class="mt-4 text-xs text-slate-500">{{ overview.previous_period.from.split('-').reverse().join('/') }} a {{ overview.previous_period.to.split('-').reverse().join('/') }} <span class="mx-1">×</span> {{ overview.period.from.split('-').reverse().join('/') }} a {{ overview.period.to.split('-').reverse().join('/') }}</p>
           </div>
         </div>
-        <div class="mt-4 rounded-xl border border-stone-100 p-4">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <h3 class="text-sm font-semibold text-slate-800">Comparativo com o período equivalente do mês anterior</h3>
-            <div class="flex gap-2">
-              <button type="button" class="rounded-lg px-3 py-1.5 text-xs" :class="metric === 'monthly' ? 'bg-orange-600 text-white' : 'bg-stone-100'" @click="metric = 'monthly'">Receita mensal</button>
-              <button type="button" class="rounded-lg px-3 py-1.5 text-xs" :class="metric === 'lines' ? 'bg-orange-600 text-white' : 'bg-stone-100'" @click="metric = 'lines'">Linhas</button>
-            </div>
-          </div>
-          <p class="mt-2 text-xs text-slate-500">Linhas: {{ change(overview.total.lines, overview.previous_total.lines) }} · Receita: {{ change(Number(overview.total.monthly), Number(overview.previous_total.monthly)) }}</p>
-          <div class="mt-4 space-y-3">
-            <div v-for="(value, index) in barValues" :key="index" class="grid grid-cols-[6rem_1fr_auto] items-center gap-3 text-xs">
-              <span class="text-slate-600">{{ index === 0 ? 'Mês anterior' : 'Período atual' }}</span>
-              <div class="h-5 overflow-hidden rounded bg-stone-100"><div class="h-full rounded" :class="index === 0 ? 'bg-slate-400' : 'bg-orange-500'" :style="{ width: `${value / barMax * 100}%` }"></div></div>
-              <span class="font-medium tabular-nums">{{ metric === 'monthly' ? money(String(value)) : value }}</span>
-            </div>
-          </div>
-          <p class="mt-2 text-xs text-slate-500">{{ overview.previous_period.from.split('-').reverse().join('/') }} a {{ overview.previous_period.to.split('-').reverse().join('/') }} vs. {{ overview.period.from.split('-').reverse().join('/') }} a {{ overview.period.to.split('-').reverse().join('/') }}</p>
+        <div class="mt-4 flex items-center justify-between gap-3">
+          <h3 class="text-sm font-semibold text-slate-800">Ativações por tipo de pedido</h3>
+          <span class="text-xs text-slate-500">{{ overview.by_type.length }} tipo(s) no período</span>
         </div>
         <div class="mt-4 overflow-x-auto">
           <table class="w-full text-left text-sm">
