@@ -35,8 +35,12 @@ export const calendarApi = {
       completed: number
       completed_7d: number
       completed_30d: number
+      completed_period: number
+      followed_opportunities_period: number
+      won_opportunities_period: number
+      opportunities_with_orders_period: number
       critical: number
-    }[] }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/activities/team-summary`)
+    }[] }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/activities/team-summary${query}`)
   },
   activitiesOverview(tenantId: string, filters: { scope: 'mine' | 'team'; search?: string; tenant_user_id?: string }) {
     const query = new URLSearchParams({ scope: filters.scope })
