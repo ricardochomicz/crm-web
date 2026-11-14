@@ -93,6 +93,10 @@ watch(() => [props.open, props.opportunity] as const, () => {
     description="Organize a negociação, seus serviços e valores." :busy="busy" size="full" @close="emit('close')">
     <div v-if="opportunity && showResponsible" class="mb-3 flex items-center gap-2 text-sm text-slate-600"><span class="font-medium">Consultor responsável:</span><span class="font-semibold text-slate-900">{{ opportunity.assignee?.user?.name || "Não atribuído" }}</span></div>
     <OpportunityDialogTabs v-if="opportunity" v-model="activeTab" />
+    <div v-if="opportunity && (opportunity.forecast_changes_count ?? 0) > 0" class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+      <strong>{{ opportunity.forecast_changes_count }} {{ opportunity.forecast_changes_count === 1 ? 'alteração de previsão registrada' : 'alterações de previsão registradas' }}</strong>
+      <span class="ml-1 text-amber-800">desde a ativação do histórico estruturado. Consulte a aba Histórico para ver as justificativas.</span>
+    </div>
     <OpportunityProposalPanel v-if="open && opportunity && activeTab === 'proposal'" :opportunity="opportunity" :tenant-id="tenantId" :company-name="viewerTenant?.name ?? 'Empresa'" />
     <ClientDocumentsPanel v-if="open && opportunity && activeTab === 'documents'" :tenant-id="tenantId" :client-id="opportunity.client_id" :can-upload="!!viewerTenant?.access?.permissions.includes('clients.update')" />
     <OpportunityAppointmentsPanel v-if="open && opportunity && activeTab === 'appointments'" :tenant-id="tenantId" :opportunity-id="opportunity.id" :client-id="opportunity.client_id" :title="opportunity.title" />
