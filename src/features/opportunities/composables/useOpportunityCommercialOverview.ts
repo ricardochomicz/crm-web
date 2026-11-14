@@ -31,6 +31,7 @@ const metrics = computed(() => {
         { title: 'Forecast vencido', metric: data.overdue, color: 'text-rose-700', accent: 'bg-rose-400' },
         { title: 'Ganhas no período', metric: data.won, color: 'text-emerald-700', accent: 'bg-emerald-400' },
         ...(data.won_with_orders ? [{ title: 'Ganhas com pedido', metric: data.won_with_orders, color: 'text-teal-700', accent: 'bg-teal-400' }] : []),
+        ...(data.activated_lines ? [{ title: 'Linhas ativadas no período', metric: data.activated_lines, color: 'text-indigo-700', accent: 'bg-indigo-400' }] : []),
         { title: 'Perdidas no período', metric: data.lost, color: 'text-slate-700', accent: 'bg-slate-400' },
         { title: 'Próximos meses', metric: data.future, color: 'text-blue-700', accent: 'bg-blue-400' },
         { title: 'Sem previsão', metric: data.unscheduled, color: 'text-amber-700', accent: 'bg-amber-400' },
