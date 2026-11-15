@@ -50,6 +50,8 @@ export type CommissionRevisionPreview = {
 }
 
 export const commissionsApi = {
+  bulkRevise: (tenantId: string, payload: { order_ids: string[]; operator_id: number; order_type: string; reason: string }) =>
+    mutate(base(tenantId) + '/bulk-revisions', payload, 'POST') as Promise<{ data: { revised: number; skipped: number; failed: number; results: Array<{ order_id: string; status: string; reason?: string; revision?: number }> } }>,
   revisionPreview: (tenantId: string, filters: { operator_id: number; order_type: string; from?: string; to?: string }) => {
     const params = new URLSearchParams({
       operator_id: String(filters.operator_id),
