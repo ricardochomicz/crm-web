@@ -17,7 +17,7 @@ interface ClientFormDependencies {
   pendingContactClientId: Ref<string | null>
   openRequiredContact: () => void
   reloadClients: () => Promise<void>
-  showDetails: (clientId: string) => Promise<void>
+  showDetails: (clientId: string) => Promise<boolean>
   cancelAddressLookup: () => void
 }
 
