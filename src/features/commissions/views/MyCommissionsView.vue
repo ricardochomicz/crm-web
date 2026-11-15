@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import AppShell from '@/components/layout/AppShell.vue'
+import { RouterLink } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { can } from '@/features/tenants/types'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
@@ -8,6 +12,9 @@ import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { useMyCommissions } from '../composables/useMyCommissions'
 
 const { tenant, month, status, page, data, loading, error, load, search, clear, changePage } = useMyCommissions()
+const route = useRoute()
+const canOpenOrders = computed(() => can(tenant.value, 'orders.view'))
+const orderLink = (orderId: string) => ({ path: `/empresas/${encodeURIComponent(String(route.params.tenantId))}/pedidos`, query: { pedido: orderId } })
 const money = (amount: string | null) => amount === null ? 'Pendente' : Number(amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const percent = (value: string | null) => value === null ? '—' : Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '%'
 const date = (value: string | null) => value ? value.slice(0, 10).split('-').reverse().join('/') : '—'
@@ -51,16 +58,17 @@ const statuses: Record<string, string> = {
         </article>
       </div>
       <section class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-        <ListTable min-width="1050px">
+        <ListTable min-width="1180px">
           <thead class="bg-stone-50 text-xs font-semibold uppercase text-slate-500">
             <tr>
-              <th class="px-4 py-3">Venda</th><th class="px-4 py-3">Ativação</th>
+              <th class="px-4 py-3">Pedido</th><th class="px-4 py-3">Venda</th><th class="px-4 py-3">Ativação</th>
               <th class="px-4 py-3">Linha / Serviço</th><th class="px-4 py-3">Tipo de pedido</th><th class="px-4 py-3 text-right">Valor do plano</th><th class="px-4 py-3 text-right">Minha comissão (%)</th><th class="px-4 py-3">Situação</th>
               <th class="px-4 py-3 text-right">Minha comissão</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
             <tr v-for="item in data.items" :key="item.order_id + '-' + item.line_number + '-' + item.revision">
+              <td class="px-4 py-3"><RouterLink v-if="canOpenOrders" :to="orderLink(item.order_id)" class="font-semibold text-orange-600 underline-offset-2 hover:underline" :aria-label="`Abrir detalhes do pedido ${item.order_id}`">{{ item.order_id.slice(0, 8).toUpperCase() }}</RouterLink><span v-else class="font-mono text-xs text-slate-600">{{ item.order_id.slice(0, 8).toUpperCase() }}</span></td>
               <td class="px-4 py-3">{{ date(item.sold_on) }}</td>
               <td class="px-4 py-3">{{ date(item.activated_on) }}</td>
               <td class="px-4 py-3"><div class="font-medium">{{ item.description }}</div><div class="text-xs text-slate-500">{{ item.line_number || 'Sem número' }} · Revisão {{ item.revision }}</div></td>
