@@ -88,7 +88,8 @@ async function confirm(orderId: string) {
         <ContractConsolidationOrderCard
           v-for="order in data.orders"
           :key="order.id"
-          v-model="selections[order.id]"
+          :model-value="selections[order.id] ?? ''"
+          @update:model-value="value => selections[order.id] = value"
           :order="order"
           :options="contractOptions(order)"
           :busy="busyOrderId === order.id"
