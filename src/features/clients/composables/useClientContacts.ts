@@ -9,7 +9,7 @@ interface ClientContactsDependencies {
   selected: Ref<Client | null>
   busy: Ref<boolean>
   reloadClients: () => Promise<void>
-  showDetails: (clientId: string) => Promise<void>
+  showDetails: (clientId: string) => Promise<boolean>
   resetDetailsTab: () => void
 }
 
