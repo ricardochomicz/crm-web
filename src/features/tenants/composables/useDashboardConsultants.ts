@@ -1,4 +1,4 @@
-import { computed, ref, watch, type Ref } from 'vue'
+import { onScopeDispose, computed, ref, watch, type Ref } from 'vue'
 import { productivityApi, type ProductivityResponse } from '@/features/productivity/api'
 import { errorMessage } from '@/lib/feedback'
 import { useDashboardPeriod, type DashboardPeriod } from './useDashboardPeriod'
@@ -50,5 +50,6 @@ export function useDashboardConsultants(tenantId: Readonly<Ref<string>>, enabled
   }
 
   watch([tenantId, enabled, period], () => { void refresh() }, { immediate: true })
+  onScopeDispose(() => { ++version })
   return { data, loading, error, selectedConsultant, consultants, totals, leaders, refresh }
 }
