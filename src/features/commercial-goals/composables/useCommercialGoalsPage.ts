@@ -8,7 +8,7 @@ import { teamApi } from '@/features/members/api'
 import type { Member } from '@/features/members/types'
 import { orderTypesApi } from '@/features/order-types/api'
 import { teamCommissionsApi, type CommissionOption } from '@/features/team-commissions/api'
-import type { Tenant } from '@/features/tenants/types'
+import { can, type Tenant } from '@/features/tenants/types'
 import { commercialGoalsApi, type CommercialGoal, type GoalInput } from '../api'
 
 export function useCommercialGoalsPage(tenantId: Ref<string>) {
@@ -50,30 +50,36 @@ async function load() {
  const id = tenantId.value
  loading.value = true; error.value = ''
  try {
-  const [t, g, o, options, catalog, memberPage] = await Promise.all([
+  // Fetch the tenant and the authorized goal list first. Member listings are
+  // administrative data and must never be a prerequisite for reading goals.
+  const [t, g] = await Promise.all([
    tenantApi.show(id),
    commercialGoalsApi.list(id),
+  ])
+  if (id !== tenantId.value) return
+  tenant.value = t.data
+  rows.value = g.data
+  canManage.value = g.meta.can_manage
+  const canReadMembers = can(t.data, 'members.view')
+  const [o, options, catalog, memberPage] = await Promise.all([
    operatorsApi.tenantList(id),
    teamCommissionsApi.options(id),
    orderTypesApi.active(),
-   teamApi.members(id),
+   canReadMembers ? teamApi.members(id) : Promise.resolve(null),
   ])
   if (id !== tenantId.value) return
-  tenant.value = t.data; rows.value = g.data; canManage.value = g.meta.can_manage
   operators.value = o.data.filter(item => item.selected)
-  // Share the exact same active negotiation types and identifiers used by opportunities.
   orderTypes.value = catalog.data
     .filter(type => type.is_active)
     .sort((a, b) => a.position - b.position)
     .map(type => ({ value: type.id, label: type.name }))
-  // Preserve readable labels for goals created before the catalog integration.
   for (const type of options.data.order_types) {
-    if (rows.value.some(goal => goal.order_type === type.value) && !orderTypes.value.some(item => item.value === type.value)) {
-      orderTypes.value.push(type)
-    }
+   if (rows.value.some(goal => goal.order_type === type.value) && !orderTypes.value.some(item => item.value === type.value)) {
+    orderTypes.value.push(type)
+   }
   }
   roles.value = options.data.roles
-  members.value = memberPage.data.filter(member => member.status === 'ACTIVE')
+  members.value = memberPage?.data.filter(member => member.status === 'ACTIVE') ?? []
  } catch (e) { if (id === tenantId.value) error.value = e instanceof Error ? e.message : 'Não foi possível carregar as metas.' }
  finally { if (id === tenantId.value) loading.value = false }
 }
