@@ -1,4 +1,4 @@
-import { ref, watch, type Ref } from 'vue'
+import { onScopeDispose, ref, watch, type Ref } from 'vue'
 import { ordersApi, type OrderActivationOverview } from '@/features/orders/api'
 import { errorMessage } from '@/lib/feedback'
 import { useDashboardPeriod, type DashboardPeriod } from './useDashboardPeriod'
@@ -41,5 +41,6 @@ export function useDashboardActivations(
 
   watch([tenantId, enabled, period], () => { void refresh() }, { immediate: true })
 
+  onScopeDispose(() => { ++version })
   return { data, loading, error, periodLabel, refresh }
 }
