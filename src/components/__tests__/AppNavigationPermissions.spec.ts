@@ -41,7 +41,7 @@ describe('commercial navigation permissions', () => {
   })
 
   it('hides company financial links for a consultant even if the legacy role still grants view', () => {
-    const wrapper = render(['commissions.view'], 'CONSULTANT')
+    const wrapper = render(['commissions.view', 'my-commissions.view'], 'CONSULTANT')
     expect(wrapper.find('a[href$="/comissoes"]').exists()).toBe(false)
     expect(wrapper.find('a[href$="/participantes-comerciais"]').exists()).toBe(false)
     expect(wrapper.find('a[href$="/minhas-comissoes"]').exists()).toBe(true)
@@ -51,6 +51,17 @@ describe('commercial navigation permissions', () => {
     const wrapper = render(['teams.view'])
     expect(wrapper.find('a[href$="/equipes"]').exists()).toBe(true)
     expect(wrapper.find('a[href$="/equipe"]').exists()).toBe(false)
+  })
+
+  it('hides personal commissions when the dedicated permission is absent', () => {
+    const wrapper = render(['orders.view'], 'CONSULTANT')
+    expect(wrapper.find('a[href$="/minhas-comissoes"]').exists()).toBe(false)
+  })
+
+  it('shows personal commissions without access to company commission tables', () => {
+    const wrapper = render(['my-commissions.view'], 'CONSULTANT')
+    expect(wrapper.find('a[href$="/minhas-comissoes"]').exists()).toBe(true)
+    expect(wrapper.find('a[href$="/comissoes"]').exists()).toBe(false)
   })
 
   it('does not show settings without settings permissions', () => {
