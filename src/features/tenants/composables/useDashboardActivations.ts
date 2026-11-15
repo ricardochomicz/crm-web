@@ -1,21 +1,20 @@
-import { computed, ref, watch, type Ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 import { ordersApi, type OrderActivationOverview } from '@/features/orders/api'
 import { errorMessage } from '@/lib/feedback'
+import { useDashboardPeriod, type DashboardPeriod } from './useDashboardPeriod'
 
 /** Activation figures are based on activated order lines, not won opportunities or collected revenue. */
 export function useDashboardActivations(
   tenantId: Readonly<Ref<string>>,
   enabled: Readonly<Ref<boolean>>,
+  period: Readonly<Ref<DashboardPeriod>>,
 ) {
   const data = ref<OrderActivationOverview | null>(null)
   const loading = ref(false)
   const error = ref('')
   let version = 0
 
-  const monthLabel = computed(() => new Intl.DateTimeFormat('pt-BR', {
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date()))
+  const { range, label: periodLabel } = useDashboardPeriod(period)
 
   async function refresh() {
     const current = ++version
@@ -26,15 +25,11 @@ export function useDashboardActivations(
       return
     }
     loading.value = true
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
     try {
       const response = await ordersApi.activationOverview(
         tenantId.value,
-        `${year}-${month}-01`,
-        `${year}-${month}-${day}`,
+        range.value.from,
+        range.value.to,
       )
       if (current === version) data.value = response.data
     } catch (failure) {
@@ -44,7 +39,7 @@ export function useDashboardActivations(
     }
   }
 
-  watch([tenantId, enabled], () => { void refresh() }, { immediate: true })
+  watch([tenantId, enabled, period], () => { void refresh() }, { immediate: true })
 
-  return { data, loading, error, monthLabel, refresh }
+  return { data, loading, error, periodLabel, refresh }
 }
