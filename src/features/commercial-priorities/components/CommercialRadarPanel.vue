@@ -55,7 +55,7 @@ const typeOptions = [
             placeholder="Selecione um consultor"
           />
         </label>
-        <button type="button" class="secondary-button w-auto" :disabled="loading" @click="load">
+        <button type="button" class="secondary-button w-auto" :disabled="loading" @click="() => load()">
         {{ loading ? 'Atualizando…' : 'Atualizar' }}
         </button>
       </div>
@@ -64,7 +64,7 @@ const typeOptions = [
     <p v-if="membersError" role="alert" class="mt-3 text-sm text-rose-700">{{ membersError }}</p>
     <p v-if="error" role="alert" class="mt-4 text-sm text-rose-700">
       {{ error }}
-      <button type="button" class="underline" @click="load">Tentar novamente</button>
+      <button type="button" class="underline" @click="() => load()">Tentar novamente</button>
     </p>
     <p v-else-if="loading" class="mt-4 text-sm text-slate-500">Carregando prioridades…</p>
     <template v-else-if="radar">
