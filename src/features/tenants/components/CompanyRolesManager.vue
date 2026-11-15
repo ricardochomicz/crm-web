@@ -44,6 +44,10 @@ function isDuplicate(role: CompanyRole) {
   return (duplicateNames.value.get(role.name.trim().replace(/\\s+/g, ' ').toLocaleLowerCase('pt-BR')) ?? 0) > 1
 }
 const protectedRole = computed(() => !creating.value && selected.value?.code === 'OWNER')
+const consultantCompanyCommissionConflict = computed(() =>
+  !creating.value && selected.value?.legacy_role === 'CONSULTANT' &&
+  permissions.value.some(key => key === 'commissions.view' || key === 'commissions.manage'),
+)
 const original = computed(() => selected.value?.permissions ?? [])
 const dirty = computed(
   () =>
@@ -324,6 +328,7 @@ onMounted(load)
               placeholder="Buscar módulo…"
             />
           </div>
+          <p v-if="consultantCompanyCommissionConflict" role="alert" class="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Este cargo está vinculado ao perfil Consultor. As permissões de tabelas de comissões da empresa não concedem acesso a esse perfil, mesmo quando marcadas. A página “Minhas comissões” é independente e mostra apenas os repasses do usuário.</p>
           <div class="space-y-3">
             <section
               v-for="group in groups"
