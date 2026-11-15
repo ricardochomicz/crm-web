@@ -47,6 +47,12 @@ describe('commercial navigation permissions', () => {
     expect(wrapper.find('a[href$="/minhas-comissoes"]').exists()).toBe(true)
   })
 
+  it('shows the team group when the only team permission is teams.view', () => {
+    const wrapper = render(['teams.view'])
+    expect(wrapper.find('a[href$="/equipes"]').exists()).toBe(true)
+    expect(wrapper.find('a[href$="/equipe"]').exists()).toBe(false)
+  })
+
   it('does not show settings without settings permissions', () => {
     const wrapper = render(['clients.view'])
     expect(wrapper.text()).not.toContain('Configurações')
