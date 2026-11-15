@@ -57,6 +57,7 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
 
       <DashboardSectionHeading anchor="dashboard-vendas" collapsible :expanded="expanded.vendas" @toggle="toggle('vendas')" title="Vendas" description="Indicadores comerciais, oportunidades e funil de negociação" />
       <div v-show="expanded.vendas" id="dashboard-vendas-content" class="space-y-5">
+      <p class="text-xs text-slate-500">Funil de vendas e radar comercial: situação atual, independente do período selecionado.</p>
       <CommercialRadarPanel :tenant-id="tenantId" :enabled="!!tenant" />
 
       <section v-if="!canSee" class="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-slate-600">Os indicadores comerciais não estão disponíveis para seu perfil.</section>
@@ -134,11 +135,13 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
       <DashboardSectionHeading v-if="canSee" anchor="dashboard-ativacoes" collapsible :expanded="expanded.ativacoes" @toggle="toggle('ativacoes')" title="Ativações" description="Linhas ativadas, pendências e previsões vencidas" />
       <div v-if="canSee" v-show="expanded.ativacoes" id="dashboard-ativacoes-content" class="space-y-5">
       <DashboardActivationsPanel
+        :period="period"
         v-if="canSee"
         :tenant-id="tenantId"
         :enabled="!loading && canSee"
       />
 
+      <p v-if="canSee" class="text-xs text-slate-500">Pedidos pendentes e atrasados: situação atual, independente do período selecionado.</p>
       <DashboardPendingActivationsPanel v-if="canSee" :tenant-id="tenantId" :enabled="!loading && canSee" />
 
       </div>
@@ -146,6 +149,7 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
       <DashboardSectionHeading v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER' || tenant.role === 'CONSULTANT'" anchor="dashboard-produtividade" collapsible :expanded="expanded.produtividade" @toggle="toggle('produtividade')" title="Produtividade" description="Resultados por consultor e atividades prioritárias" />
       <div v-show="expanded.produtividade" id="dashboard-produtividade-content" class="space-y-5">
       <DashboardConsultantsPanel
+        :period="period"
         v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER'"
         :tenant-id="tenantId"
         :enabled="!loading"
