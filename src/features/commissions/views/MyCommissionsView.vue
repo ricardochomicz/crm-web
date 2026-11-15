@@ -9,6 +9,7 @@ import { useMyCommissions } from '../composables/useMyCommissions'
 
 const { tenant, month, status, page, data, loading, error, load, search, clear, changePage } = useMyCommissions()
 const money = (amount: string | null) => amount === null ? 'Pendente' : Number(amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+const percent = (value: string | null) => value === null ? '—' : Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + '%'
 const date = (value: string | null) => value ? value.slice(0, 10).split('-').reverse().join('/') : '—'
 const statuses: Record<string, string> = {
   ESTIMATED: 'Estimada',
@@ -50,11 +51,11 @@ const statuses: Record<string, string> = {
         </article>
       </div>
       <section class="overflow-hidden rounded-2xl border border-stone-200 bg-white">
-        <ListTable min-width="740px">
+        <ListTable min-width="1050px">
           <thead class="bg-stone-50 text-xs font-semibold uppercase text-slate-500">
             <tr>
               <th class="px-4 py-3">Venda</th><th class="px-4 py-3">Ativação</th>
-              <th class="px-4 py-3">Linha / Serviço</th><th class="px-4 py-3">Situação</th>
+              <th class="px-4 py-3">Linha / Serviço</th><th class="px-4 py-3">Tipo de pedido</th><th class="px-4 py-3 text-right">Valor do plano</th><th class="px-4 py-3 text-right">Minha comissão (%)</th><th class="px-4 py-3">Situação</th>
               <th class="px-4 py-3 text-right">Minha comissão</th>
             </tr>
           </thead>
@@ -63,6 +64,9 @@ const statuses: Record<string, string> = {
               <td class="px-4 py-3">{{ date(item.sold_on) }}</td>
               <td class="px-4 py-3">{{ date(item.activated_on) }}</td>
               <td class="px-4 py-3"><div class="font-medium">{{ item.description }}</div><div class="text-xs text-slate-500">{{ item.line_number || 'Sem número' }} · Revisão {{ item.revision }}</div></td>
+              <td class="px-4 py-3">{{ item.order_type ?? "—" }}</td>
+              <td class="px-4 py-3 text-right">{{ money(item.plan_amount) }}</td>
+              <td class="px-4 py-3 text-right">{{ percent(item.commission_percentage) }}</td>
               <td class="px-4 py-3">{{ statuses[item.status] ?? item.status }}</td>
               <td class="px-4 py-3 text-right font-semibold">{{ money(item.amount) }}</td>
             </tr>
