@@ -59,7 +59,20 @@ export type CommissionFinancialTotals = {
   participants: Array<{ role: string; name: string; amount: string }>
 }
 
+export type MyCommissionStatement = {
+  summary: { estimated: string; eligible: string }
+  items: Array<{ order_id: string; sold_on: string; activated_on: string | null; line_number: string | null; description: string; status: 'ESTIMATED' | 'ELIGIBLE' | 'PENDING_RULES'; revision: number; amount: string | null }>
+  pagination: { page: number; per_page: number; total: number; last_page: number }
+  note: string
+}
+
 export const commissionsApi = {
+  mine: (tenantId: string, filters: { from: string; to: string; status?: string; page?: number }) => {
+    const query = new URLSearchParams({ from: filters.from, to: filters.to })
+    if (filters.status) query.set('status', filters.status)
+    if (filters.page) query.set('page', String(filters.page))
+    return request<{ data: MyCommissionStatement }>(base(tenantId) + '/mine?' + query.toString())
+  },
   previewBulkRevision: (tenantId: string, payload: { order_ids: string[]; operator_id: number; order_type: string }) =>
     mutate(base(tenantId) + '/bulk-revisions/preview', payload, 'POST') as Promise<{ data: { orders: Array<{ order_id: string; status: string; reason: string | null; current: CommissionFinancialTotals; projected: CommissionFinancialTotals | null }> } }>,
   bulkRevise: (tenantId: string, payload: { order_ids: string[]; operator_id: number; order_type: string; reason: string }) =>
