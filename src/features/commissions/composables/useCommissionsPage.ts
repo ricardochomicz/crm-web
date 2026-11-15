@@ -1,4 +1,5 @@
 import { computed, ref, watch, type Ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useListPagination } from '@/composables/useListPagination'
 import { useListFilters } from '@/composables/useListFilters'
 import { tenantApi } from '@/features/tenants/api'
@@ -18,6 +19,7 @@ const blank = (): CommissionFormValue => ({
 })
 
 export function useCommissionsPage(tenantId: Ref<string>) {
+  const router = useRouter()
   const tenant = ref<Tenant>()
   const rows = ref<Commission[]>([])
   const operators = ref<TenantOperator[]>([])
@@ -77,6 +79,11 @@ export function useCommissionsPage(tenantId: Ref<string>) {
       ])
       if (id !== tenantId.value) return
       tenant.value = company.data
+      if (company.data.role === 'CONSULTANT') {
+        rows.value = []
+        await router.replace(`/empresas/${encodeURIComponent(id)}`)
+        return
+      }
       rows.value = list.data
       canManage.value = list.meta.can_manage
       operators.value = operatorList.data.filter(operator => operator.selected && operator.is_active)
