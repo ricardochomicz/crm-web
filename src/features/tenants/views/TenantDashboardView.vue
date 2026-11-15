@@ -24,7 +24,7 @@ function jump(section: DashboardSection) {
 }
 const { tenant, loading, error, load, period, overview, funnel, overviewError, funnelError, overviewLoading, funnelLoading, money, base, canSee, isOwner, profile, intro, refreshOverview, refreshFunnel, refresh, metrics, funnelTotal, funnelMax, shortcuts, attention } = useCommercialDashboard(tenantId, computed(() => expanded.value.vendas))
 const canSeeOrders = computed(() => can(tenant.value, 'orders.view'))
-const canSeeProductivity = computed(() => can(tenant.value, 'calendar.view') && (tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER'))
+const canSeeProductivity = computed(() => can(tenant.value, 'calendar.team.view') && (tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER'))
 </script>
 
 <template>
