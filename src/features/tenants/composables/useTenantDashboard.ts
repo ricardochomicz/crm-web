@@ -1,4 +1,4 @@
-import { ref, watch, type Ref } from 'vue'
+import { onScopeDispose, ref, watch, type Ref } from 'vue'
 import { tenantApi } from '../api'
 import type { Tenant } from '../types'
 import { errorMessage } from '@/lib/feedback'
@@ -26,5 +26,6 @@ export function useTenantDashboard(tenantId: Ref<string>) {
   }
 
   watch(tenantId, () => { void load() }, { immediate: true })
+  onScopeDispose(() => { ++requestId })
   return { tenant, loading, error, load }
 }
