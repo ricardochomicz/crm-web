@@ -17,6 +17,20 @@ const statuses = [
   { value: 'ELIGIBLE', label: 'Elegível após ativação' },
   { value: 'PENDING_RULES', label: 'Pendente de regras' },
 ]
+const issueLabels: Record<string, string> = {
+  company_rule_missing: 'Não existe tabela de comissão ativa para a operadora e o tipo de pedido.',
+  company_rule_ambiguous: 'Existem tabelas de comissão conflitantes para a venda.',
+  participants_missing: 'Os participantes da venda não foram identificados.',
+  participant_rule_missing: 'Não existe regra de comissão para o participante.',
+  participant_rule_ambiguous: 'Existem regras conflitantes para o participante.',
+  sale_rules_not_captured: 'As regras não foram registradas na venda; é necessária uma revisão.',
+  line_requires_individualization: 'A linha precisa ser individualizada antes da apuração.',
+  participant_total_exceeds_net_commission: 'Os repasses ultrapassam a comissão líquida da empresa.',
+}
+function issueLabel(code: string) {
+  const [reason, role] = code.split(':')
+  return `${issueLabels[reason ?? ''] ?? code}${role ? ' (' + role + ')' : ''}`
+}
 const roles: Record<string, string> = {
   CONSULTANT: 'Consultor',
   SUPERVISOR: 'Supervisor',
@@ -62,6 +76,17 @@ const roles: Record<string, string> = {
           <p class="text-sm text-slate-500">{{ item.label }}</p>
           <p class="mt-2 text-2xl font-semibold text-slate-800">{{ item.value }}</p>
         </div>
+      </section>
+
+      <section v-if="report.pending_issues?.length" class="mb-6 rounded-2xl border border-amber-200 bg-amber-50/60 p-5">
+        <h2 class="font-semibold text-amber-950">Por que existem comissões sem valor?</h2>
+        <p class="mt-1 text-sm text-amber-900">As linhas abaixo possuem pendências de apuração. A tabela da operadora, isoladamente, não garante o cálculo dos repasses.</p>
+        <ul class="mt-3 space-y-2 text-sm text-amber-950">
+          <li v-for="issue in report.pending_issues" :key="issue.code">
+            <strong>{{ issue.lines }} linha(s):</strong> {{ issueLabel(issue.code) }}
+          </li>
+        </ul>
+        <p class="mt-3 text-xs text-amber-900">Corrija as regras ou participantes e revise a apuração do pedido. Alterar uma tabela não recalcula automaticamente revisões já registradas.</p>
       </section>
 
       <section class="mb-6 overflow-hidden rounded-2xl border border-stone-200 bg-white">
