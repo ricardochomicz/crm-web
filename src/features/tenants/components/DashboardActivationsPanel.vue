@@ -13,6 +13,22 @@ const money = (value: string) => new Intl.NumberFormat('pt-BR', {
 }).format(Number(value))
 const lines = computed(() => data.value?.total.lines.toLocaleString('pt-BR') ?? '—')
 const monthly = computed(() => data.value ? money(data.value.total.monthly) : '—')
+const previousLines = computed(() => data.value?.previous_total.lines.toLocaleString('pt-BR') ?? '—')
+const previousMonthly = computed(() => data.value ? money(data.value.previous_total.monthly) : '—')
+const comparisonLabel = computed(() => {
+  if (!data.value) return ''
+  const format = (date: string) => date.split('-').reverse().join('/')
+  return `Comparativo: ${format(data.value.previous_period.from)} a ${format(data.value.previous_period.to)}`
+})
+const lineChange = computed(() => {
+  if (!data.value) return ''
+  const previous = data.value.previous_total.lines
+  const current = data.value.total.lines
+  if (!previous) return current ? 'Sem base de comparação anterior' : 'Sem ativações nos dois períodos'
+  const change = (current - previous) / previous * 100
+  if (!change) return 'Mesmo volume do período anterior'
+  return `${Math.abs(change).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% de ${change > 0 ? 'alta' : 'queda'}`
+})
 </script>
 
 <template>
@@ -35,6 +51,11 @@ const monthly = computed(() => data.value ? money(data.value.total.monthly) : '�
     <div class="grid gap-3 sm:grid-cols-2">
       <DashboardMetricCard label="Linhas ativadas" :value="lines" detail="Quantidade de linhas ativadas no mês" accent="sky" />
       <DashboardMetricCard label="Valor mensal das ativações" :value="monthly" detail="Valor contratado das linhas ativadas; não é receita recebida" accent="emerald" />
+    </div>
+    <div v-if="data" class="rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-slate-600">
+      <p class="font-medium text-slate-800">{{ comparisonLabel }}</p>
+      <p class="mt-1">Período anterior: {{ previousLines }} linhas · {{ previousMonthly }}/mês.</p>
+      <p class="mt-1 font-semibold text-slate-700">{{ lineChange }}</p>
     </div>
   </section>
 </template>
