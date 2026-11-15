@@ -79,7 +79,8 @@ const hasPermission = (permission: string) => can(props.tenant, permission)
 const afterSalesOpen = ref(false)
 const isManager = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
 const canRedistribute = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
-const canViewManagement = () => canRedistribute() || ['commissions.view', 'commercial-goals.view', 'team-commissions.view', 'operator-classifications.view'].some(hasPermission)
+const canViewCompanyCommissions = () => props.tenant?.role !== 'CONSULTANT' && hasPermission('commissions.view')
+const canViewManagement = () => canRedistribute() || canViewCompanyCommissions() || ['commercial-goals.view', 'team-commissions.view', 'operator-classifications.view'].some(hasPermission)
 const canViewClassifications = () => hasPermission('operator-classifications.view')
 const canViewGoals = () => hasPermission('commercial-goals.view')
 const canViewTeamCommissions = () => hasPermission('team-commissions.view')
@@ -144,7 +145,7 @@ watch(() => route.path, (path) => {
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="managementOpen" @click="managementOpen = !managementOpen"><span class="inline-flex items-center gap-2"><AppIcon name="chart" class="size-4" />Gerencial</span> <span aria-hidden="true">{{ managementOpen ? '⌄' : '›' }}</span></button>
           <div v-show="managementOpen" class="space-y-1 border-l border-stone-200 pl-2">
             <RouterLink v-if="canRedistribute()" :to="`/empresas/${tenant.id}/gestao-carteiras`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/gestao-carteiras') }"><AppIcon name="users" class="size-5 shrink-0" />Gestão de Carteiras</RouterLink>
-            <RouterLink v-if="can(tenant, 'commissions.view')" :to="`/empresas/${tenant.id}/comissoes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/comissoes') }" :aria-current="route.path.endsWith('/comissoes') ? 'page' : undefined"><AppIcon name="creditCard" class="size-5 shrink-0" />Tabelas de comissões</RouterLink>
+            <RouterLink v-if="canViewCompanyCommissions()" :to="`/empresas/${tenant.id}/comissoes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/comissoes') }" :aria-current="route.path.endsWith('/comissoes') ? 'page' : undefined"><AppIcon name="creditCard" class="size-5 shrink-0" />Tabelas de comissões</RouterLink>
             <RouterLink v-if="canViewClassifications()" :to="`/empresas/${tenant.id}/classificacoes`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/classificacoes') }"><AppIcon name="tag" class="size-5 shrink-0" />Classificações das operadoras</RouterLink>
             <RouterLink v-if="canViewGoals()" :to="`/empresas/${tenant.id}/metas-comerciais`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/metas-comerciais') }"><AppIcon name="target" class="size-5 shrink-0" />Metas comerciais</RouterLink>
             <RouterLink v-if="canViewTeamCommissions()" :to="`/empresas/${tenant.id}/comissoes-equipe`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/comissoes-equipe') }" :aria-current="route.path.endsWith('/comissoes-equipe') ? 'page' : undefined"><AppIcon name="chart" class="size-5 shrink-0" />Comissões da equipe</RouterLink>
