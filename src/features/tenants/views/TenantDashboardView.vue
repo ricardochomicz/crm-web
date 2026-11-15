@@ -46,7 +46,7 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
         <a href="#dashboard-vendas" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Vendas</a>
         <a v-if="canSee" href="#dashboard-ativacoes" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Ativações</a>
         <a v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER' || tenant.role === 'CONSULTANT'" href="#dashboard-produtividade" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Produtividade</a>
-        <a href="#dashboard-alertas" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Alertas</a>
+        <a v-if="canSee" href="#dashboard-alertas" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Alertas</a>
       </nav>
 
       <DashboardSectionHeading anchor="dashboard-vendas" title="Vendas" description="Indicadores comerciais, oportunidades e funil de negociação" />
@@ -100,6 +100,7 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
           </section>
         </div>
 
+        <DashboardSectionHeading anchor="dashboard-alertas" title="Alertas e acompanhamento" description="Previsões comerciais e pontos que precisam de atenção" />
         <div class="grid gap-4 xl:grid-cols-12">
           <section class="rounded-2xl border border-stone-200 bg-white p-5 xl:col-span-7">
             <div class="flex items-center justify-between"><div><h2 class="text-base font-semibold text-slate-900">Visão de oportunidades</h2><p class="mt-1 text-xs text-slate-500">Previsões e pontos de atenção</p></div><span class="rounded-lg bg-orange-50 px-2 py-1 text-[11px] font-medium text-orange-700">Período selecionado</span></div>
@@ -144,7 +145,6 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
         :enabled="!loading"
       />
 
-      <DashboardSectionHeading anchor="dashboard-alertas" title="Alertas e acompanhamento" description="Prioridades comerciais que precisam de atenção" />
       <section class="rounded-2xl border border-stone-200 bg-white p-5">
         <h2 class="text-base font-semibold text-slate-900">Acesso rápido</h2>
         <p class="mt-1 text-xs text-slate-500">Principais áreas do sistema</p>
