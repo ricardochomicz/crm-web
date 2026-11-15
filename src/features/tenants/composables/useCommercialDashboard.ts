@@ -3,6 +3,7 @@ import { useTenantDashboard } from './useTenantDashboard'
 import { opportunitiesApi, type CommercialOverview, type FunnelOverview } from '@/features/opportunities/api'
 import { errorMessage } from '@/lib/feedback'
 import { can } from '../types'
+import { useDashboardPeriod } from './useDashboardPeriod'
 
 /** Dashboard state, permissions and API coordination. The view only renders sections. */
 export function useCommercialDashboard(tenantId: Readonly<Ref<string>>) {
@@ -22,15 +23,7 @@ const canSee = computed(() => can(tenant.value, 'opportunities.view'))
 const isOwner = computed(() => tenant.value?.role === 'OWNER')
 const profile = computed(() => tenant.value?.role === 'CONSULTANT' ? 'Consultor' : tenant.value?.role === 'MANAGER' ? 'Gerencial' : 'Gerencial')
 const intro = computed(() => tenant.value?.role === 'CONSULTANT' ? 'Acompanhe suas negociações e prioridades comerciais.' : 'Uma visão estratégica da operação comercial.')
-const range = computed(() => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const first = period.value === 'quarter' ? Math.floor(month / 3) * 3 : month
-  const last = period.value === 'quarter' ? first + 3 : month + 1
-  const iso = (d: Date) => [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-')
-  return { from: iso(new Date(year, first, 1)), to: iso(new Date(year, last, 0)) }
-})
+const { range } = useDashboardPeriod(period)
 async function refreshOverview() {
   const version = ++overviewVersion
   overview.value = null
