@@ -60,6 +60,7 @@ export interface TeamCapacity {
 export interface TenantAccess {
   role_name?: string | null
   permissions: string[]
+  can_view_team_productivity?: boolean
   can_manage_permissions: boolean
   allows_operational_writes: boolean
   assignable_roles: Exclude<TenantRole, 'OWNER'>[]
