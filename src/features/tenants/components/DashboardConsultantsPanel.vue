@@ -24,11 +24,11 @@ const money = (value: number) => new Intl.NumberFormat('pt-BR', {
     <div class="grid gap-3 sm:grid-cols-2">
       <div>
         <label class="mb-1 block text-xs font-medium text-slate-600">Período</label>
-        <SearchSelect v-model="period" :options="[{ value: 'month', label: 'Este mês' }, { value: 'quarter', label: 'Este trimestre' }]" />
+        <SearchSelect :model-value="period" @update:model-value="value => { if (value === 'month' || value === 'quarter') period = value }" :options="[{ value: 'month', label: 'Este mês' }, { value: 'quarter', label: 'Este trimestre' }]" />
       </div>
       <div>
         <label class="mb-1 block text-xs font-medium text-slate-600">Consultor</label>
-        <SearchSelect v-model="selectedConsultant" :options="[{ value: '', label: 'Todos os consultores' }, ...consultants]" />
+        <SearchSelect :model-value="selectedConsultant" @update:model-value="value => { selectedConsultant = String(value) }" :options="[{ value: '', label: 'Todos os consultores' }, ...consultants]" />
       </div>
     </div>
     <p v-if="error" role="alert" class="text-sm text-rose-700">{{ error }} <button type="button" class="underline" @click="refresh">Tentar novamente</button></p>
