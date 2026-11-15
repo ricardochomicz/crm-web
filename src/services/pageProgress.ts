@@ -1,3 +1,4 @@
+/// <reference path="../types/nprogress.d.ts" />
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
