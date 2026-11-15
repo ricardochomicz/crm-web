@@ -7,6 +7,7 @@ import ListTable from '@/components/ui/ListTable.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import CommissionForm from '../components/CommissionForm.vue'
+import CommissionRevisionPreview from '../components/CommissionRevisionPreview.vue'
 import TableActionButton from '@/components/ui/TableActionButton.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import { useCommissionsPage } from '../composables/useCommissionsPage'
@@ -178,6 +179,7 @@ const {
       :busy="loading || busy"
       @change="changePage"
     />
+    <CommissionRevisionPreview v-if="!loading && !error && writable" :tenant-id="tenantId" :operators="operators" :order-types="orderTypes" />
     <div
       v-if="modalOpen && writable"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
