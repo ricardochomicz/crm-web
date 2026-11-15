@@ -45,7 +45,15 @@ export type OrderActivationOverview = {
     by_type: { order_type_id: string | null; name: string; lines: number; monthly: string }[]
 }
 
+export type PendingActivationOverview = {
+    as_of: string
+    pending: { orders: number; lines: number; monthly: string }
+    overdue: { orders: number; lines: number }
+}
+
 export const ordersApi = {
+    pendingActivationOverview: (tenantId: string) =>
+        request<{ data: PendingActivationOverview }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/commercial-orders/pending-activation-overview`),
     orderTypes: () => request<{ data: { id: string; name: string }[] }>('/api/v1/order-types'),
     activationOverview: (tenantId: string, from: string, to: string, orderTypeIds: string[] = []) => {
         const params = new URLSearchParams({ date_from: from, date_to: to })
