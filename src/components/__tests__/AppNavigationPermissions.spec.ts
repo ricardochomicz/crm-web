@@ -7,9 +7,9 @@ vi.mock('vue-router', () => ({ useRoute: () => ({ path: '/empresas/company/comis
 vi.mock('@/features/auth/store', () => ({ useAuthStore: () => ({ user: {} }) }))
 enableAutoUnmount(afterEach)
 
-function render(permissions: string[]) {
+function render(permissions: string[], role: Tenant['role'] = 'ASSISTANT') {
   const tenant: Tenant = {
-    id: 'company', name: 'Empresa', type: 'PJ', role: 'ASSISTANT',
+    id: 'company', name: 'Empresa', type: 'PJ', role,
     access: { permissions, can_manage_permissions: false, allows_operational_writes: true, assignable_roles: [], capacity: null },
   }
   return mount(AppNavigation, { props: { tenant }, global: { stubs: {
@@ -32,5 +32,23 @@ describe('commercial navigation permissions', () => {
     expect(wrapper.find('a[href$="/comissoes-equipe"]').exists()).toBe(true)
     expect(wrapper.find('a[href$="/classificacoes"]').exists()).toBe(true)
     expect(wrapper.find('a[href$="/comissoes"]').exists()).toBe(false)
+  })
+  it('shows settings to a custom role only for permitted modules', () => {
+    const wrapper = render(['subscription.view'])
+    expect(wrapper.find('a[href$="/assinatura"]').exists()).toBe(true)
+    expect(wrapper.find('a[href$="/dados"]').exists()).toBe(false)
+    expect(wrapper.find('a[href$="/unidades"]').exists()).toBe(false)
+  })
+
+  it('hides company financial links for a consultant even if the legacy role still grants view', () => {
+    const wrapper = render(['commissions.view'], 'CONSULTANT')
+    expect(wrapper.find('a[href$="/comissoes"]').exists()).toBe(false)
+    expect(wrapper.find('a[href$="/participantes-comerciais"]').exists()).toBe(false)
+    expect(wrapper.find('a[href$="/minhas-comissoes"]').exists()).toBe(true)
+  })
+
+  it('does not show settings without settings permissions', () => {
+    const wrapper = render(['clients.view'])
+    expect(wrapper.text()).not.toContain('Configurações')
   })
 })
