@@ -71,7 +71,7 @@ export function useCalendarEventForm(deps: CalendarEventFormDependencies) {
     { immediate: true },
   )
 
-  function changeClient(value: string | number) {
+  function changeClient(value: string | null) {
     form.value.client_id = String(value || '') || null
     form.value.opportunity_id = null
     if (!deps.protocolId.value) form.value.protocol_id = null
