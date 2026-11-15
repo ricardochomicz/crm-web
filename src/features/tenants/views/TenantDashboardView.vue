@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { can } from '../types'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
@@ -21,7 +22,9 @@ function jump(section: DashboardSection) {
   expand(section)
   requestAnimationFrame(() => document.getElementById(`dashboard-${section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
 }
-const { tenant, loading, error, load, period, overview, funnel, overviewError, funnelError, overviewLoading, funnelLoading, money, base, canSee, isOwner, profile, intro, refreshOverview, refreshFunnel, refresh, metrics, funnelTotal, funnelMax, shortcuts, attention } = useCommercialDashboard(tenantId)
+const { tenant, loading, error, load, period, overview, funnel, overviewError, funnelError, overviewLoading, funnelLoading, money, base, canSee, isOwner, profile, intro, refreshOverview, refreshFunnel, refresh, metrics, funnelTotal, funnelMax, shortcuts, attention } = useCommercialDashboard(tenantId, computed(() => expanded.value.vendas))
+const canSeeOrders = computed(() => can(tenant.value, 'orders.view'))
+const canSeeProductivity = computed(() => can(tenant.value, 'calendar.view') && (tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER'))
 </script>
 
 <template>
@@ -50,15 +53,15 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
 
       <nav aria-label="Seções do dashboard" class="flex flex-wrap gap-2 text-xs font-semibold">
         <a href="#dashboard-vendas" @click.prevent="jump('vendas')" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Vendas</a>
-        <a v-if="canSee" href="#dashboard-ativacoes" @click.prevent="jump('ativacoes')" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Ativações</a>
-        <a v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER' || tenant.role === 'CONSULTANT'" href="#dashboard-produtividade" @click.prevent="jump('produtividade')" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Produtividade</a>
+        <a v-if="canSeeOrders" href="#dashboard-ativacoes" @click.prevent="jump('ativacoes')" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Ativações</a>
+        <a v-if="canSeeProductivity || (tenant.role === 'CONSULTANT' && canSee)" href="#dashboard-produtividade" @click.prevent="jump('produtividade')" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Produtividade</a>
         <a v-if="canSee" href="#dashboard-alertas" @click.prevent="jump('alertas')" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Alertas</a>
       </nav>
 
       <DashboardSectionHeading anchor="dashboard-vendas" collapsible :expanded="expanded.vendas" @toggle="toggle('vendas')" title="Vendas" description="Indicadores comerciais, oportunidades e funil de negociação" />
       <div v-show="expanded.vendas" id="dashboard-vendas-content" class="space-y-5">
       <p class="text-xs text-slate-500">Funil de vendas e radar comercial: situação atual, independente do período selecionado.</p>
-      <CommercialRadarPanel :tenant-id="tenantId" :enabled="!!tenant" />
+      <CommercialRadarPanel v-if="expanded.vendas && canSee" :tenant-id="tenantId" :enabled="expanded.vendas && canSee" />
 
       <section v-if="!canSee" class="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-slate-600">Os indicadores comerciais não estão disponíveis para seu perfil.</section>
       <template v-else>
@@ -132,25 +135,25 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
       </template>
       </div>
 
-      <DashboardSectionHeading v-if="canSee" anchor="dashboard-ativacoes" collapsible :expanded="expanded.ativacoes" @toggle="toggle('ativacoes')" title="Ativações" description="Linhas ativadas, pendências e previsões vencidas" />
-      <div v-if="canSee" v-show="expanded.ativacoes" id="dashboard-ativacoes-content" class="space-y-5">
+      <DashboardSectionHeading v-if="canSeeOrders" anchor="dashboard-ativacoes" collapsible :expanded="expanded.ativacoes" @toggle="toggle('ativacoes')" title="Ativações" description="Linhas ativadas, pendências e previsões vencidas" />
+      <div v-if="canSeeOrders && expanded.ativacoes" id="dashboard-ativacoes-content" class="space-y-5">
       <DashboardActivationsPanel
         :period="period"
-        v-if="canSee"
+        v-if="canSeeOrders"
         :tenant-id="tenantId"
         :enabled="!loading && canSee"
       />
 
-      <p v-if="canSee" class="text-xs text-slate-500">Pedidos pendentes e atrasados: situação atual, independente do período selecionado.</p>
-      <DashboardPendingActivationsPanel v-if="canSee" :tenant-id="tenantId" :enabled="!loading && canSee" />
+      <p v-if="canSeeOrders" class="text-xs text-slate-500">Pedidos pendentes e atrasados: situação atual, independente do período selecionado.</p>
+      <DashboardPendingActivationsPanel v-if="canSeeOrders" :tenant-id="tenantId" :enabled="!loading && canSee" />
 
       </div>
 
-      <DashboardSectionHeading v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER' || tenant.role === 'CONSULTANT'" anchor="dashboard-produtividade" collapsible :expanded="expanded.produtividade" @toggle="toggle('produtividade')" title="Produtividade" description="Resultados por consultor e atividades prioritárias" />
-      <div v-show="expanded.produtividade" id="dashboard-produtividade-content" class="space-y-5">
+      <DashboardSectionHeading v-if="canSeeProductivity || (tenant.role === 'CONSULTANT' && canSee)" anchor="dashboard-produtividade" collapsible :expanded="expanded.produtividade" @toggle="toggle('produtividade')" title="Produtividade" description="Resultados por consultor e atividades prioritárias" />
+      <div v-if="expanded.produtividade" id="dashboard-produtividade-content" class="space-y-5">
       <DashboardConsultantsPanel
         :period="period"
-        v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER'"
+        v-if="canSeeProductivity"
         :tenant-id="tenantId"
         :enabled="!loading"
       />
