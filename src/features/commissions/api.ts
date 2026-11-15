@@ -19,6 +19,7 @@ const base = (tenantId: string) =>
 
 export type CommissionReport = {
   pending_issues: Array<{ code: string; lines: number }>
+  pending_orders: Array<{ order_id: string; sold_on: string; activated_on: string | null; revision: number; issues: string[] }>
   period: { from: string; to: string }
   summary: Array<{
     status: 'ESTIMATED' | 'ELIGIBLE' | 'PENDING_RULES'
