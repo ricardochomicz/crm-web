@@ -2,9 +2,10 @@
 import { computed, toRef } from 'vue'
 import { useDashboardActivations } from '../composables/useDashboardActivations'
 import DashboardMetricCard from './DashboardMetricCard.vue'
+import type { DashboardPeriod } from '../composables/useDashboardPeriod'
 
-const props = defineProps<{ tenantId: string; enabled: boolean }>()
-const { data, loading, error, monthLabel, refresh } = useDashboardActivations(
+const props = defineProps<{ tenantId: string; enabled: boolean; period: DashboardPeriod }>()
+const { data, loading, error, periodLabel, refresh } = useDashboardActivations(
   toRef(props, 'tenantId'),
   toRef(props, 'enabled'),
 )
@@ -36,7 +37,7 @@ const lineChange = computed(() => {
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 class="text-base font-semibold text-slate-900">Ativações comerciais</h2>
-        <p class="mt-1 text-xs text-slate-500">Linhas efetivamente ativadas em {{ monthLabel }} (até hoje)</p>
+        <p class="mt-1 text-xs text-slate-500">Linhas efetivamente ativadas no período: {{ periodLabel }}</p>
       </div>
       <div class="flex items-center gap-3">
         <RouterLink :to="`/empresas/${tenantId}/pedidos`" class="text-xs font-semibold text-orange-700 hover:underline">Ver pedidos</RouterLink>
