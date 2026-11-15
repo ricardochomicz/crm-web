@@ -70,13 +70,7 @@ export function useCommissionsPage(tenantId: Ref<string>) {
     loading.value = true
     error.value = ''
     try {
-      const [company, list, operatorList, types, settings] = await Promise.all([
-        tenantApi.show(id),
-        commissionsApi.list(id),
-        operatorsApi.tenantList(id),
-        commissionsApi.orderTypes(id),
-        commissionsApi.settings(id),
-      ])
+      const company = await tenantApi.show(id)
       if (id !== tenantId.value) return
       tenant.value = company.data
       if (company.data.role === 'CONSULTANT') {
@@ -84,6 +78,13 @@ export function useCommissionsPage(tenantId: Ref<string>) {
         await router.replace(`/empresas/${encodeURIComponent(id)}`)
         return
       }
+      const [list, operatorList, types, settings] = await Promise.all([
+        commissionsApi.list(id),
+        operatorsApi.tenantList(id),
+        commissionsApi.orderTypes(id),
+        commissionsApi.settings(id),
+      ])
+      if (id !== tenantId.value) return
       rows.value = list.data
       canManage.value = list.meta.can_manage
       operators.value = operatorList.data.filter(operator => operator.selected && operator.is_active)
