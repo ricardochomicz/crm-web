@@ -16,7 +16,7 @@ let typesVersion = 0
 let version = 0
 const money = (amount: string) => Number(amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const monthLabel = computed(() => {
-  const [year, number] = month.value.split('-').map(Number)
+  const [year = 0, number = 0] = month.value.split('-').map(Number)
   return year && number >= 1 && number <= 12
     ? new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(year, number - 1, 1)))
     : 'Selecione o mês'
