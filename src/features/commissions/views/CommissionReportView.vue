@@ -27,6 +27,9 @@ const issueLabels: Record<string, string> = {
   line_requires_individualization: 'A linha precisa ser individualizada antes da apuração.',
   participant_total_exceeds_net_commission: 'Os repasses ultrapassam a comissão líquida da empresa.',
 }
+function brDate(value: string | null) {
+  return value ? value.slice(0, 10).split('-').reverse().join('/') : 'Não ativada'
+}
 function issueLabel(code: string) {
   const [reason, role] = code.split(':')
   return `${issueLabels[reason ?? ''] ?? code}${role ? ' (' + role + ')' : ''}`
@@ -89,6 +92,24 @@ const roles: Record<string, string> = {
         <p class="mt-3 text-xs text-amber-900">Corrija as regras ou participantes e revise a apuração do pedido. Alterar uma tabela não recalcula automaticamente revisões já registradas.</p>
       </section>
 
+      <section v-if="report.pending_orders?.length" class="mb-6 overflow-hidden rounded-2xl border border-stone-200 bg-white">
+        <h2 class="border-b border-stone-100 px-5 py-4 text-lg font-semibold">Pedidos que precisam de revisão</h2>
+        <ListTable min-width="780px">
+          <thead class="bg-stone-50 text-xs uppercase text-slate-500">
+            <tr><th class="px-5 py-3 text-left">Data da venda</th><th class="px-4 py-3 text-left">Ativação</th><th class="px-4 py-3 text-left">Pendências</th><th class="px-5 py-3 text-right">Pedido</th></tr>
+          </thead>
+          <tbody class="divide-y divide-stone-100">
+            <tr v-for="item in report.pending_orders" :key="item.order_id">
+              <td class="px-5 py-3">{{ brDate(item.sold_on) }}</td>
+              <td class="px-4 py-3">{{ brDate(item.activated_on) }}</td>
+              <td class="px-4 py-3 text-sm">{{ item.issues.map(issueLabel).join('; ') }}</td>
+              <td class="px-5 py-3 text-right">
+                <RouterLink class="font-semibold text-orange-700 hover:underline" :to="`/empresas/${tenantId}/pedidos`">Ver pedidos</RouterLink>
+              </td>
+            </tr>
+          </tbody>
+        </ListTable>
+      </section>
       <section class="mb-6 overflow-hidden rounded-2xl border border-stone-200 bg-white">
         <h2 class="border-b border-stone-100 px-5 py-4 text-lg font-semibold">Apuração por situação</h2>
         <ListTable min-width="760px">
