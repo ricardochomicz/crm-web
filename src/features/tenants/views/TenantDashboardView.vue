@@ -12,9 +12,15 @@ import ConsultantPrioritiesPanel from '@/features/commercial-priorities/componen
 import CommercialRadarPanel from '@/features/commercial-priorities/components/CommercialRadarPanel.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { useCommercialDashboard } from '../composables/useCommercialDashboard'
+import { useDashboardSections, type DashboardSection } from '../composables/useDashboardSections'
 
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
+const { expanded, toggle, expand } = useDashboardSections(tenantId)
+function jump(section: DashboardSection) {
+  expand(section)
+  requestAnimationFrame(() => document.getElementById(`dashboard-${section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+}
 const { tenant, loading, error, load, period, overview, funnel, overviewError, funnelError, overviewLoading, funnelLoading, money, base, canSee, isOwner, profile, intro, refreshOverview, refreshFunnel, refresh, metrics, funnelTotal, funnelMax, shortcuts, attention } = useCommercialDashboard(tenantId)
 </script>
 
@@ -43,13 +49,14 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
       </header>
 
       <nav aria-label="Seções do dashboard" class="flex flex-wrap gap-2 text-xs font-semibold">
-        <a href="#dashboard-vendas" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Vendas</a>
-        <a v-if="canSee" href="#dashboard-ativacoes" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Ativações</a>
-        <a v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER' || tenant.role === 'CONSULTANT'" href="#dashboard-produtividade" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Produtividade</a>
-        <a v-if="canSee" href="#dashboard-alertas" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Alertas</a>
+        <a href="#dashboard-vendas" @click.prevent="jump('vendas')" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Vendas</a>
+        <a v-if="canSee" href="#dashboard-ativacoes" @click.prevent="jump('ativacoes')" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Ativações</a>
+        <a v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER' || tenant.role === 'CONSULTANT'" href="#dashboard-produtividade" @click.prevent="jump('produtividade')" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Produtividade</a>
+        <a v-if="canSee" href="#dashboard-alertas" @click.prevent="jump('alertas')" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Alertas</a>
       </nav>
 
-      <DashboardSectionHeading anchor="dashboard-vendas" title="Vendas" description="Indicadores comerciais, oportunidades e funil de negociação" />
+      <DashboardSectionHeading anchor="dashboard-vendas" collapsible :expanded="expanded.vendas" @toggle="toggle('vendas')" title="Vendas" description="Indicadores comerciais, oportunidades e funil de negociação" />
+      <div v-show="expanded.vendas" id="dashboard-vendas-content" class="space-y-5">
       <CommercialRadarPanel :tenant-id="tenantId" :enabled="!!tenant" />
 
       <section v-if="!canSee" class="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-slate-600">Os indicadores comerciais não estão disponíveis para seu perfil.</section>
@@ -100,8 +107,8 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
           </section>
         </div>
 
-        <DashboardSectionHeading anchor="dashboard-alertas" title="Alertas e acompanhamento" description="Previsões comerciais e pontos que precisam de atenção" />
-        <div class="grid gap-4 xl:grid-cols-12">
+        <DashboardSectionHeading anchor="dashboard-alertas" collapsible :expanded="expanded.alertas" @toggle="toggle('alertas')" title="Alertas e acompanhamento" description="Previsões comerciais e pontos que precisam de atenção" />
+        <div v-show="expanded.alertas" id="dashboard-alertas-content" class="grid gap-4 xl:grid-cols-12">
           <section class="rounded-2xl border border-stone-200 bg-white p-5 xl:col-span-7">
             <div class="flex items-center justify-between"><div><h2 class="text-base font-semibold text-slate-900">Visão de oportunidades</h2><p class="mt-1 text-xs text-slate-500">Previsões e pontos de atenção</p></div><span class="rounded-lg bg-orange-50 px-2 py-1 text-[11px] font-medium text-orange-700">Período selecionado</span></div>
             <div v-if="overview" class="mt-5 grid gap-3 sm:grid-cols-3">
@@ -122,8 +129,10 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
           </section>
         </div>
       </template>
+      </div>
 
-      <DashboardSectionHeading v-if="canSee" anchor="dashboard-ativacoes" title="Ativações" description="Linhas ativadas, pendências e previsões vencidas" />
+      <DashboardSectionHeading v-if="canSee" anchor="dashboard-ativacoes" collapsible :expanded="expanded.ativacoes" @toggle="toggle('ativacoes')" title="Ativações" description="Linhas ativadas, pendências e previsões vencidas" />
+      <div v-if="canSee" v-show="expanded.ativacoes" id="dashboard-ativacoes-content" class="space-y-5">
       <DashboardActivationsPanel
         v-if="canSee"
         :tenant-id="tenantId"
@@ -132,7 +141,10 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
 
       <DashboardPendingActivationsPanel v-if="canSee" :tenant-id="tenantId" :enabled="!loading && canSee" />
 
-      <DashboardSectionHeading v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER' || tenant.role === 'CONSULTANT'" anchor="dashboard-produtividade" title="Produtividade" description="Resultados por consultor e atividades prioritárias" />
+      </div>
+
+      <DashboardSectionHeading v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER' || tenant.role === 'CONSULTANT'" anchor="dashboard-produtividade" collapsible :expanded="expanded.produtividade" @toggle="toggle('produtividade')" title="Produtividade" description="Resultados por consultor e atividades prioritárias" />
+      <div v-show="expanded.produtividade" id="dashboard-produtividade-content" class="space-y-5">
       <DashboardConsultantsPanel
         v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER'"
         :tenant-id="tenantId"
@@ -144,6 +156,8 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
         :tenant-id="tenantId"
         :enabled="!loading"
       />
+
+      </div>
 
       <section class="rounded-2xl border border-stone-200 bg-white p-5">
         <h2 class="text-base font-semibold text-slate-900">Acesso rápido</h2>
