@@ -6,6 +6,7 @@ import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import DashboardMetricCard from '../components/DashboardMetricCard.vue'
 import DashboardActivationsPanel from '../components/DashboardActivationsPanel.vue'
 import DashboardPendingActivationsPanel from '../components/DashboardPendingActivationsPanel.vue'
+import DashboardConsultantsPanel from '../components/DashboardConsultantsPanel.vue'
 import ConsultantPrioritiesPanel from '@/features/commercial-priorities/components/ConsultantPrioritiesPanel.vue'
 import CommercialRadarPanel from '@/features/commercial-priorities/components/CommercialRadarPanel.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
@@ -49,6 +50,12 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
       />
 
       <DashboardPendingActivationsPanel v-if="canSee" :tenant-id="tenantId" :enabled="!loading && canSee" />
+
+      <DashboardConsultantsPanel
+        v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER'"
+        :tenant-id="tenantId"
+        :enabled="!loading"
+      />
 
       <ConsultantPrioritiesPanel
         v-if="tenant.role === 'CONSULTANT' && canSee"
