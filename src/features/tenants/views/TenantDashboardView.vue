@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import DashboardMetricCard from '../components/DashboardMetricCard.vue'
+import DashboardSectionHeading from '../components/DashboardSectionHeading.vue'
 import DashboardActivationsPanel from '../components/DashboardActivationsPanel.vue'
 import DashboardPendingActivationsPanel from '../components/DashboardPendingActivationsPanel.vue'
 import DashboardConsultantsPanel from '../components/DashboardConsultantsPanel.vue'
@@ -41,27 +42,15 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
         </div>
       </header>
 
+      <nav aria-label="Seções do dashboard" class="flex flex-wrap gap-2 text-xs font-semibold">
+        <a href="#dashboard-vendas" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Vendas</a>
+        <a v-if="canSee" href="#dashboard-ativacoes" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Ativações</a>
+        <a v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER' || tenant.role === 'CONSULTANT'" href="#dashboard-produtividade" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Produtividade</a>
+        <a href="#dashboard-alertas" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-slate-700 hover:border-orange-300">Alertas</a>
+      </nav>
+
+      <DashboardSectionHeading anchor="dashboard-vendas" title="Vendas" description="Indicadores comerciais, oportunidades e funil de negociação" />
       <CommercialRadarPanel :tenant-id="tenantId" :enabled="!!tenant" />
-
-      <DashboardActivationsPanel
-        v-if="canSee"
-        :tenant-id="tenantId"
-        :enabled="!loading && canSee"
-      />
-
-      <DashboardPendingActivationsPanel v-if="canSee" :tenant-id="tenantId" :enabled="!loading && canSee" />
-
-      <DashboardConsultantsPanel
-        v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER'"
-        :tenant-id="tenantId"
-        :enabled="!loading"
-      />
-
-      <ConsultantPrioritiesPanel
-        v-if="tenant.role === 'CONSULTANT' && canSee"
-        :tenant-id="tenantId"
-        :enabled="!loading"
-      />
 
       <section v-if="!canSee" class="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-slate-600">Os indicadores comerciais não estão disponíveis para seu perfil.</section>
       <template v-else>
@@ -133,6 +122,29 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
         </div>
       </template>
 
+      <DashboardSectionHeading v-if="canSee" anchor="dashboard-ativacoes" title="Ativações" description="Linhas ativadas, pendências e previsões vencidas" />
+      <DashboardActivationsPanel
+        v-if="canSee"
+        :tenant-id="tenantId"
+        :enabled="!loading && canSee"
+      />
+
+      <DashboardPendingActivationsPanel v-if="canSee" :tenant-id="tenantId" :enabled="!loading && canSee" />
+
+      <DashboardSectionHeading v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER' || tenant.role === 'CONSULTANT'" anchor="dashboard-produtividade" title="Produtividade" description="Resultados por consultor e atividades prioritárias" />
+      <DashboardConsultantsPanel
+        v-if="tenant.role === 'OWNER' || tenant.role === 'MANAGER'"
+        :tenant-id="tenantId"
+        :enabled="!loading"
+      />
+
+      <ConsultantPrioritiesPanel
+        v-if="tenant.role === 'CONSULTANT' && canSee"
+        :tenant-id="tenantId"
+        :enabled="!loading"
+      />
+
+      <DashboardSectionHeading anchor="dashboard-alertas" title="Alertas e acompanhamento" description="Prioridades comerciais que precisam de atenção" />
       <section class="rounded-2xl border border-stone-200 bg-white p-5">
         <h2 class="text-base font-semibold text-slate-900">Acesso rápido</h2>
         <p class="mt-1 text-xs text-slate-500">Principais áreas do sistema</p>
