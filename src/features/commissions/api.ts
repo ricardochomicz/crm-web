@@ -18,6 +18,7 @@ const base = (tenantId: string) =>
   `/api/v1/tenants/${encodeURIComponent(tenantId)}/commissions`
 
 export type CommissionReport = {
+  pending_issues: Array<{ code: string; lines: number }>
   period: { from: string; to: string }
   summary: Array<{
     status: 'ESTIMATED' | 'ELIGIBLE' | 'PENDING_RULES'
