@@ -6,7 +6,7 @@ import { can } from '../types'
 import { useDashboardPeriod } from './useDashboardPeriod'
 
 /** Dashboard state, permissions and API coordination. The view only renders sections. */
-export function useCommercialDashboard(tenantId: Readonly<Ref<string>>) {
+export function useCommercialDashboard(tenantId: Readonly<Ref<string>>, salesEnabled?: Readonly<Ref<boolean>>) {
 const { tenant, loading, error, load } = useTenantDashboard(tenantId)
 const period = ref<'month' | 'quarter'>('month')
 const overview = ref<CommercialOverview | null>(null)
@@ -28,7 +28,7 @@ async function refreshOverview() {
   const version = ++overviewVersion
   overview.value = null
   overviewError.value = ''
-  if (!tenant.value || !canSee.value) return
+  if (!tenant.value || !canSee.value || (salesEnabled && !salesEnabled.value)) { overviewLoading.value = false; return }
   overviewLoading.value = true
   try {
     const response = await opportunitiesApi.overview(tenantId.value, range.value.from, range.value.to)
@@ -43,7 +43,7 @@ async function refreshFunnel() {
   const version = ++funnelVersion
   funnel.value = null
   funnelError.value = ''
-  if (!tenant.value || !canSee.value) return
+  if (!tenant.value || !canSee.value || (salesEnabled && !salesEnabled.value)) { funnelLoading.value = false; return }
   funnelLoading.value = true
   try {
     const response = await opportunitiesApi.funnelOverview(tenantId.value)
@@ -55,8 +55,8 @@ async function refreshFunnel() {
   }
 }
 function refresh() { void refreshOverview(); void refreshFunnel() }
-watch([tenantId, tenant, period], () => { void refreshOverview() }, { immediate: true })
-watch([tenantId, tenant], () => { void refreshFunnel() }, { immediate: true })
+watch([tenantId, tenant, period, ...(salesEnabled ? [salesEnabled] : [])], () => { void refreshOverview() }, { immediate: true })
+watch([tenantId, tenant, ...(salesEnabled ? [salesEnabled] : [])], () => { void refreshFunnel() }, { immediate: true })
 const metrics = computed(() => [
   { label: 'Negociações ganhas', value: overview.value ? String(overview.value.won.count) : '—', detail: 'Fechadas no período', accent: 'violet' },
   { label: 'Valor mensal ganho', value: overview.value ? money(overview.value.won.monthly) : '—', detail: 'Estimado, não faturamento', accent: 'emerald' },
