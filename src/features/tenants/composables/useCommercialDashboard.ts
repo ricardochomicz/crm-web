@@ -68,7 +68,7 @@ const funnelMax = computed(() => Math.max(1, ...(funnel.value?.stages.map(stage 
 const shortcuts = computed(() => [
   { label: 'Clientes', path: 'clientes', permission: 'clients.view', symbol: '◉' },
   { label: 'Oportunidades', path: 'oportunidades', permission: 'opportunities.view', symbol: '◎' },
-  { label: 'Pedidos', path: 'pedidos', permission: 'opportunities.view', symbol: '▣' },
+  { label: 'Pedidos', path: 'pedidos', permission: 'orders.view', symbol: '▣' },
   { label: 'Metas', path: 'metas-comerciais', permission: 'commercial-goals.view', symbol: '◈' },
   { label: 'Equipes', path: 'equipes', permission: 'teams.view', symbol: '♧' },
   { label: 'Agenda', path: 'agenda', permission: 'calendar.view', symbol: '▦' },
