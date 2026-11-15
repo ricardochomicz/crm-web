@@ -8,6 +8,7 @@ const props = defineProps<{ tenantId: string; enabled: boolean; period: Dashboar
 const { data, loading, error, periodLabel, refresh } = useDashboardActivations(
   toRef(props, 'tenantId'),
   toRef(props, 'enabled'),
+  toRef(props, 'period'),
 )
 const money = (value: string) => new Intl.NumberFormat('pt-BR', {
   style: 'currency', currency: 'BRL',
