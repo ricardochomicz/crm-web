@@ -77,7 +77,7 @@ onUnmounted(() => {
 })
 const hasPermission = (permission: string) => can(props.tenant, permission)
 const afterSalesOpen = ref(false)
-const isManager = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
+const canViewSettings = () => !!props.tenant && (props.tenant.role === 'OWNER' || props.tenant.access?.can_manage_permissions || ['company.update', 'units.manage', 'subscription.view'].some(hasPermission))
 const canRedistribute = () => !!props.tenant && ['OWNER', 'MANAGER'].includes(props.tenant.role)
 const canViewCompanyCommissions = () => props.tenant?.role !== 'CONSULTANT' && hasPermission('commissions.view')
 const canViewManagement = () => canRedistribute() || canViewCompanyCommissions() || ['commercial-goals.view', 'team-commissions.view', 'operator-classifications.view'].some(hasPermission)
@@ -110,6 +110,7 @@ watch(() => route.path, (path) => {
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="teamOpen" @click="teamOpen = !teamOpen"><span class="inline-flex items-center gap-2"><AppIcon name="users" class="size-4" />Equipe</span> <span aria-hidden="true">{{ teamOpen ? '⌄' : '›' }}</span></button>
           <div v-show="teamOpen" class="space-y-1 border-l border-stone-200 pl-2">
           <RouterLink
+            v-if="can(tenant, 'members.view') || can(tenant, 'invitations.view')"
             :to="`/empresas/${tenant.id}/equipe`"
             class="nav-item"
             :class="{ 'nav-active': route.path.endsWith('/equipe') }"
@@ -152,10 +153,11 @@ watch(() => route.path, (path) => {
             <RouterLink v-if="canViewTeamCommissions()" :to="`/empresas/${tenant.id}/comissoes-equipe`" class="nav-item" :class="{ 'nav-active': route.path.endsWith('/comissoes-equipe') }" :aria-current="route.path.endsWith('/comissoes-equipe') ? 'page' : undefined"><AppIcon name="chart" class="size-5 shrink-0" />Comissões da equipe</RouterLink>
           </div>
         </div>
-        <div v-if="isManager()" class="space-y-2">
+        <div v-if="canViewSettings()" class="space-y-2">
           <button type="button" class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-widest text-slate-500 hover:bg-stone-100" :aria-expanded="settingsOpen" @click="settingsOpen = !settingsOpen"><span class="inline-flex items-center gap-2"><AppIcon name="settings" class="size-4" />Configurações</span> <span aria-hidden="true">{{ settingsOpen ? '⌄' : '›' }}</span></button>
           <div v-show="settingsOpen" class="space-y-1 border-l border-stone-200 pl-2">
           <RouterLink
+            v-if="can(tenant, 'company.update')"
             :to="`/empresas/${tenant.id}/dados`"
             class="nav-item"
             :class="{ 'nav-active': route.path.endsWith('/dados') }"
@@ -163,6 +165,7 @@ watch(() => route.path, (path) => {
             ><AppIcon name="building" class="size-5 shrink-0" />Dados da empresa</RouterLink
           >
           <RouterLink
+            v-if="can(tenant, 'units.manage')"
             :to="`/empresas/${tenant.id}/unidades`"
             class="nav-item"
             :class="{ 'nav-active': route.path.endsWith('/unidades') }"
