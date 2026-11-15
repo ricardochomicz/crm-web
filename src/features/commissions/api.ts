@@ -49,7 +49,19 @@ export type CommissionRevisionPreview = {
   message: string
 }
 
+export type CommissionFinancialTotals = {
+  base_amount: string
+  gross_amount: string
+  deduction_amount: string
+  net_amount: string
+  participant_total: string
+  company_balance: string
+  participants: Array<{ role: string; name: string; amount: string }>
+}
+
 export const commissionsApi = {
+  previewBulkRevision: (tenantId: string, payload: { order_ids: string[]; operator_id: number; order_type: string }) =>
+    mutate(base(tenantId) + '/bulk-revisions/preview', payload, 'POST') as Promise<{ data: { orders: Array<{ order_id: string; status: string; reason: string | null; current: CommissionFinancialTotals; projected: CommissionFinancialTotals | null }> } }>,
   bulkRevise: (tenantId: string, payload: { order_ids: string[]; operator_id: number; order_type: string; reason: string }) =>
     mutate(base(tenantId) + '/bulk-revisions', payload, 'POST') as Promise<{ data: { revised: number; skipped: number; failed: number; results: Array<{ order_id: string; status: string; reason?: string; revision?: number }> } }>,
   revisionPreview: (tenantId: string, filters: { operator_id: number; order_type: string; from?: string; to?: string }) => {
