@@ -118,6 +118,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Tabelas de comissões' },
     },
     {
+      path: '/empresas/:tenantId/relatorio-comissoes',
+      component: () => import('@/features/commissions/views/CommissionReportView.vue'),
+      meta: { requiresAuth: true, title: 'Relatório de comissões' },
+    },
+    {
       path: '/empresas/:tenantId/comissoes-equipe',
       component: () => import('@/features/team-commissions/views/TeamCommissionsView.vue'),
       meta: { requiresAuth: true, title: 'Comissões da equipe' },
