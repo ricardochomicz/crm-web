@@ -3,10 +3,11 @@ import { toRef } from 'vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import DashboardMetricCard from './DashboardMetricCard.vue'
 import { useDashboardConsultants } from '../composables/useDashboardConsultants'
+import type { DashboardPeriod } from '../composables/useDashboardPeriod'
 
-const props = defineProps<{ tenantId: string; enabled: boolean }>()
-const { data, loading, error, period, selectedConsultant, consultants, totals, leaders, refresh } =
-  useDashboardConsultants(toRef(props, 'tenantId'), toRef(props, 'enabled'))
+const props = defineProps<{ tenantId: string; enabled: boolean; period: DashboardPeriod }>()
+const { data, loading, error, selectedConsultant, consultants, totals, leaders, refresh } =
+  useDashboardConsultants(toRef(props, 'tenantId'), toRef(props, 'enabled'), toRef(props, 'period'))
 const money = (value: number) => new Intl.NumberFormat('pt-BR', {
   style: 'currency', currency: 'BRL', maximumFractionDigits: 0,
 }).format(value)
@@ -21,11 +22,7 @@ const money = (value: number) => new Intl.NumberFormat('pt-BR', {
       </div>
       <RouterLink :to="`/empresas/${tenantId}/produtividade`" class="text-xs font-semibold text-orange-700 hover:underline">Ver produtividade</RouterLink>
     </div>
-    <div class="grid gap-3 sm:grid-cols-2">
-      <div>
-        <label class="mb-1 block text-xs font-medium text-slate-600">Período</label>
-        <SearchSelect :model-value="period" @update:model-value="value => { if (value === 'month' || value === 'quarter') period = value }" :options="[{ value: 'month', label: 'Este mês' }, { value: 'quarter', label: 'Este trimestre' }]" />
-      </div>
+    <div class="grid gap-3">
       <div>
         <label class="mb-1 block text-xs font-medium text-slate-600">Consultor</label>
         <SearchSelect :model-value="selectedConsultant" @update:model-value="value => { selectedConsultant = String(value) }" :options="[{ value: '', label: 'Todos os consultores' }, ...consultants]" />
