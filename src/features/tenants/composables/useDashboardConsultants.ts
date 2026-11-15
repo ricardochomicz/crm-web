@@ -1,19 +1,15 @@
 import { computed, ref, watch, type Ref } from 'vue'
 import { productivityApi, type ProductivityResponse } from '@/features/productivity/api'
 import { errorMessage } from '@/lib/feedback'
-
-function dateLocal(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
-}
+import { useDashboardPeriod, type DashboardPeriod } from './useDashboardPeriod'
 
 /** Reuses the productivity API and its server-side membership visibility rules. */
-export function useDashboardConsultants(tenantId: Readonly<Ref<string>>, enabled: Readonly<Ref<boolean>>) {
+export function useDashboardConsultants(tenantId: Readonly<Ref<string>>, enabled: Readonly<Ref<boolean>>, period: Readonly<Ref<DashboardPeriod>>) {
   const data = ref<ProductivityResponse | null>(null)
   const loading = ref(false)
   const error = ref('')
   const selectedConsultant = ref('')
-  const period = ref<'month' | 'quarter'>('month')
+  const { range } = useDashboardPeriod(period)
   let version = 0
 
   const rows = computed(() => data.value?.data ?? [])
@@ -37,14 +33,10 @@ export function useDashboardConsultants(tenantId: Readonly<Ref<string>>, enabled
       return
     }
     loading.value = true
-    const today = new Date()
-    const firstMonth = period.value === 'quarter'
-      ? Math.floor(today.getMonth() / 3) * 3
-      : today.getMonth()
     try {
       const response = await productivityApi.overview(tenantId.value, {
-        from: dateLocal(new Date(today.getFullYear(), firstMonth, 1)),
-        to: dateLocal(today),
+        from: range.value.from,
+        to: range.value.to,
       })
       if (current === version) {
         data.value = response
@@ -58,5 +50,5 @@ export function useDashboardConsultants(tenantId: Readonly<Ref<string>>, enabled
   }
 
   watch([tenantId, enabled, period], () => { void refresh() }, { immediate: true })
-  return { data, loading, error, period, selectedConsultant, consultants, totals, leaders, refresh }
+  return { data, loading, error, selectedConsultant, consultants, totals, leaders, refresh }
 }
