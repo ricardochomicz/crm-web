@@ -73,8 +73,8 @@ async function revise() {
       order_type: orderType.value,
       reason: reason.value.trim(),
     })
-    outcome.value = response.data
     await preview()
+    outcome.value = response.data
   } catch {
     error.value = 'Não foi possível executar a revisão. Nenhum sucesso foi confirmado.'
   } finally {
