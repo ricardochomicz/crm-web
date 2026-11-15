@@ -24,7 +24,7 @@ function jump(section: DashboardSection) {
 }
 const { tenant, loading, error, load, period, overview, funnel, overviewError, funnelError, overviewLoading, funnelLoading, money, base, canSee, isOwner, profile, intro, refreshOverview, refreshFunnel, refresh, metrics, funnelTotal, funnelMax, shortcuts, attention } = useCommercialDashboard(tenantId, computed(() => expanded.value.vendas))
 const canSeeOrders = computed(() => can(tenant.value, 'orders.view'))
-const canSeeProductivity = computed(() => can(tenant.value, 'calendar.team.view') && (tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER'))
+const canSeeProductivity = computed(() => tenant.value?.access?.can_view_team_productivity === true)
 </script>
 
 <template>
@@ -111,6 +111,10 @@ const canSeeProductivity = computed(() => can(tenant.value, 'calendar.team.view'
           </section>
         </div>
 
+      </template>
+      </div>
+
+      <template v-if="canSee">
         <DashboardSectionHeading anchor="dashboard-alertas" collapsible :expanded="expanded.alertas" @toggle="toggle('alertas')" title="Alertas e acompanhamento" description="Previsões comerciais e pontos que precisam de atenção" />
         <div v-show="expanded.alertas" id="dashboard-alertas-content" class="grid gap-4 xl:grid-cols-12">
           <section class="rounded-2xl border border-stone-200 bg-white p-5 xl:col-span-7">
@@ -133,7 +137,7 @@ const canSeeProductivity = computed(() => can(tenant.value, 'calendar.team.view'
           </section>
         </div>
       </template>
-      </div>
+
 
       <DashboardSectionHeading v-if="canSeeOrders" anchor="dashboard-ativacoes" collapsible :expanded="expanded.ativacoes" @toggle="toggle('ativacoes')" title="Ativações" description="Linhas ativadas, pendências e previsões vencidas" />
       <div v-if="canSeeOrders && expanded.ativacoes" id="dashboard-ativacoes-content" class="space-y-5">
@@ -141,11 +145,11 @@ const canSeeProductivity = computed(() => can(tenant.value, 'calendar.team.view'
         :period="period"
         v-if="canSeeOrders"
         :tenant-id="tenantId"
-        :enabled="!loading && canSee"
+        :enabled="!loading && canSeeOrders"
       />
 
       <p v-if="canSeeOrders" class="text-xs text-slate-500">Pedidos pendentes e atrasados: situação atual, independente do período selecionado.</p>
-      <DashboardPendingActivationsPanel v-if="canSeeOrders" :tenant-id="tenantId" :enabled="!loading && canSee" />
+      <DashboardPendingActivationsPanel v-if="canSeeOrders" :tenant-id="tenantId" :enabled="!loading && canSeeOrders" />
 
       </div>
 
