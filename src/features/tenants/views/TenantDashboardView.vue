@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import AsyncNotice from '@/components/ui/AsyncNotice.vue'
 import DashboardMetricCard from '../components/DashboardMetricCard.vue'
+import DashboardActivationsPanel from '../components/DashboardActivationsPanel.vue'
 import ConsultantPrioritiesPanel from '@/features/commercial-priorities/components/ConsultantPrioritiesPanel.vue'
 import CommercialRadarPanel from '@/features/commercial-priorities/components/CommercialRadarPanel.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
@@ -39,6 +40,12 @@ const { tenant, loading, error, load, period, overview, funnel, overviewError, f
       </header>
 
       <CommercialRadarPanel :tenant-id="tenantId" :enabled="!!tenant" />
+
+      <DashboardActivationsPanel
+        v-if="canSee"
+        :tenant-id="tenantId"
+        :enabled="!loading && canSee"
+      />
 
       <ConsultantPrioritiesPanel
         v-if="tenant.role === 'CONSULTANT' && canSee"
