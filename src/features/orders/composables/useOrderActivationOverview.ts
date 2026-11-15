@@ -39,9 +39,6 @@ const breakdown = computed(() => {
     }
   }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
 })
-const change = (current: number, previous: number) => previous === 0
-  ? (current === 0 ? '—' : 'Sem base anterior')
-  : `${((current - previous) / previous * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`
 const trend = (current: number, previous: number) => {
   if (previous === 0) return current === 0 ? { label: 'Sem movimentação nos dois períodos', tone: 'text-slate-500' } : { label: 'Sem base de comparação no mês anterior', tone: 'text-slate-500' }
   const variation = (current - previous) / previous * 100
@@ -88,7 +85,7 @@ async function loadTypes() {
     }
   }
 }
-watch(() => props.tenantId, () => {
+watch(tenantId, () => {
   version++
   overview.value = null
   orderTypeIds.value = []
