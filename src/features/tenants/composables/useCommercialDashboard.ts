@@ -1,4 +1,4 @@
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, onScopeDispose, ref, watch, type Ref } from 'vue'
 import { useTenantDashboard } from './useTenantDashboard'
 import { opportunitiesApi, type CommercialOverview, type FunnelOverview } from '@/features/opportunities/api'
 import { errorMessage } from '@/lib/feedback'
@@ -28,7 +28,7 @@ async function refreshOverview() {
   const version = ++overviewVersion
   overview.value = null
   overviewError.value = ''
-  if (!tenant.value || !canSee.value || (salesEnabled && !salesEnabled.value)) { overviewLoading.value = false; return }
+  if (!tenant.value || tenant.value.id !== tenantId.value || !canSee.value || (salesEnabled && !salesEnabled.value)) { overviewLoading.value = false; return }
   overviewLoading.value = true
   try {
     const response = await opportunitiesApi.overview(tenantId.value, range.value.from, range.value.to)
@@ -43,7 +43,7 @@ async function refreshFunnel() {
   const version = ++funnelVersion
   funnel.value = null
   funnelError.value = ''
-  if (!tenant.value || !canSee.value || (salesEnabled && !salesEnabled.value)) { funnelLoading.value = false; return }
+  if (!tenant.value || tenant.value.id !== tenantId.value || !canSee.value || (salesEnabled && !salesEnabled.value)) { funnelLoading.value = false; return }
   funnelLoading.value = true
   try {
     const response = await opportunitiesApi.funnelOverview(tenantId.value)
@@ -78,6 +78,8 @@ const attention = computed(() => overview.value ? [
   { label: 'Negociações perdidas', count: overview.value.lost.count, detail: 'Encerradas no período', tone: 'text-amber-700' },
   { label: 'Sem previsão de fechamento', count: overview.value.unscheduled.count, detail: 'Precisam de planejamento', tone: 'text-sky-700' },
 ] : [])
+
+onScopeDispose(() => { ++overviewVersion; ++funnelVersion })
 
 return { tenant, loading, error, load, period, overview, funnel, overviewError, funnelError, overviewLoading, funnelLoading, money, base, canSee, isOwner, profile, intro, refreshOverview, refreshFunnel, refresh, metrics, funnelTotal, funnelMax, shortcuts, attention }
 }
