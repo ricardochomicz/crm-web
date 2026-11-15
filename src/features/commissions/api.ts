@@ -61,7 +61,7 @@ export type CommissionFinancialTotals = {
 
 export type MyCommissionStatement = {
   summary: { estimated: string; eligible: string }
-  items: Array<{ order_id: string; sold_on: string; activated_on: string | null; line_number: string | null; description: string; status: 'ESTIMATED' | 'ELIGIBLE' | 'PENDING_RULES'; revision: number; amount: string | null }>
+  items: Array<{ order_id: string; sold_on: string; activated_on: string | null; line_number: string | null; description: string; order_type: string | null; plan_amount: string | null; commission_percentage: string | null; status: 'ESTIMATED' | 'ELIGIBLE' | 'PENDING_RULES'; revision: number; amount: string | null }>
   pagination: { page: number; per_page: number; total: number; last_page: number }
   note: string
 }
