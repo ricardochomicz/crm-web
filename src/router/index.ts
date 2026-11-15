@@ -113,6 +113,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Minhas operadoras' },
     },
     {
+      path: '/empresas/:tenantId/minhas-comissoes',
+      component: () => import('@/features/commissions/views/MyCommissionsView.vue'),
+      meta: { requiresAuth: true, title: 'Minhas comissões' },
+    },
+    {
       path: '/empresas/:tenantId/comissoes',
       component: () => import('@/features/commissions/views/CommissionsView.vue'),
       meta: { requiresAuth: true, title: 'Tabelas de comissões' },
