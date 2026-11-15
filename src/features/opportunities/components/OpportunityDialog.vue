@@ -28,6 +28,8 @@ import OpportunityDialogTabs from './OpportunityDialogTabs.vue'
 import OpportunityForecastHistory from './OpportunityForecastHistory.vue'
 type OpportunityDialogTab = 'details' | 'documents' | 'history' | 'appointments' | 'comparison' | 'proposal'
 import QuickClientOnboardingDialog from '@/features/clients/components/QuickClientOnboardingDialog.vue'
+import ClientTransferDialog from '@/features/clients/components/ClientTransferDialog.vue'
+import { useOpportunityPortfolioGuard } from '../composables/useOpportunityPortfolioGuard'
 
 const props = defineProps<{ initialTab?: 'details' | 'history'; open: boolean; tenantId: string; opportunity: Opportunity | null; clients: Client[]; products: Product[]; operators: TenantOperator[]; orderTypes: OrderType[] }>()
 const emit = defineEmits<{ close: []; saved: [] }>()
@@ -59,6 +61,14 @@ const { availableClients, clientContacts, loadingClientContacts, quickClientOpen
     computed(() => props.clients),
     form,
   )
+const portfolio = useOpportunityPortfolioGuard(
+  computed(() => props.open),
+  computed(() => props.tenantId),
+  computed(() => form.value.client_id),
+  availableClients,
+  computed(() => !props.opportunity),
+  computed(() => viewerTenant.value?.role === 'CONSULTANT'),
+)
 const {
   editingLineIndex, selectedLineIndices, lineSearch, filteredLineIndices, showBulkEdit,
   allSelected, selectedItems, editingLine, otherNumbers,
@@ -132,6 +142,12 @@ watch(() => [props.open, props.opportunity] as const, () => {
         </fieldset>
         <OpportunityReceipt :form="form" :order-types="orderTypes" />
       </div>
+      <div v-if="portfolio.checking.value" role="status" class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">Verificando responsável pela carteira do cliente…</div>
+      <div v-if="portfolio.belongsToOther.value" role="alert" class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+        <p class="font-semibold">Cliente vinculado a outra carteira</p>
+        <p class="mt-1">Responsável: {{ portfolio.lookup.value?.owner_name || "Outro consultor" }}. Para negociar, solicite a transferência e aguarde a aprovação.</p>
+        <button v-if="portfolio.lookup.value?.client_id && canCreateClient" type="button" class="secondary-button mt-3 w-auto" @click="portfolio.transferOpen.value = true">Solicitar transferência de carteira</button>
+      </div>
       <p v-if="error" role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-700">{{ error }}</p>
     </form>
     <template v-if="activeTab === 'details'" #footer>
@@ -139,11 +155,12 @@ watch(() => [props.open, props.opportunity] as const, () => {
         <span class="hidden text-sm font-semibold text-slate-600 sm:block">{{ lineCount }} itens · {{ money(totalMonthly) }}/mês</span>
         <div class="ml-auto flex gap-2">
           <button type="button" class="secondary-button w-auto" :disabled="busy" @click="emit('close')">Cancelar</button>
-          <button type="submit" form="opportunity-details-form" class="primary-button w-auto" :disabled="busy">{{ busy ? 'Salvando…' : 'Salvar oportunidade' }}</button>
+          <button type="submit" form="opportunity-details-form" class="primary-button w-auto" :disabled="busy || portfolio.blocked.value || portfolio.checking.value">{{ busy ? 'Salvando…' : 'Salvar oportunidade' }}</button>
         </div>
       </div>
     </template>
   </AppDialog>
+  <ClientTransferDialog :open="open && portfolio.transferOpen.value" :busy="portfolio.transferBusy.value" @close="portfolio.transferOpen.value = false" @submit="portfolio.requestTransfer" />
   <QuickClientOnboardingDialog :open="open && quickClientOpen" :tenant-id="tenantId"
     @close="quickClientOpen = false" @created="onClientCreated" />
   <OpportunityBulkEditDialog :open="open && showBulkEdit" :items="selectedItems" :products="filteredProducts" :order-types="orderTypes" @close="showBulkEdit = false" @apply="applyBulk" />
