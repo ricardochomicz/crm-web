@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import PagePagination from '@/components/ui/PagePagination.vue'
 import ListFilters from '@/components/ui/ListFilters.vue'
 import ListTable from '@/components/ui/ListTable.vue'
@@ -58,9 +58,14 @@ const {
           Percentuais recebidos das operadoras, com desconto individual.
         </p>
       </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <RouterLink v-if="tenant?.role === 'OWNER' || tenant?.role === 'MANAGER'" :to="`/empresas/${tenantId}/relatorio-comissoes`" class="secondary-button w-auto">
+          Relatório de comissões
+        </RouterLink>
       <button v-if="writable" class="primary-button w-auto" type="button" @click="edit()">
         + Nova tabela
       </button>
+      </div>
     </header>
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
     <form
