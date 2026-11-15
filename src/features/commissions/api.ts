@@ -42,7 +42,23 @@ export type CommissionReport = {
   note: string
 }
 
+export type CommissionRevisionPreview = {
+  orders: Array<{ order_id: string; sold_on: string; pending_items: number; pending_lines: number }>
+  truncated: boolean
+  requires_manual_review: boolean
+  message: string
+}
+
 export const commissionsApi = {
+  revisionPreview: (tenantId: string, filters: { operator_id: number; order_type: string; from?: string; to?: string }) => {
+    const params = new URLSearchParams({
+      operator_id: String(filters.operator_id),
+      order_type: filters.order_type,
+    })
+    if (filters.from) params.set('from', filters.from)
+    if (filters.to) params.set('to', filters.to)
+    return request<{ data: CommissionRevisionPreview }>(base(tenantId) + '/revision-preview?' + params.toString())
+  },
   report: (tenantId: string, filters: { from: string; to: string; status?: string }) => {
     const query = new URLSearchParams({ from: filters.from, to: filters.to })
     if (filters.status) query.set('status', filters.status)
