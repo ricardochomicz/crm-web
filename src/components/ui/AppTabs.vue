@@ -6,8 +6,8 @@ interface TabOption {
 
 withDefaults(defineProps<{
   modelValue: string
-  options: TabOption[]
-  ariaLabel: string
+  options: readonly TabOption[]
+  'aria-label': string
   variant?: 'default' | 'underlined'
 }>(), {
   variant: 'default',
@@ -22,7 +22,7 @@ const emit = defineEmits<{
   <nav
     class="flex flex-wrap gap-2"
     :class="{ 'border-b border-stone-200 pb-3': variant === 'underlined' }"
-    :aria-label="ariaLabel"
+    :aria-label="$props['aria-label']"
   >
     <button
       v-for="option in options"
