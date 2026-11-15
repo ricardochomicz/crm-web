@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
-import { commissionsApi, type CommissionRevisionPreview, type CommissionFinancialTotals } from '../api'
+import { commissionsApi, type CommissionRevisionPreview } from '../api'
+import { delta, formatCommissionMoney as money, participantComparisons, type CommissionComparisonRow } from '../utils/commissionComparison'
 
 const props = defineProps<{
   tenantId: string
@@ -20,7 +21,7 @@ const revising = ref(false)
 const selected = ref<string[]>([])
 const reason = ref('')
 const confirmation = ref(false)
-const comparison = ref<Array<{ order_id: string; status: string; reason: string | null; current: CommissionFinancialTotals; projected: CommissionFinancialTotals | null }> | null>(null)
+const comparison = ref<CommissionComparisonRow[] | null>(null)
 const comparing = ref(false)
 const previewedSelection = ref('')
 const outcome = ref<{ revised: number; skipped: number; failed: number } | null>(null)
@@ -28,15 +29,20 @@ let sequence = 0
 
 watch(() => props.tenantId, () => {
   sequence++
+  comparing.value = false
   result.value = null
   selected.value = []
   outcome.value = null
   error.value = ''
   loading.value = false
+  comparison.value = null
+  previewedSelection.value = ''
+  confirmation.value = false
 })
 
 async function preview() {
   const id = ++sequence
+  comparing.value = false
   result.value = null
   selected.value = []
   confirmation.value = false
@@ -69,11 +75,11 @@ function toggle(id: string, checked: boolean) {
   comparison.value = null
   previewedSelection.value = ''
 }
-const money = (value: string | undefined) => Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-const selectionKey = () => [operatorId.value, orderType.value, ...selected.value.slice().sort()].join('|')
+const selectionKey = () => [props.tenantId, operatorId.value, orderType.value, ...selected.value.slice().sort()].join('|')
 async function compare() {
   if (!selected.value.length || comparing.value) return
   const key = selectionKey()
+  const id = ++sequence
   comparing.value = true
   comparison.value = null
   confirmation.value = false
@@ -84,14 +90,14 @@ async function compare() {
       operator_id: Number(operatorId.value),
       order_type: orderType.value,
     })
-    if (key === selectionKey()) {
+    if (id === sequence && key === selectionKey()) {
       comparison.value = response.data.orders
       previewedSelection.value = key
     }
   } catch {
-    error.value = 'Não foi possível calcular a prévia financeira.'
+    if (id === sequence) error.value = 'Não foi possível calcular a prévia financeira.'
   } finally {
-    comparing.value = false
+    if (id === sequence) comparing.value = false
   }
 }
 async function revise() {
@@ -177,7 +183,7 @@ function formatDate(value: string) {
           <div v-if="comparison" class="overflow-x-auto rounded-xl border border-stone-200 p-3">
             <p class="mb-3 text-sm font-semibold">Prévia financeira — valores atuais e projetados</p>
             <table class="w-full min-w-[650px] text-sm">
-              <thead><tr class="border-b text-left text-slate-500"><th class="py-2">Pedido</th><th>Situação</th><th class="text-right">Bruto atual</th><th class="text-right">Bruto projetado</th><th class="text-right">Líquido atual</th><th class="text-right">Líquido projetado</th><th class="text-right">Repasses atuais</th><th class="text-right">Repasses projetados</th></tr></thead>
+              <thead><tr class="border-b text-left text-slate-500"><th class="py-2">Pedido</th><th>Situação</th><th class="text-right">Bruto atual</th><th class="text-right">Bruto projetado</th><th class="text-right">Líquido atual</th><th class="text-right">Líquido projetado</th><th class="text-right">Repasses atuais</th><th class="text-right">Repasses projetados</th><th class="text-right">Δ bruto</th><th class="text-right">Δ líquido</th><th class="text-right">Δ repasses</th></tr></thead>
               <tbody><tr v-for="row in comparison" :key="row.order_id" class="border-b border-stone-100">
                 <td class="py-2 font-mono text-xs">{{ row.order_id.slice(0, 8) }}</td>
                 <td>{{ row.status === 'ready' ? 'Apto' : 'Bloqueado: ' + row.reason }}</td>
@@ -187,12 +193,15 @@ function formatDate(value: string) {
                 <td class="text-right">{{ row.projected ? money(row.projected.net_amount) : '—' }}</td>
                 <td class="text-right">{{ money(row.current.participant_total) }}</td>
                 <td class="text-right">{{ row.projected ? money(row.projected.participant_total) : '—' }}</td>
+                <td class="text-right font-semibold">{{ delta(row.current.gross_amount, row.projected?.gross_amount) }}</td>
+                <td class="text-right font-semibold">{{ delta(row.current.net_amount, row.projected?.net_amount) }}</td>
+                <td class="text-right font-semibold">{{ delta(row.current.participant_total, row.projected?.participant_total) }}</td>
               </tr></tbody>
             </table>
             <div v-for="row in comparison.filter(item => item.projected)" :key="row.order_id" class="mt-3 border-t pt-3 text-xs text-slate-600">
               <p class="font-semibold">Pedido {{ row.order_id.slice(0, 8) }} — repasses por participante</p>
-              <p v-for="participant in row.projected!.participants" :key="participant.role + participant.name">
-                {{ participant.name }} ({{ participant.role }}): {{ money(participant.amount) }} projetado
+              <p v-for="participant in participantComparisons(row)" :key="participant.key">
+                {{ participant.name }} ({{ participant.role }}): atual {{ money(participant.current) }} · projetado {{ money(participant.projected) }} · diferença {{ delta(participant.current, participant.projected) }}
               </p>
             </div>
           </div>
