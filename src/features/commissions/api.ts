@@ -17,7 +17,35 @@ export type OrderTypeOption = { value: string; label: string }
 const base = (tenantId: string) =>
   `/api/v1/tenants/${encodeURIComponent(tenantId)}/commissions`
 
+export type CommissionReport = {
+  period: { from: string; to: string }
+  summary: Array<{
+    status: 'ESTIMATED' | 'ELIGIBLE' | 'PENDING_RULES'
+    items: number
+    lines: number
+    gross: string
+    deduction: string
+    net: string
+    participants: string
+    company_balance: string
+  }>
+  participants: Array<{
+    role: string
+    tenant_user_id: string | null
+    commercial_participant_id: string | null
+    name: string
+    estimated: string
+    eligible: string
+  }>
+  note: string
+}
+
 export const commissionsApi = {
+  report: (tenantId: string, filters: { from: string; to: string; status?: string }) => {
+    const query = new URLSearchParams({ from: filters.from, to: filters.to })
+    if (filters.status) query.set('status', filters.status)
+    return request<{ data: CommissionReport }>(base(tenantId) + '/report?' + query.toString())
+  },
   list: (tenantId: string) =>
     request<{ data: Commission[]; meta: { can_manage: boolean } }>(base(tenantId)),
   orderTypes: (tenantId: string) =>
