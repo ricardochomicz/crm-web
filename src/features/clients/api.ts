@@ -21,11 +21,11 @@ const base=(id:string)=>'/api/v1/tenants/'+encodeURIComponent(id)
 export const clientsApi={
  redistributionMembers:(id:string)=>request<{data:{members:PortfolioRedistributionMember[]}}>(base(id)+'/clients/portfolio-redistributions'),
  redistributionClients:(id:string,sourceId:string)=>request<{data:{clients:PortfolioRedistributionClient[]}}>(base(id)+'/clients/portfolio-redistributions/'+sourceId+'/clients'),
- redistribute:(id:string,data:PortfolioRedistributionInput)=>mutate<{data:{id:string;client_count:number}}>(base(id)+'/clients/portfolio-redistributions',data,'POST'),
+ redistribute:(id:string,data:PortfolioRedistributionInput)=>mutate<{data:{id:string;client_count:number;transferred_opportunities_count:number}}>(base(id)+'/clients/portfolio-redistributions',data,'POST'),
  transferLookup:(id:string,document:string)=>request<{data:ClientTransferLookup}>(base(id)+'/clients/transfer-lookup?document='+encodeURIComponent(document)),
  requestTransfer:(id:string,clientId:string,reason:string)=>mutate(base(id)+'/clients/transfers',{client_id:clientId,reason},'POST'),
  pendingTransfers:(id:string)=>request<{data:ClientTransferPending[]}>(base(id)+'/clients/transfers'),
- reviewTransfer:(id:string,transferId:string,decision:'APPROVED'|'REJECTED',reviewNote:string)=>mutate(base(id)+'/clients/transfers/'+transferId+'/review',{decision,review_note:reviewNote},'POST'),
+ reviewTransfer:(id:string,transferId:string,decision:'APPROVED'|'REJECTED',reviewNote:string)=>mutate<{data:{status:'APPROVED'|'REJECTED';transferred_opportunities_count:number}}>(base(id)+'/clients/transfers/'+transferId+'/review',{decision,review_note:reviewNote},'POST'),
  consolidationOptions:(id:string,clientId:string)=>request<ConsolidationOptions>(base(id)+'/clients/'+clientId+'/consolidation-options'),
  consolidate:(id:string,clientId:string,orderId:string,contractId?:string)=>mutate(base(id)+'/clients/'+clientId+'/orders/'+orderId+'/consolidate',{contract_id:contractId??null},'POST'),
  consolidatedPortfolio:(id:string,params:{search?:string;operator_id?:number;renewal_month?:number;renewal_year?:number;page?:number;per_page?:number})=>request<PortfolioResponse>(base(id)+'/client-portfolio/consolidated?'+new URLSearchParams(Object.entries(params).filter(([,value])=>value!==undefined&&value!=='').map(([key,value])=>[key,String(value)])).toString()),
