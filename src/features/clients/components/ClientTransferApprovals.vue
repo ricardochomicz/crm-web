@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import OpportunityTransferHistoryDialog from '../components/OpportunityTransferHistoryDialog.vue'
 import { clientsApi, type ClientTransferPending } from '../api'
 import { toast } from '@/services/toast'
 
 const props = defineProps<{ tenantId: string }>()
 const rows = ref<ClientTransferPending[]>([])
+const historyOpen = ref(false)
 const loading = ref(false)
 const busy = ref(false)
 const error = ref('')
@@ -56,7 +58,7 @@ watch(() => props.tenantId, () => void load(), { immediate: true })
         <h2 class="text-lg font-semibold">Transferências de carteira</h2>
         <p class="text-sm text-slate-500">Solicitações pendentes de análise. Clientes com atividade recente ou pendências comerciais exigem aprovação de gerente ou proprietário.</p>
       </div>
-      <button type="button" class="secondary-button" :disabled="loading" @click="load">Atualizar</button>
+      <div class="flex flex-wrap gap-2"><button type="button" class="secondary-button" @click="historyOpen = true">Histórico de oportunidades</button><button type="button" class="secondary-button" :disabled="loading" @click="load">Atualizar</button></div>
     </div>
     <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
     <p v-if="loading" class="text-sm text-slate-500">Carregando solicitações...</p>
@@ -85,5 +87,6 @@ watch(() => props.tenantId, () => void load(), { immediate: true })
         <button type="button" class="secondary-button" :disabled="busy" @click="review(item.id, 'REJECTED')">Rejeitar</button>
       </div>
     </article>
+    <OpportunityTransferHistoryDialog :tenant-id="tenantId" :open="historyOpen" @close="historyOpen = false" />
   </section>
 </template>
