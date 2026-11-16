@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import OpportunityTransferHistoryDialog from '../components/OpportunityTransferHistoryDialog.vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
@@ -28,6 +29,7 @@ const clientsLoading = ref(false)
 const busy = ref(false)
 const error = ref('')
 const previewOpen = ref(false)
+const historyOpen = ref(false)
 let requestVersion = 0
 
 const source = computed(() => members.value.find((member) => member.id === sourceId.value))
@@ -169,6 +171,7 @@ watch(mode, () => {
       <header>
         <p class="eyebrow">GERENCIAL</p>
         <h1 class="mt-2 text-3xl font-semibold">Redistribuição de Carteira</h1>
+        <button type="button" class="secondary-button mt-3" @click="historyOpen = true">Histórico de transferências de oportunidades</button>
         <p class="mt-2 text-sm text-slate-500">
           Redistribua os clientes e suas oportunidades abertas sem alterar o histórico dos pedidos, contratos ou comissões.
           Consultores suspensos continuam responsáveis pelos clientes até a confirmação da redistribuição.
@@ -291,5 +294,6 @@ watch(mode, () => {
         </section>
       </template>
     </div>
+    <OpportunityTransferHistoryDialog :tenant-id="tenantId" :open="historyOpen" @close="historyOpen = false" />
   </AppShell>
 </template>
