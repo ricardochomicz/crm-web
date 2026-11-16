@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { clientsApi, type ClientTransferPending } from '../api'
+import { toast } from '@/services/toast'
 
 const props = defineProps<{ tenantId: string }>()
 const rows = ref<ClientTransferPending[]>([])
@@ -31,7 +32,11 @@ async function review(id: string, decision: 'APPROVED' | 'REJECTED') {
   busy.value = true
   error.value = ''
   try {
-    await clientsApi.reviewTransfer(props.tenantId, id, decision, notes.value[id] ?? '')
+    const result = await clientsApi.reviewTransfer(props.tenantId, id, decision, notes.value[id] ?? '')
+    const count = result.data.transferred_opportunities_count ?? 0
+    toast.success(decision === 'APPROVED'
+      ? `Transferência aprovada. ${count} ${count === 1 ? 'oportunidade aberta transferida' : 'oportunidades abertas transferidas'}.`
+      : 'Solicitação de transferência rejeitada.')
     await load()
     emit('reviewed')
   } catch (failure) {
@@ -49,7 +54,7 @@ watch(() => props.tenantId, () => void load(), { immediate: true })
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 class="text-lg font-semibold">Transferências de carteira</h2>
-        <p class="text-sm text-slate-500">Solicitações pendentes de autorização do supervisor.</p>
+        <p class="text-sm text-slate-500">Solicitações pendentes de análise. Clientes com atividade recente ou pendências comerciais exigem aprovação de gerente ou proprietário.</p>
       </div>
       <button type="button" class="secondary-button" :disabled="loading" @click="load">Atualizar</button>
     </div>
@@ -62,13 +67,14 @@ watch(() => props.tenantId, () => void load(), { immediate: true })
         De <strong>{{ item.from_name ?? 'Responsável atual' }}</strong>
         para <strong>{{ item.to_name ?? 'Solicitante' }}</strong>
       </p>
+      <p class="text-xs text-slate-500">Solicitada em {{ new Date(item.created_at).toLocaleString('pt-BR') }}</p>
       <p v-if="item.reason" class="text-sm text-slate-500">Motivo da solicitação: {{ item.reason }}</p>
       <div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
         <p>Sem interação há mais de 90 dias: <strong>{{ item.eligibility.inactive_for_90_days ? 'Sim' : 'Não' }}</strong></p>
         <p>Pedidos em andamento: <strong>{{ item.eligibility.has_open_orders ? 'Sim' : 'Não' }}</strong></p>
         <p>Oportunidades em andamento: <strong>{{ item.eligibility.has_open_opportunities ? 'Sim' : 'Não' }}</strong></p>
         <p v-if="!item.eligibility.inactive_for_90_days" class="mt-2 font-semibold">Atenção: interação recente. A aprovação exige avaliação expressa do gestor.</p>
-        <p v-if="item.eligibility.requires_special_review" class="mt-2 font-semibold">Atenção: há negócios em andamento. Avalie os vínculos comerciais antes de autorizar.</p>
+        <p v-if="item.eligibility.requires_special_review" class="mt-2 font-semibold">Atenção: oportunidades abertas do responsável atual serão transferidas com registro de auditoria. Pedidos e comissões existentes permanecem preservados. A operação poderá ser bloqueada se houver vínculos inconsistentes.</p>
       </div>
       <label class="block text-sm font-medium text-slate-700">
         Observação da análise
