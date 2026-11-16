@@ -137,7 +137,8 @@ async function confirm() {
       destination_ids: mode.value === 'manual' ? [] : destinationIds.value,
       assignments: mode.value === 'manual' ? manualAssignments.value : {},
     })
-    toast.success(`${result.data.client_count} clientes redistribuídos com sucesso.`)
+    const moved = result.data.transferred_opportunities_count ?? 0
+    toast.success(`${result.data.client_count} clientes e ${moved} ${moved === 1 ? 'oportunidade aberta transferida' : 'oportunidades abertas transferidas'} com sucesso.`)
     sourceId.value = ''
     clients.value = []
     destinationIds.value = []
@@ -169,7 +170,7 @@ watch(mode, () => {
         <p class="eyebrow">GERENCIAL</p>
         <h1 class="mt-2 text-3xl font-semibold">Redistribuição de Carteira</h1>
         <p class="mt-2 text-sm text-slate-500">
-          Redistribua os clientes de um consultor sem alterar o histórico dos pedidos, contratos ou comissões.
+          Redistribua os clientes e suas oportunidades abertas sem alterar o histórico dos pedidos, contratos ou comissões.
           Consultores suspensos continuam responsáveis pelos clientes até a confirmação da redistribuição.
         </p>
       </header>
@@ -279,7 +280,7 @@ watch(mode, () => {
             </table>
           </div>
           <p class="text-sm text-amber-800">
-            A confirmação atualiza apenas o responsável da carteira. Vendas, pedidos, contratos, conversas e comissões anteriores permanecem preservados.
+            A confirmação atualiza o responsável da carteira e transfere as oportunidades abertas, registrando a movimentação em auditoria. Oportunidades encerradas, vendas, pedidos, contratos e comissões anteriores permanecem preservados. O processo será bloqueado caso existam vínculos comerciais inconsistentes.
           </p>
           <div class="flex flex-wrap gap-3">
             <button type="button" class="secondary-button" :disabled="busy" @click="previewOpen = false">Voltar e ajustar</button>
