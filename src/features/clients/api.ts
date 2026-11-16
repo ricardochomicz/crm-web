@@ -1,4 +1,6 @@
 import { request, mutate } from '@/lib/http'
+export type OpportunityTransferHistoryItem = {id:string;client_id:string;opportunity_id:string;opportunity_title:string;client_name:string;from_name:string;to_name:string;actor_name:string;source_type:string;source_id:string;reason:string;created_at:string}
+export type OpportunityTransferHistoryResponse = {data:OpportunityTransferHistoryItem[];meta:{current_page:number;last_page:number;per_page:number;total:number}}
 export type ClientTransferLookup = {exists:boolean;client_id?:string;assigned_to_me?:boolean;owner_name?:string|null;transfer?:{eligible:boolean;last_interaction_at:string|null;inactive_for_90_days:boolean;has_open_opportunities:boolean;has_open_orders:boolean;requires_special_review:boolean}}
 export type ClientTransferPending = {id:string;client_name:string;from_name:string|null;to_name:string|null;reason:string|null;created_at:string;eligibility:{eligible:boolean;inactive_for_90_days:boolean;has_open_opportunities:boolean;has_open_orders:boolean;requires_special_review:boolean;last_interaction_at:string|null}}
 export type PortfolioRedistributionMember = {id:string;name:string;status:string;role:string;client_count:number}
@@ -19,6 +21,7 @@ export type ClassificationInput = Pick<Classification,'operator_id'|'code'|'name
 export type RuleInput = Pick<RenewalRule,'minimum_months'|'valid_from'|'valid_until'|'is_active'|'notes'>
 const base=(id:string)=>'/api/v1/tenants/'+encodeURIComponent(id)
 export const clientsApi={
+ opportunityTransferHistory:(id:string,page=1,clientId?:string)=>request<OpportunityTransferHistoryResponse>(base(id)+'/clients/opportunity-transfer-history?'+new URLSearchParams({page:String(page),...(clientId?{client_id:clientId}:{})}).toString()),
  redistributionMembers:(id:string)=>request<{data:{members:PortfolioRedistributionMember[]}}>(base(id)+'/clients/portfolio-redistributions'),
  redistributionClients:(id:string,sourceId:string)=>request<{data:{clients:PortfolioRedistributionClient[]}}>(base(id)+'/clients/portfolio-redistributions/'+sourceId+'/clients'),
  redistribute:(id:string,data:PortfolioRedistributionInput)=>mutate<{data:{id:string;client_count:number;transferred_opportunities_count:number}}>(base(id)+'/clients/portfolio-redistributions',data,'POST'),
