@@ -13,9 +13,10 @@ export type SupportSummary = { open: number; in_progress: number; waiting: numbe
 
 export const platformSupportApi = {
   summary: () => request<{ data: SupportSummary }>('/api/v1/admin/support-tickets/summary'),
-  list: (page: number, status: string, search: string) => {
+  list: (page: number, status: string, search: string, priority = '') => {
     const params = new URLSearchParams({ page: String(page) })
     if (status) params.set('status', status)
+    if (priority) params.set('priority', priority)
     if (search.trim()) params.set('search', search.trim())
     return request<TicketPage>(`/api/v1/admin/support-tickets?${params}`)
   },
