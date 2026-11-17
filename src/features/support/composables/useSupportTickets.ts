@@ -42,7 +42,7 @@ export function useSupportTickets() {
     error.value = ''
     try {
       const result = await supportApi.reply(tenantId, ticketId, body)
-      if (selectedTicketId.value === ticketId) messages.value.push(result.data)
+      if (selectedTicketId.value === ticketId) messages.value.unshift(result.data)
       return true
     } catch (failure) {
       error.value = errorMessage(failure)
