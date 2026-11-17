@@ -139,7 +139,7 @@ export function useClientForm({
         operator_id: form.value.operator_id || null,
         classification_id: form.value.classification_id || null,
         seller_membership_id: editingId
-          ? null
+          ? form.value.seller_membership_id
           : showSellerSelect.value
             ? form.value.seller_membership_id || null
             : currentSellerId.value,
