@@ -23,8 +23,9 @@ const props = defineProps<{
   duplicate: ClientTransferLookup | null
   checkingDocument: boolean
   transferBusy: boolean
+  canTransferClient: boolean
 }>()
-const emit = defineEmits<{ save: []; cancel: []; lookupCep: []; checkDocument: []; requestTransfer: [] }>()
+const emit = defineEmits<{ save: []; cancel: []; lookupCep: []; checkDocument: []; requestTransfer: []; transferClient: [] }>()
 const documentModel = defineModel<string>('documentModel', { required: true })
 const phoneModel = defineModel<string>('phoneModel', { required: true })
 const cepModel = defineModel<string>('cepModel', { required: true })
@@ -159,7 +160,7 @@ const { form, editing, busy, operators, classesForOperator, sellers, showSellerS
  /><FormError
               :message="validationState.errors.operator_id"
           /></label>
-          <label v-if="showSellerSelect" class="text-sm"
+          <label v-if="showSellerSelect && !editing" class="text-sm"
             >Vendedor responsável<SearchSelect
               v-model="form.seller_membership_id"
               :options="[
@@ -167,6 +168,11 @@ const { form, editing, busy, operators, classesForOperator, sellers, showSellerS
                 ...sellers.map((s) => ({ value: s.id, label: s.name })),
               ]"
           /></label>
+        </div>
+        <div v-if="editing && canTransferClient" class="rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm">
+          <p class="font-medium text-slate-800">Transferência de responsável</p>
+          <p class="mt-1 text-slate-600">Para alterar o consultor deste cliente, utilize a transferência auditada. As oportunidades abertas acompanharão o novo responsável.</p>
+          <button type="button" class="secondary-button mt-3" :disabled="busy" @click="emit('transferClient')">Transferir cliente</button>
         </div>
         <label class="flex gap-2 text-sm"
           ><input v-model="form.is_active" type="checkbox" />Cliente ativo</label
