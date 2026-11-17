@@ -49,8 +49,9 @@ export function useTenantOnboarding(tenantId: Readonly<Ref<string>>) {
       progress.value = response.data
       await router.replace(base.value)
     } catch (failure) {
-      error.value = errorMessage(failure)
+      const message = errorMessage(failure)
       await load()
+      error.value = message
     } finally {
       busy.value = false
     }
