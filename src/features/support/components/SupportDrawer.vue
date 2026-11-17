@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import { useAuthStore } from '@/features/auth/store'
+import { subscribeSupportChanges } from '../realtime'
 import { useSupportTickets } from '../composables/useSupportTickets'
 
 const props = defineProps<{ open: boolean; tenantId: string }>()
 const emit = defineEmits<{ close: []; read: [] }>()
+const auth = useAuthStore()
+let unsubscribeRealtime: (() => void) | undefined
 const { tickets, messages, selectedTicketId, messagesLoading, loading, submitting, error, success, load, create, openTicket, reply } = useSupportTickets()
 const tab = ref<'new' | 'history'>('new')
 const category = ref('technical')
@@ -16,9 +20,17 @@ async function viewTicket(id: string) {
   await load(props.tenantId)
   emit('read')
 }
-watch(() => [props.open, props.tenantId] as const, ([open, tenantId]) => {
-  if (open && tenantId) void load(tenantId)
+watch(() => [props.open, props.tenantId, auth.user?.id] as const, ([isOpen, tenantId, userId]) => {
+  unsubscribeRealtime?.()
+  unsubscribeRealtime = undefined
+  if (!isOpen || !tenantId || !userId) return
+  void load(tenantId)
+  unsubscribeRealtime = subscribeSupportChanges(`tenant.${tenantId}.user.${userId}.support`, ticketId => {
+    void load(tenantId)
+    if (selectedTicketId.value === ticketId) void viewTicket(ticketId)
+  })
 }, { immediate: true })
+onUnmounted(() => unsubscribeRealtime?.())
 async function sendReply() {
   if (!selectedTicketId.value || !replyBody.value.trim()) return
   if (await reply(props.tenantId, selectedTicketId.value, replyBody.value.trim())) replyBody.value = ''
