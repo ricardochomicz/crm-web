@@ -3,6 +3,7 @@ import type { SupportMessage, SupportTicket } from './api'
 
 export type PlatformTicket = SupportTicket & {
   priority: string
+  has_unread_customer_message?: boolean
   tenant: { id: string; name: string }
   author: { id: string; name: string; email: string }
   messages?: SupportMessage[]
