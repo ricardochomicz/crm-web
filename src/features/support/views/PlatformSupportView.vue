@@ -7,6 +7,7 @@ import { usePlatformSupport } from '../composables/usePlatformSupport'
 const { result, summary, loadSummary, selected, loading, busy, error, load, open, update, reply } = usePlatformSupport()
 const page = ref(1)
 const status = ref('')
+const priorityFilter = ref('')
 const search = ref('')
 const replyBody = ref('')
 async function toggleTicket(id: string) {
@@ -26,7 +27,7 @@ const priorityOptions = [
   { value: 'high', label: 'Alta' },
   { value: 'urgent', label: 'Urgente' },
 ]
-function refresh(next = 1) { page.value = next; void load(next, status.value, search.value); void loadSummary() }
+function refresh(next = 1) { page.value = next; void load(next, status.value, search.value, priorityFilter.value); void loadSummary() }
 async function sendReply() {
   if (!replyBody.value.trim()) return
   if (await reply(replyBody.value.trim())) { replyBody.value = ''; refresh(page.value) }
@@ -54,7 +55,7 @@ onMounted(() => refresh())
         { key: 'in_progress', label: 'Em atendimento', value: summary?.in_progress ?? 0, filter: 'in_progress' },
         { key: 'waiting', label: 'Aguardando cliente', value: summary?.waiting ?? 0, filter: 'waiting' },
         { key: 'urgent', label: 'Urgentes ativos', value: summary?.urgent ?? 0, filter: '' },
-      ]" :key="metric.key" type="button" class="rounded-2xl border border-stone-200 bg-white p-4 text-left shadow-sm transition hover:border-orange-400" @click="status = metric.filter; refresh()">
+      ]" :key="metric.key" type="button" class="rounded-2xl border border-stone-200 bg-white p-4 text-left shadow-sm transition hover:border-orange-400" @click="status = metric.filter; priorityFilter = metric.key === 'urgent' ? 'urgent' : ''; refresh()">
         <span class="block text-xs font-semibold text-slate-500">{{ metric.label }}</span>
         <strong class="mt-2 block text-2xl font-semibold" :class="metric.key === 'urgent' && metric.value ? 'text-red-600' : 'text-slate-900'">{{ metric.value }}</strong>
       </button>
@@ -68,8 +69,8 @@ onMounted(() => refresh())
         <SearchSelect v-model="status" :options="statusOptions" />
       </div>
       <div class="flex items-center gap-2 md:pb-0.5">
-        <button class="inline-flex h-11 min-w-28 items-center justify-center rounded-xl bg-orange-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:opacity-50" type="button" :disabled="loading" @click="refresh()">Buscar</button>
-        <button class="inline-flex h-11 items-center justify-center rounded-xl border border-stone-200 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-stone-50" type="button" @click="search = ''; status = ''; refresh()">Limpar</button>
+        <button class="inline-flex h-11 min-w-28 items-center justify-center rounded-xl bg-orange-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:opacity-50" type="button" :disabled="loading" @click="priorityFilter = ''; refresh()">Buscar</button>
+        <button class="inline-flex h-11 items-center justify-center rounded-xl border border-stone-200 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-stone-50" type="button" @click="search = ''; status = ''; priorityFilter = ''; refresh()">Limpar</button>
       </div>
     </div>
     <div class="grid items-start gap-5 lg:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.3fr)]">
