@@ -44,28 +44,30 @@ onMounted(() => refresh())
       <p class="mt-2 text-sm text-slate-500">Acompanhe solicitações e responda aos usuários.</p>
     </header>
     <p v-if="error" role="alert" class="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{{ error }}</p>
-    <div class="mb-5 flex flex-wrap items-end gap-3 rounded-xl border border-stone-200 bg-white p-4">
-      <label class="min-w-52 flex-1 text-xs font-semibold text-slate-600">Assunto ou protocolo
+    <div class="mb-5 grid items-end gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(0,1.5fr)_minmax(200px,1fr)_auto]">
+      <label class="block min-w-0 text-xs font-semibold text-slate-600">Assunto ou protocolo
         <input v-model="search" class="field mt-2" placeholder="Pesquisar chamado" @keyup.enter="refresh()" />
       </label>
-      <div class="min-w-48 flex-1">
+      <div class="min-w-0">
         <label class="mb-2 block text-xs font-semibold text-slate-600">Status</label>
         <SearchSelect v-model="status" :options="statusOptions" />
       </div>
-      <button class="primary-button w-auto" type="button" @click="refresh()">Buscar</button>
-      <button class="secondary-button w-auto" type="button" @click="search = ''; status = ''; refresh()">Limpar</button>
+      <div class="flex items-center gap-2 md:pb-0.5">
+        <button class="inline-flex h-11 min-w-28 items-center justify-center rounded-xl bg-orange-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700 disabled:opacity-50" type="button" :disabled="loading" @click="refresh()">Buscar</button>
+        <button class="inline-flex h-11 items-center justify-center rounded-xl border border-stone-200 bg-white px-4 text-sm font-medium text-slate-600 transition hover:bg-stone-50" type="button" @click="search = ''; status = ''; refresh()">Limpar</button>
+      </div>
     </div>
-    <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(360px,1fr)]">
-      <section class="space-y-3">
+    <div class="grid items-start gap-5 lg:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.3fr)]">
+      <section class="space-y-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
         <p v-if="loading" class="text-sm text-slate-500">Carregando chamados…</p>
-        <p v-if="!loading && !result?.data.length" class="text-sm text-slate-500">Nenhum chamado encontrado.</p>
-        <button v-for="ticket in result?.data ?? []" :key="ticket.id" type="button" class="block w-full rounded-xl border bg-white p-4 text-left transition hover:border-orange-300" :class="selected?.id === ticket.id ? 'border-orange-400' : 'border-stone-200'" @click="open(ticket.id)">
+        <p v-if="!loading && !result?.data.length" class="py-10 text-center text-sm text-slate-500">Nenhum chamado encontrado.</p>
+        <button v-for="ticket in result?.data ?? []" :key="ticket.id" type="button" class="block w-full rounded-xl border bg-white p-4 text-left transition hover:border-orange-300 hover:bg-orange-50/30" :class="selected?.id === ticket.id ? 'border-orange-400' : 'border-stone-200'" @click="open(ticket.id)">
           <div class="flex justify-between gap-3">
             <strong class="text-sm text-slate-900">{{ ticket.subject }}</strong>
             <span class="text-xs text-slate-500">{{ statusOptions.find(option => option.value === ticket.status)?.label ?? ticket.status }}</span>
           </div>
           <p class="mt-2 text-xs text-slate-600">{{ ticket.tenant?.name }} · {{ ticket.author?.name }}</p>
-          <p class="mt-1 text-xs text-slate-400">{{ ticket.id }}</p>
+          <p class="mt-1 truncate font-mono text-[11px] text-slate-400" :title="ticket.id">Protocolo: {{ ticket.id.slice(0, 8) }}</p>
         </button>
         <div v-if="result && result.last_page > 1" class="flex items-center justify-between gap-3">
           <button class="secondary-button w-auto" :disabled="page <= 1 || loading" @click="refresh(page - 1)">Anterior</button>
@@ -73,7 +75,7 @@ onMounted(() => refresh())
           <button class="secondary-button w-auto" :disabled="page >= result.last_page || loading" @click="refresh(page + 1)">Próxima</button>
         </div>
       </section>
-      <section class="rounded-xl border border-stone-200 bg-white p-5">
+      <section class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
         <p v-if="!selected" class="text-sm text-slate-500">Selecione um chamado para visualizar e responder.</p>
         <template v-else>
           <h2 class="font-semibold text-slate-900">{{ selected.subject }}</h2>
@@ -89,8 +91,8 @@ onMounted(() => refresh())
               <SearchSelect :model-value="selected.priority" :options="priorityOptions" :disabled="busy" @update:model-value="changePriority" />
             </div>
           </div>
-          <h3 class="mt-6 font-semibold">Histórico da conversa</h3>
-          <div class="mt-3 max-h-80 space-y-3 overflow-y-auto">
+          <h3 class="mt-6 border-t border-stone-100 pt-5 font-semibold">Histórico da conversa</h3>
+          <div class="mt-3 max-h-80 space-y-3 overflow-y-auto pr-1">
             <article v-for="message in selected.messages ?? []" :key="message.id" class="rounded-lg bg-stone-50 p-3">
               <p class="text-xs font-semibold">{{ message.author?.name ?? 'Usuário' }}</p>
               <p class="mt-1 whitespace-pre-wrap text-sm">{{ message.body }}</p>
