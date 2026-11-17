@@ -11,9 +11,9 @@ export type SupportTicket = {
 export type SupportMessage = {
   id: string
   body: string
-  user_id: string
+  user_id: number
   created_at: string
-  author?: { id: string; name: string }
+  author?: { id: number; name: string }
 }
 export type SupportTicketInput = { category: string; subject: string; description: string }
 
