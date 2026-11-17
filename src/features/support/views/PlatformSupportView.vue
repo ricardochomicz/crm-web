@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { usePlatformSupport } from '../composables/usePlatformSupport'
@@ -27,10 +27,10 @@ const priorityOptions = [
   { value: 'high', label: 'Alta' },
   { value: 'urgent', label: 'Urgente' },
 ]
-function refresh(next = 1) { page.value = next; void load(next, status.value, search.value, priorityFilter.value); void loadSummary() }
+function refresh(next = 1) { page.value = next; void load(next, appliedStatus.value, appliedSearch.value, appliedPriority.value); void loadSummary() }
 async function sendReply() {
   if (!replyBody.value.trim()) return
-  if (await reply(replyBody.value.trim())) { replyBody.value = ''; refresh(page.value) }
+  if (await reply(replyBody.value.trim())) { replyBody.value = ''; applyFilters(page.value) }
 }
 async function changeStatus(value: string | number) {
   if (await update({ status: String(value) })) refresh(page.value)
@@ -38,7 +38,37 @@ async function changeStatus(value: string | number) {
 async function changePriority(value: string | number) {
   if (await update({ priority: String(value) })) refresh(page.value)
 }
-onMounted(() => refresh())
+let refreshTimer: ReturnType<typeof setInterval> | undefined
+let polling = false
+async function refreshInBackground() {
+  if (document.visibilityState !== 'visible' || polling || loading.value || busy.value) return
+  polling = true
+  try {
+    await Promise.all([
+      load(page.value, appliedStatus.value, appliedSearch.value, appliedPriority.value, true),
+      loadSummary(),
+    ])
+    // Não fecha nem substitui a conversa selecionada durante a atualização.
+  } finally { polling = false }
+}
+const appliedStatus = ref('')
+const appliedSearch = ref('')
+const appliedPriority = ref('')
+function applyFilters(next = 1) {
+  appliedStatus.value = status.value
+  appliedSearch.value = search.value
+  appliedPriority.value = priorityFilter.value
+  refresh(next)
+}
+onMounted(() => {
+  applyFilters()
+  refreshTimer = setInterval(() => void refreshInBackground(), 15000)
+  document.addEventListener('visibilitychange', refreshInBackground)
+})
+onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer)
+  document.removeEventListener('visibilitychange', refreshInBackground)
+})
 </script>
 
 <template>
@@ -55,7 +85,7 @@ onMounted(() => refresh())
         { key: 'in_progress', label: 'Em atendimento', value: summary?.in_progress ?? 0, filter: 'in_progress' },
         { key: 'waiting', label: 'Aguardando cliente', value: summary?.waiting ?? 0, filter: 'waiting' },
         { key: 'urgent', label: 'Urgentes ativos', value: summary?.urgent ?? 0, filter: '' },
-      ]" :key="metric.key" type="button" class="rounded-2xl border border-stone-200 bg-white p-4 text-left shadow-sm transition hover:border-orange-400" @click="status = metric.filter; priorityFilter = metric.key === 'urgent' ? 'urgent' : ''; refresh()">
+      ]" :key="metric.key" type="button" class="rounded-2xl border border-stone-200 bg-white p-4 text-left shadow-sm transition hover:border-orange-400" @click="status = metric.filter; priorityFilter = metric.key === 'urgent' ? 'urgent' : ''; applyFilters()">
         <span class="block text-xs font-semibold text-slate-500">{{ metric.label }}</span>
         <strong class="mt-2 block text-2xl font-semibold" :class="metric.key === 'urgent' && metric.value ? 'text-red-600' : 'text-slate-900'">{{ metric.value }}</strong>
       </button>
@@ -88,9 +118,9 @@ onMounted(() => refresh())
           <p class="mt-1 truncate font-mono text-[11px] text-slate-400" :title="ticket.id">Protocolo: {{ ticket.id.slice(0, 8) }}</p>
         </button>
         <div v-if="result && result.last_page > 1" class="flex items-center justify-between gap-3">
-          <button class="secondary-button w-auto" :disabled="page <= 1 || loading" @click="refresh(page - 1)">Anterior</button>
+          <button class="secondary-button w-auto" :disabled="page <= 1 || loading" @click="applyFilters(page - 1)">Anterior</button>
           <span class="text-sm text-slate-500">{{ page }} de {{ result.last_page }}</span>
-          <button class="secondary-button w-auto" :disabled="page >= result.last_page || loading" @click="refresh(page + 1)">Próxima</button>
+          <button class="secondary-button w-auto" :disabled="page >= result.last_page || loading" @click="applyFilters(page + 1)">Próxima</button>
         </div>
       </section>
       <section class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
