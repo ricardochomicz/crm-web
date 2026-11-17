@@ -118,7 +118,7 @@ onUnmounted(() => {
         <p v-if="!loading && !result?.data.length" class="py-10 text-center text-sm text-slate-500">Nenhum chamado encontrado.</p>
         <button v-for="ticket in result?.data ?? []" :key="ticket.id" type="button" class="block w-full rounded-xl border bg-white p-4 text-left transition hover:border-orange-300 hover:bg-orange-50/30" :class="selected?.id === ticket.id ? 'border-orange-400' : 'border-stone-200'" @click="toggleTicket(ticket.id)" :aria-expanded="selected?.id === ticket.id">
           <div class="flex justify-between gap-3">
-            <span class="flex min-w-0 items-center gap-2"><strong class="truncate text-sm text-slate-900">{{ ticket.subject }}</strong><span v-if="ticket.has_unread_customer_message" class="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700">Nova mensagem</span><span class="text-xs text-slate-400" aria-hidden="true">{{ selected?.id === ticket.id ? "▴" : "▾" }}</span></span>
+            <span class="flex min-w-0 items-center gap-2"><strong class="truncate text-sm text-slate-900">{{ ticket.subject }}</strong><span v-if="ticket.status !== 'closed' && ticket.has_unread_customer_message" class="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-700">Nova mensagem</span><span class="text-xs text-slate-400" aria-hidden="true">{{ selected?.id === ticket.id ? "▴" : "▾" }}</span></span>
             <span class="text-xs text-slate-500">{{ statusOptions.find(option => option.value === ticket.status)?.label ?? ticket.status }}</span>
           </div>
           <p class="mt-2 text-xs text-slate-600">{{ ticket.tenant?.name }} · {{ ticket.author?.name }}</p>
