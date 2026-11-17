@@ -9,9 +9,16 @@ import ContextActivityDialog from '@/features/calendar/components/ContextActivit
 import ClientDetailsDialog from '../components/ClientDetailsDialog.vue'
 import ClientContactDialog from '../components/ClientContactDialog.vue'
 import ClientTransferDialog from '../components/ClientTransferDialog.vue'
+import ClientPortfolioTransferDialog from '../components/ClientPortfolioTransferDialog.vue'
 import ClientTransferApprovals from '../components/ClientTransferApprovals.vue'
 import { useClientsPage } from '../composables/useClientsPage'
 const {
+  portfolioTransferOpen,
+  portfolioTransferBusy,
+  portfolioTransferClient,
+  canTransferClient,
+  openPortfolioTransfer,
+  submitPortfolioTransfer,
   transferDialogOpen,
   submitTransfer,
   onActivitySaved,
@@ -158,14 +165,25 @@ const {
       :duplicate="duplicate"
       :checking-document="checkingDocument"
       :transfer-busy="transferBusy"
+      :can-transfer-client="canTransferClient"
       v-model:document-model="documentModel"
       v-model:phone-model="phoneModel"
       v-model:cep-model="cepModel"
       @lookup-cep="lookupCep"
       @check-document="checkDocument"
       @request-transfer="requestTransfer"
+      @transfer-client="openPortfolioTransfer"
       @cancel="modal = false"
       @save="save"
+    />
+    <ClientPortfolioTransferDialog
+      :open="portfolioTransferOpen"
+      :busy="portfolioTransferBusy"
+      :client-name="portfolioTransferClient?.company_name ?? ''"
+      :source-id="portfolioTransferClient?.sellers?.find(seller => !seller.ended_at)?.tenant_user_id ?? ''"
+      :sellers="sellers"
+      @close="portfolioTransferOpen = false"
+      @submit="submitPortfolioTransfer"
     />
     <ClientTransferDialog
       :open="transferDialogOpen"
