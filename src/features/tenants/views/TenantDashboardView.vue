@@ -30,6 +30,7 @@ const canSeeProductivity = computed(() => tenant.value?.access?.can_view_team_pr
 <template>
   <AppShell :tenant="tenant" :title="tenant?.name ?? 'Dashboard'" subtitle="CRM Telecom · Operações comerciais">
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
+    <RouterLink v-if="tenant?.role === 'OWNER'" :to="`/empresas/${tenantId}/configuracao-inicial`" class="mb-5 flex items-center justify-between rounded-xl border border-orange-200 bg-orange-50 px-5 py-4 text-sm font-semibold text-orange-800">Revisar configuração inicial da empresa <span aria-hidden="true">→</span></RouterLink>
     <div v-if="!loading && tenant" class="space-y-5">
       <header class="flex flex-wrap items-center justify-between gap-4">
         <div>
