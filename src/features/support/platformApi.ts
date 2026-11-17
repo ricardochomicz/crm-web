@@ -9,7 +9,10 @@ export type PlatformTicket = SupportTicket & {
 }
 export type TicketPage = { data: PlatformTicket[]; current_page: number; last_page: number; total: number }
 
+export type SupportSummary = { open: number; in_progress: number; waiting: number; urgent: number }
+
 export const platformSupportApi = {
+  summary: () => request<{ data: SupportSummary }>('/api/v1/admin/support-tickets/summary'),
   list: (page: number, status: string, search: string) => {
     const params = new URLSearchParams({ page: String(page) })
     if (status) params.set('status', status)
