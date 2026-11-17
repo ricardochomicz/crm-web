@@ -4,7 +4,7 @@ import AppShell from '@/components/layout/AppShell.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { usePlatformSupport } from '../composables/usePlatformSupport'
 
-const { result, selected, loading, busy, error, load, open, update, reply } = usePlatformSupport()
+const { result, summary, loadSummary, selected, loading, busy, error, load, open, update, reply } = usePlatformSupport()
 const page = ref(1)
 const status = ref('')
 const search = ref('')
@@ -26,7 +26,7 @@ const priorityOptions = [
   { value: 'high', label: 'Alta' },
   { value: 'urgent', label: 'Urgente' },
 ]
-function refresh(next = 1) { page.value = next; void load(next, status.value, search.value) }
+function refresh(next = 1) { page.value = next; void load(next, status.value, search.value); void loadSummary() }
 async function sendReply() {
   if (!replyBody.value.trim()) return
   if (await reply(replyBody.value.trim())) { replyBody.value = ''; refresh(page.value) }
@@ -48,6 +48,17 @@ onMounted(() => refresh())
       <p class="mt-2 text-sm text-slate-500">Acompanhe solicitações e responda aos usuários.</p>
     </header>
     <p v-if="error" role="alert" class="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">{{ error }}</p>
+    <div class="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <button v-for="metric in [
+        { key: 'open', label: 'Abertos', value: summary?.open ?? 0, filter: 'open' },
+        { key: 'in_progress', label: 'Em atendimento', value: summary?.in_progress ?? 0, filter: 'in_progress' },
+        { key: 'waiting', label: 'Aguardando cliente', value: summary?.waiting ?? 0, filter: 'waiting' },
+        { key: 'urgent', label: 'Urgentes ativos', value: summary?.urgent ?? 0, filter: '' },
+      ]" :key="metric.key" type="button" class="rounded-2xl border border-stone-200 bg-white p-4 text-left shadow-sm transition hover:border-orange-400" @click="status = metric.filter; refresh()">
+        <span class="block text-xs font-semibold text-slate-500">{{ metric.label }}</span>
+        <strong class="mt-2 block text-2xl font-semibold" :class="metric.key === 'urgent' && metric.value ? 'text-red-600' : 'text-slate-900'">{{ metric.value }}</strong>
+      </button>
+    </div>
     <div class="mb-5 grid items-end gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm md:grid-cols-[minmax(0,1.5fr)_minmax(200px,1fr)_auto]">
       <label class="block min-w-0 text-xs font-semibold text-slate-600">Assunto ou protocolo
         <input v-model="search" class="field mt-2" placeholder="Pesquisar chamado" @keyup.enter="refresh()" />
@@ -71,6 +82,8 @@ onMounted(() => refresh())
             <span class="text-xs text-slate-500">{{ statusOptions.find(option => option.value === ticket.status)?.label ?? ticket.status }}</span>
           </div>
           <p class="mt-2 text-xs text-slate-600">{{ ticket.tenant?.name }} · {{ ticket.author?.name }}</p>
+          <span v-if="ticket.priority === 'urgent'" class="mt-2 inline-flex rounded-full bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700">Urgente</span>
+          <span v-else-if="ticket.priority === 'high'" class="mt-2 inline-flex rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">Prioridade alta</span>
           <p class="mt-1 truncate font-mono text-[11px] text-slate-400" :title="ticket.id">Protocolo: {{ ticket.id.slice(0, 8) }}</p>
         </button>
         <div v-if="result && result.last_page > 1" class="flex items-center justify-between gap-3">
