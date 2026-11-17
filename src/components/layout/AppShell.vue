@@ -6,6 +6,7 @@ import GlobalSearchTrigger from '@/features/global-search/components/GlobalSearc
 import GlobalSearchDialog from '@/features/global-search/components/GlobalSearchDialog.vue'
 import { useGlobalSearchShortcut } from '@/features/global-search/composables/useGlobalSearchShortcut'
 import NotificationBell from '@/features/calendar/components/NotificationBell.vue'
+import SupportDrawer from '@/features/support/components/SupportDrawer.vue'
 import { can } from '@/features/tenants/types'
 import type { Tenant } from '@/features/tenants/types'
 import BrandLogo from '@/components/ui/BrandLogo.vue'
@@ -21,6 +22,7 @@ const route = useRoute()
 const router = useRouter()
 const menuOpen = ref(false)
 const globalSearchOpen = ref(false)
+const supportOpen = ref(false)
 useGlobalSearchShortcut(() => { if (route.params.tenantId) globalSearchOpen.value = true })
 const wideLayout = ref(true)
 const layoutPreferenceKey = 'crm:layout-width'
@@ -44,6 +46,7 @@ watch(
   () => {
     menuOpen.value = false
     globalSearchOpen.value = false
+    supportOpen.value = false
   },
 )
 const busy = ref(false)
@@ -95,6 +98,9 @@ async function logout() {
         <div class="flex items-center gap-3">
           <GlobalSearchTrigger v-if="tenant" @click="globalSearchOpen = true" />
           <NotificationBell v-if="tenant && can(tenant, 'calendar.view')" :tenant-id="tenant.id" />
+          <button v-if="tenant" type="button" class="rounded-xl border border-stone-200 p-2.5 text-slate-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700" aria-label="Abrir central de suporte" title="Suporte" @click="supportOpen = true">
+            <AppIcon name="message-square" class="size-5" />
+          </button>
           <RouterLink v-if="tenant?.role !== 'CONSULTANT'" to="/empresas" class="hidden min-w-0 items-center gap-3 rounded-xl border border-stone-200 px-3 py-2 text-left transition hover:border-orange-300 hover:bg-orange-50 sm:flex" aria-label="Selecionar ou trocar empresa">
             <span class="min-w-0"><span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">Empresa atual</span><span class="block max-w-48 truncate text-xs font-semibold text-slate-800">{{ tenant?.name ?? 'Minhas empresas' }}</span></span>
             <AppIcon name="arrow" class="size-4 shrink-0 text-slate-400" />
@@ -138,6 +144,7 @@ async function logout() {
         </button>
       </nav>
     </header>
+    <SupportDrawer v-if="tenant" :open="supportOpen" :tenant-id="tenant.id" @close="supportOpen = false" />
     <GlobalSearchDialog v-if="tenant" :open="globalSearchOpen" :tenant-id="tenant.id" :user-id="String(auth.user?.id ?? '')" @close="globalSearchOpen = false" />
     <main id="main-content" class="mx-auto w-full px-5 py-8 transition-[max-width] duration-200 sm:px-9 sm:py-11" :class="wideLayout ? 'max-w-[1920px]' : 'max-w-7xl'">
       <p v-if="error" role="alert" class="mb-6 rounded-xl bg-red-50 p-4 text-sm text-red-800">
