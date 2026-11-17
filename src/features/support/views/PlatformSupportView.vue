@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
+import { subscribeSupportChanges } from '../realtime'
 import { usePlatformSupport } from '../composables/usePlatformSupport'
 
 const { result, summary, loadSummary, selected, loading, busy, error, load, open, update, reply } = usePlatformSupport()
@@ -39,6 +40,7 @@ async function changePriority(value: string | number) {
   if (await update({ priority: String(value) })) refresh(page.value)
 }
 let refreshTimer: ReturnType<typeof setInterval> | undefined
+let unsubscribeRealtime: (() => void) | undefined
 let polling = false
 async function refreshInBackground() {
   if (document.visibilityState !== 'visible' || polling || loading.value || busy.value) return
@@ -62,10 +64,16 @@ function applyFilters(next = 1) {
 }
 onMounted(() => {
   applyFilters()
-  refreshTimer = setInterval(() => void refreshInBackground(), 15000)
+  unsubscribeRealtime = subscribeSupportChanges('platform.support', ticketId => {
+    void refreshInBackground()
+    if (selected.value?.id === ticketId && !busy.value) void open(ticketId)
+  })
+  // Recuperação em caso de desconexão do WebSocket.
+  refreshTimer = setInterval(() => void refreshInBackground(), 60000)
   document.addEventListener('visibilitychange', refreshInBackground)
 })
 onUnmounted(() => {
+  unsubscribeRealtime?.()
   if (refreshTimer) clearInterval(refreshTimer)
   document.removeEventListener('visibilitychange', refreshInBackground)
 })
