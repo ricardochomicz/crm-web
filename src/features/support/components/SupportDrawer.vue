@@ -5,14 +5,19 @@ import { useSupportTickets } from '../composables/useSupportTickets'
 
 const props = defineProps<{ open: boolean; tenantId: string }>()
 const emit = defineEmits<{ close: [] }>()
-const { tickets, loading, submitting, error, success, load, create } = useSupportTickets()
+const { tickets, messages, selectedTicketId, messagesLoading, loading, submitting, error, success, load, create, openTicket, reply } = useSupportTickets()
 const tab = ref<'new' | 'history'>('new')
 const category = ref('technical')
 const subject = ref('')
 const description = ref('')
+const replyBody = ref('')
 watch(() => [props.open, props.tenantId] as const, ([open, tenantId]) => {
   if (open && tenantId) void load(tenantId)
 }, { immediate: true })
+async function sendReply() {
+  if (!selectedTicketId.value || !replyBody.value.trim()) return
+  if (await reply(props.tenantId, selectedTicketId.value, replyBody.value.trim())) replyBody.value = ''
+}
 async function submit() {
   if (!subject.value.trim() || !description.value.trim()) return
   if (await create(props.tenantId, { category: category.value, subject: subject.value.trim(), description: description.value.trim() })) {
@@ -59,17 +64,32 @@ async function submit() {
             </label>
             <button type="submit" class="primary-button w-full" :disabled="submitting">{{ submitting ? 'Enviando…' : 'Abrir chamado' }}</button>
           </form>
+          <div v-else-if="selectedTicketId" class="space-y-4">
+            <button type="button" class="text-sm font-semibold text-orange-700" @click="selectedTicketId = null">← Voltar aos chamados</button>
+            <p v-if="messagesLoading" class="text-sm text-slate-500">Carregando conversa…</p>
+            <article v-for="message in messages" :key="message.id" class="rounded-xl border border-stone-200 bg-stone-50 p-4">
+              <p class="text-xs font-semibold text-slate-600">{{ message.author?.name ?? 'Usuário' }}</p>
+              <p class="mt-2 whitespace-pre-wrap text-sm text-slate-800">{{ message.body }}</p>
+              <p class="mt-2 text-xs text-slate-400">{{ new Date(message.created_at).toLocaleString('pt-BR') }}</p>
+            </article>
+            <form v-if="tickets.find(ticket => ticket.id === selectedTicketId)?.status !== 'closed'" class="space-y-3" @submit.prevent="sendReply">
+              <label class="block text-sm font-semibold text-slate-700">Nova mensagem
+                <textarea v-model="replyBody" required minlength="2" maxlength="10000" rows="4" class="mt-2 w-full rounded-xl border border-stone-300 p-3 text-sm" />
+              </label>
+              <button type="submit" class="primary-button w-full" :disabled="submitting">{{ submitting ? 'Enviando…' : 'Enviar mensagem' }}</button>
+            </form>
+          </div>
           <div v-else class="space-y-3">
             <p v-if="loading" class="text-sm text-slate-500">Carregando chamados…</p>
             <p v-else-if="!tickets.length" class="text-sm text-slate-500">Você ainda não abriu chamados.</p>
-            <article v-for="ticket in tickets" :key="ticket.id" class="rounded-xl border border-stone-200 p-4">
+            <button v-for="ticket in tickets" :key="ticket.id" type="button" class="block w-full rounded-xl border border-stone-200 p-4 text-left transition hover:border-orange-300" @click="openTicket(tenantId, ticket.id)">
               <div class="flex items-start justify-between gap-3">
                 <h3 class="font-semibold text-slate-900">{{ ticket.subject }}</h3>
                 <span class="rounded-full bg-stone-100 px-2 py-1 text-xs text-slate-600">{{ ticket.status === 'open' ? 'Aberto' : ticket.status }}</span>
               </div>
               <p class="mt-2 whitespace-pre-wrap text-sm text-slate-600">{{ ticket.description }}</p>
               <p class="mt-3 break-all text-xs text-slate-400">Protocolo: {{ ticket.id }}</p>
-            </article>
+            </button>
           </div>
         </div>
       </section>
