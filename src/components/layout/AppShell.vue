@@ -7,6 +7,7 @@ import GlobalSearchDialog from '@/features/global-search/components/GlobalSearch
 import { useGlobalSearchShortcut } from '@/features/global-search/composables/useGlobalSearchShortcut'
 import NotificationBell from '@/features/calendar/components/NotificationBell.vue'
 import SupportDrawer from '@/features/support/components/SupportDrawer.vue'
+import { subscribeSupportChanges } from '@/features/support/realtime'
 import { supportApi } from '@/features/support/api'
 import { can } from '@/features/tenants/types'
 import type { Tenant } from '@/features/tenants/types'
@@ -26,6 +27,7 @@ const globalSearchOpen = ref(false)
 const supportOpen = ref(false)
 const unreadSupportCount = ref(0)
 let supportPoll: ReturnType<typeof setInterval> | undefined
+let unsubscribeSupportRealtime: (() => void) | undefined
 let supportRequestVersion = 0
 async function refreshSupportUnread() {
   const tenantId = props.tenant?.id
@@ -36,9 +38,14 @@ async function refreshSupportUnread() {
     if (version === supportRequestVersion) unreadSupportCount.value = response.data.count
   } catch { if (version === supportRequestVersion) unreadSupportCount.value = 0 }
 }
-watch(() => props.tenant?.id, () => { void refreshSupportUnread() }, { immediate: true })
+watch(() => [props.tenant?.id, auth.user?.id] as const, ([tenantId, userId]) => {
+  unsubscribeSupportRealtime?.()
+  unsubscribeSupportRealtime = undefined
+  void refreshSupportUnread()
+  if (tenantId && userId) unsubscribeSupportRealtime = subscribeSupportChanges(`tenant.${tenantId}.user.${userId}.support`, () => { void refreshSupportUnread() })
+}, { immediate: true })
 onMounted(() => { supportPoll = setInterval(() => { if (document.visibilityState === 'visible') void refreshSupportUnread() }, 60000) })
-onUnmounted(() => { if (supportPoll) clearInterval(supportPoll); supportRequestVersion++ })
+onUnmounted(() => { if (supportPoll) clearInterval(supportPoll); unsubscribeSupportRealtime?.(); supportRequestVersion++ })
 useGlobalSearchShortcut(() => { if (route.params.tenantId) globalSearchOpen.value = true })
 const wideLayout = ref(true)
 const layoutPreferenceKey = 'crm:layout-width'
