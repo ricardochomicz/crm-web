@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { useSupportTickets } from '../composables/useSupportTickets'
 
 const props = defineProps<{ open: boolean; tenantId: string }>()
@@ -43,12 +44,12 @@ async function submit() {
           <p v-if="success" role="status" class="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{{ success }}</p>
           <form v-if="tab === 'new'" class="space-y-5" @submit.prevent="submit">
             <label class="block text-sm font-semibold text-slate-700">Categoria
-              <select v-model="category" class="mt-2 w-full rounded-xl border border-stone-300 bg-white px-3 py-3 text-sm">
-                <option value="technical">Problema técnico</option>
-                <option value="question">Dúvida</option>
-                <option value="suggestion">Sugestão</option>
-                <option value="other">Outro</option>
-              </select>
+              <SearchSelect v-model="category" :options="[
+                { value: 'technical', label: 'Problema técnico' },
+                { value: 'question', label: 'Dúvida' },
+                { value: 'suggestion', label: 'Sugestão' },
+                { value: 'other', label: 'Outro' },
+              ]" />
             </label>
             <label class="block text-sm font-semibold text-slate-700">Assunto
               <input v-model="subject" required minlength="5" maxlength="160" class="mt-2 w-full rounded-xl border border-stone-300 px-3 py-3 text-sm" placeholder="Resumo do problema" />
