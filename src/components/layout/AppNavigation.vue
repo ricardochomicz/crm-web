@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { subscribeSupportChanges } from '@/features/support/realtime'
 import { platformSupportApi } from '@/features/support/platformApi'
 import { calendarApi } from '@/features/calendar/api'
 import { subscribeActivityChanged } from '@/features/calendar/activityEvents'
@@ -17,6 +18,7 @@ const settingsOpen = ref(false)
 const futureAppointments = ref<number | null>(null)
 const supportPendingCount = ref(0)
 let supportTimer: ReturnType<typeof setInterval> | undefined
+let unsubscribeSupportRealtime: (() => void) | undefined
 let supportLoading = false
 async function refreshPlatformSupport() {
   if (!auth.user?.is_platform_admin || supportLoading || document.visibilityState !== 'visible') return
@@ -73,7 +75,8 @@ function onNotificationChange(event: Event) {
 }
 onMounted(() => {
   void refreshPlatformSupport()
-  supportTimer = setInterval(() => void refreshPlatformSupport(), 15000)
+  if (auth.user?.is_platform_admin) unsubscribeSupportRealtime = subscribeSupportChanges('platform.support', () => { void refreshPlatformSupport() })
+  supportTimer = setInterval(() => void refreshPlatformSupport(), 60000)
   document.addEventListener('visibilitychange', refreshPlatformSupport)
   window.addEventListener('activity-notifications:changed', onNotificationChange)
   unsubscribeActivityChanged = subscribeActivityChanged(tenantId => {
@@ -85,6 +88,7 @@ onMounted(() => {
   refreshTimer = setInterval(() => { void refreshAppointmentCount(); void refreshTaskAlerts() }, 60000)
 })
 onUnmounted(() => {
+  unsubscribeSupportRealtime?.()
   if (supportTimer) clearInterval(supportTimer)
   document.removeEventListener('visibilitychange', refreshPlatformSupport)
   window.removeEventListener('activity-notifications:changed', onNotificationChange)
