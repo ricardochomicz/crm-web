@@ -42,6 +42,10 @@ export function useClientsPage() {
     },
   })
   const busy = ref(false)
+  const portfolioTransferOpen = ref(false)
+  const portfolioTransferBusy = ref(false)
+  const portfolioTransferClient = ref<Client | null>(null)
+  const canTransferClient = computed(() => writable.value && (tenant.value?.role === 'OWNER' || tenant.value?.role === 'MANAGER'))
   const activityClient = ref<Client | null>(null)
   const canCreateActivity = computed(() => can(tenant.value, 'calendar.create') && !!tenant.value?.access?.allows_operational_writes)
   const showSellerSelect = computed(
@@ -151,10 +155,47 @@ export function useClientsPage() {
     }
   }
 
+  function openPortfolioTransfer() {
+    if (!editing.value || !canTransferClient.value) return
+    portfolioTransferClient.value = rows.value.find(client => client.id === editing.value) ?? null
+    if (!portfolioTransferClient.value) { toast.error('Atualize a lista de clientes antes de transferir.'); return }
+    portfolioTransferOpen.value = true
+  }
+
+  async function submitPortfolioTransfer(destinationId: string, reason: string) {
+    const client = portfolioTransferClient.value
+    const sourceId = client?.sellers?.find(seller => !seller.ended_at)?.tenant_user_id
+    if (!client || !sourceId || portfolioTransferBusy.value || !canTransferClient.value) return
+    portfolioTransferBusy.value = true
+    const currentTenant = tenantId.value
+    try {
+      const result = await clientsApi.redistribute(currentTenant, {
+        source_membership_id: sourceId,
+        client_ids: [client.id],
+        mode: 'single',
+        destination_ids: [destinationId],
+        assignments: {},
+        reason,
+      })
+      if (currentTenant !== tenantId.value) return
+      portfolioTransferOpen.value = false
+      modal.value = false
+      portfolioTransferClient.value = null
+      toast.success(`Cliente transferido. ${result.data.transferred_opportunities_count} oportunidades abertas movimentadas.`)
+      await load()
+    } catch (failure) {
+      if (currentTenant === tenantId.value) toast.error(failure instanceof Error ? failure.message : 'Erro ao transferir cliente.')
+    } finally {
+      portfolioTransferBusy.value = false
+    }
+  }
+
   watch(
     tenantId,
     () => {
       invalidate()
+      portfolioTransferOpen.value = false
+      portfolioTransferClient.value = null
       resetDetails()
       modal.value = false
       resetLookup()
@@ -196,6 +237,12 @@ export function useClientsPage() {
     toast.success('Atividade criada para o cliente.')
   }
   return {
+    portfolioTransferOpen,
+    portfolioTransferBusy,
+    portfolioTransferClient,
+    canTransferClient,
+    openPortfolioTransfer,
+    submitPortfolioTransfer,
     transferDialogOpen,
     submitTransfer,
     onActivitySaved,
