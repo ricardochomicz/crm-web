@@ -6,6 +6,7 @@ export type SupportTicket = {
   subject: string
   description: string
   status: string
+  has_unread_reply?: boolean
   created_at: string
 }
 export type SupportMessage = {
@@ -18,6 +19,7 @@ export type SupportMessage = {
 export type SupportTicketInput = { category: string; subject: string; description: string }
 
 export const supportApi = {
+  unreadCount: (tenantId: string) => request<{ data: { count: number } }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/support-tickets/unread-count`),
   messages: (tenantId: string, ticketId: string) => request<{ data: SupportMessage[] }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/support-tickets/${encodeURIComponent(ticketId)}/messages`),
   reply: (tenantId: string, ticketId: string, body: string) => mutate<{ data: SupportMessage }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/support-tickets/${encodeURIComponent(ticketId)}/messages`, { body }),
   list: (tenantId: string) => request<{ data: SupportTicket[] }>(`/api/v1/tenants/${encodeURIComponent(tenantId)}/support-tickets`),
