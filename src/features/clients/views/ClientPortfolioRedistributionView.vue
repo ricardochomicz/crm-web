@@ -70,18 +70,19 @@ const preview = computed(() => {
     }
   })
 })
+const selectedPreview = computed(() => mode.value === 'manual' ? preview.value.filter((client) => client.destinationId !== '') : preview.value)
 const distribution = computed(() =>
   eligibleDestinations.value
     .map((member) => ({
       ...member,
-      assigned: preview.value.filter((client) => client.destinationId === member.id).length,
+      assigned: selectedPreview.value.filter((client) => client.destinationId === member.id).length,
     }))
     .filter((member) => member.assigned > 0),
 )
 const canReview = computed(() =>
-  clients.value.length > 0 &&
+  selectedPreview.value.length > 0 &&
   reason.value.trim().length >= 10 &&
-  preview.value.every((client) => client.destinationId !== ''),
+  (mode.value === 'manual' || preview.value.every((client) => client.destinationId !== '')),
 )
 
 async function load() {
@@ -133,11 +134,11 @@ async function confirm() {
   try {
     const result = await clientsApi.redistribute(tenantId.value, {
       source_membership_id: sourceId.value,
-      client_ids: clients.value.map((client) => client.id),
+      client_ids: selectedPreview.value.map((client) => client.id),
       mode: mode.value,
       reason: reason.value.trim(),
       destination_ids: mode.value === 'manual' ? [] : destinationIds.value,
-      assignments: mode.value === 'manual' ? manualAssignments.value : {},
+      assignments: mode.value === 'manual' ? Object.fromEntries(selectedPreview.value.map((client) => [client.id, client.destinationId])) : {},
     })
     const moved = result.data.transferred_opportunities_count ?? 0
     toast.success(`${result.data.client_count} clientes e ${moved} ${moved === 1 ? 'oportunidade aberta transferida' : 'oportunidades abertas transferidas'} com sucesso.`)
@@ -234,7 +235,8 @@ watch(mode, () => {
             </div>
           </div>
           <div v-else class="space-y-3">
-            <p class="text-sm font-medium">Defina um responsável para cada cliente</p>
+            <p class="text-sm font-medium">Selecione o destino apenas dos clientes que deseja transferir</p>
+            <p class="text-xs text-slate-500">Clientes sem destino permanecerão com o consultor atual. {{ selectedPreview.length }} de {{ clients.length }} selecionados.</p>
             <div v-for="client in clients" :key="client.id" class="grid items-center gap-2 border-b border-stone-100 pb-3 md:grid-cols-2">
               <div>
                 <p class="font-medium">{{ client.name }}</p>
@@ -262,7 +264,7 @@ watch(mode, () => {
         <section v-if="previewOpen && canReview" class="space-y-4 rounded-2xl border border-orange-200 bg-white p-5">
           <h2 class="text-lg font-semibold">3. Conferência antes de confirmar</h2>
           <p class="text-sm text-slate-600">
-            Serão redistribuídos <strong>{{ clients.length }} clientes</strong> de {{ source?.name }}.
+            Serão redistribuídos <strong>{{ selectedPreview.length }} clientes</strong> de {{ source?.name }}.
             A operação é administrativa e não aplica a regra dos 90 dias.
           </p>
           <div class="grid gap-3 md:grid-cols-3">
@@ -275,7 +277,7 @@ watch(mode, () => {
             <table class="w-full text-left text-sm">
               <thead class="sticky top-0 bg-stone-50"><tr><th class="p-3">Cliente</th><th class="p-3">Novo responsável</th></tr></thead>
               <tbody>
-                <tr v-for="client in preview" :key="client.id" class="border-t border-stone-100">
+                <tr v-for="client in selectedPreview" :key="client.id" class="border-t border-stone-100">
                   <td class="p-3">{{ client.name }}</td>
                   <td class="p-3">{{ client.destinationName }}</td>
                 </tr>
