@@ -67,7 +67,7 @@ watch(() => [props.open, props.tenantId, props.clientId], () => {
         <div v-if="error" role="alert" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><span>{{ error }}</span><button type="button" class="secondary-button" @click="load(page)">Tentar novamente</button></div>
         <p v-if="loading" class="text-sm text-slate-500">Carregando histórico...</p>
         <p v-else-if="!rows.length && !error" class="text-sm text-slate-500">Nenhuma transferência registrada.</p>
-        <div v-if="!loading" v-for="item in rows" :key="item.id" class="mb-3 rounded-xl border border-stone-200 p-4">
+        <div v-for="item in (loading ? [] : rows)" :key="item.id" class="mb-3 rounded-xl border border-stone-200 p-4">
           <div class="flex flex-wrap justify-between gap-2">
             <div>
               <p class="font-semibold text-slate-800">{{ item.opportunity_title }}</p>
