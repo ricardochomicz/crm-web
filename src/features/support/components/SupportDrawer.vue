@@ -4,13 +4,18 @@ import SearchSelect from '@/components/ui/SearchSelect.vue'
 import { useSupportTickets } from '../composables/useSupportTickets'
 
 const props = defineProps<{ open: boolean; tenantId: string }>()
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; read: [] }>()
 const { tickets, messages, selectedTicketId, messagesLoading, loading, submitting, error, success, load, create, openTicket, reply } = useSupportTickets()
 const tab = ref<'new' | 'history'>('new')
 const category = ref('technical')
 const subject = ref('')
 const description = ref('')
 const replyBody = ref('')
+async function viewTicket(id: string) {
+  await openTicket(props.tenantId, id)
+  await load(props.tenantId)
+  emit('read')
+}
 watch(() => [props.open, props.tenantId] as const, ([open, tenantId]) => {
   if (open && tenantId) void load(tenantId)
 }, { immediate: true })
@@ -82,9 +87,9 @@ async function submit() {
           <div v-else class="space-y-3">
             <p v-if="loading" class="text-sm text-slate-500">Carregando chamados…</p>
             <p v-else-if="!tickets.length" class="text-sm text-slate-500">Você ainda não abriu chamados.</p>
-            <button v-for="ticket in tickets" :key="ticket.id" type="button" class="block w-full rounded-xl border border-stone-200 p-4 text-left transition hover:border-orange-300" @click="openTicket(tenantId, ticket.id)">
+            <button v-for="ticket in tickets" :key="ticket.id" type="button" class="block w-full rounded-xl border border-stone-200 p-4 text-left transition hover:border-orange-300" @click="viewTicket(ticket.id)">
               <div class="flex items-start justify-between gap-3">
-                <h3 class="font-semibold text-slate-900">{{ ticket.subject }}</h3>
+                <h3 class="font-semibold text-slate-900">{{ ticket.subject }} <span v-if="ticket.has_unread_reply" class="ml-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] text-orange-800">Nova resposta</span></h3>
                 <span class="rounded-full bg-stone-100 px-2 py-1 text-xs text-slate-600">{{ ticket.status === 'open' ? 'Aberto' : ticket.status }}</span>
               </div>
               <p class="mt-2 whitespace-pre-wrap text-sm text-slate-600">{{ ticket.description }}</p>
