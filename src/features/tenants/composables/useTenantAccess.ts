@@ -3,6 +3,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/features/auth/store'
 import { errorMessage } from '@/lib/feedback'
 import { tenantApi } from '../api'
+import { onboardingApi } from '../onboarding/api'
 import type { Page, Tenant } from '../types'
 
 export function useTenantAccess() {
@@ -22,7 +23,18 @@ export function useTenantAccess() {
     selectionError.value = ''
     try {
       await tenantApi.select(tenant.id)
-      await router.push(`/empresas/${tenant.id}`)
+      // Existing companies can resume setup; completed ones open the dashboard.
+      // Do not block access when the optional progress lookup fails.
+      let destination = `/empresas/${tenant.id}`
+      if (tenant.role === 'OWNER') {
+        try {
+          const { data } = await onboardingApi.progress(tenant.id)
+          if (!data.completed) destination += '/configuracao-inicial'
+        } catch {
+          // Tenant selection must remain available during onboarding API failures.
+        }
+      }
+      await router.push(destination)
     } catch (failure) {
       selectionError.value = errorMessage(failure)
     } finally {
