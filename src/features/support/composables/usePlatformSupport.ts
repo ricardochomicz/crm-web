@@ -1,9 +1,14 @@
 import { ref } from 'vue'
 import { errorMessage } from '@/lib/feedback'
-import { platformSupportApi, type PlatformTicket, type TicketPage } from '../platformApi'
+import { platformSupportApi, type PlatformTicket, type SupportSummary, type TicketPage } from '../platformApi'
 
 export function usePlatformSupport() {
   const result = ref<TicketPage | null>(null)
+  const summary = ref<SupportSummary | null>(null)
+  async function loadSummary() {
+    try { summary.value = (await platformSupportApi.summary()).data }
+    catch { summary.value = null }
+  }
   const selected = ref<PlatformTicket | null>(null)
   const loading = ref(false)
   const busy = ref(false)
@@ -44,5 +49,5 @@ export function usePlatformSupport() {
     } catch (failure) { error.value = errorMessage(failure); return false }
     finally { busy.value = false }
   }
-  return { result, selected, loading, busy, error, load, open, update, reply }
+  return { result, summary, loadSummary, selected, loading, busy, error, load, open, update, reply }
 }
