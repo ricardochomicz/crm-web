@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { platformSupportApi } from '@/features/support/platformApi'
 import { calendarApi } from '@/features/calendar/api'
 import { subscribeActivityChanged } from '@/features/calendar/activityEvents'
 import { useRoute } from 'vue-router'
@@ -14,6 +15,18 @@ const commercialOpen = ref(false)
 const managementOpen = ref(false)
 const settingsOpen = ref(false)
 const futureAppointments = ref<number | null>(null)
+const supportPendingCount = ref(0)
+let supportTimer: ReturnType<typeof setInterval> | undefined
+let supportLoading = false
+async function refreshPlatformSupport() {
+  if (!auth.user?.is_platform_admin || supportLoading || document.visibilityState !== 'visible') return
+  supportLoading = true
+  try {
+    const { data } = await platformSupportApi.summary()
+    supportPendingCount.value = data.open + data.in_progress
+  } catch { /* Mantém o último contador conhecido em falhas temporárias. */ }
+  finally { supportLoading = false }
+}
 const taskAlerts = ref<{ overdue: number; due_soon: number } | null>(null)
 let requestVersion = 0
 let refreshTimer: ReturnType<typeof setInterval> | undefined
@@ -59,6 +72,9 @@ function onNotificationChange(event: Event) {
   if ((event as CustomEvent<{ tenantId: string }>).detail?.tenantId === props.tenant?.id) void refreshTaskAlerts()
 }
 onMounted(() => {
+  void refreshPlatformSupport()
+  supportTimer = setInterval(() => void refreshPlatformSupport(), 15000)
+  document.addEventListener('visibilitychange', refreshPlatformSupport)
   window.addEventListener('activity-notifications:changed', onNotificationChange)
   unsubscribeActivityChanged = subscribeActivityChanged(tenantId => {
     if (tenantId === props.tenant?.id) {
@@ -69,6 +85,8 @@ onMounted(() => {
   refreshTimer = setInterval(() => { void refreshAppointmentCount(); void refreshTaskAlerts() }, 60000)
 })
 onUnmounted(() => {
+  if (supportTimer) clearInterval(supportTimer)
+  document.removeEventListener('visibilitychange', refreshPlatformSupport)
   window.removeEventListener('activity-notifications:changed', onNotificationChange)
   unsubscribeActivityChanged?.()
   if (refreshTimer) clearInterval(refreshTimer)
@@ -217,7 +235,7 @@ watch(() => route.path, (path) => {
         >
         <RouterLink to="/admin/tipos-pedidos" class="nav-item" :class="{ 'nav-active': route.path === '/admin/tipos-pedidos' }"><AppIcon name="fileText" class="size-5 shrink-0" />Tipos de pedido</RouterLink>
         <RouterLink to="/admin/status-pedidos" class="nav-item" :class="{ 'nav-active': route.path === '/admin/status-pedidos' }"><AppIcon name="fileText" class="size-5 shrink-0" />Status dos pedidos</RouterLink>
-        <RouterLink to="/admin/suporte" class="nav-item" :class="{ 'nav-active': route.path === '/admin/suporte' }"><AppIcon name="message-square" class="size-5 shrink-0" />Central de suporte</RouterLink>
+        <RouterLink to="/admin/suporte" class="nav-item" :class="{ 'nav-active': route.path === '/admin/suporte' }"><AppIcon name="message-square" class="size-5 shrink-0" />Central de suporte <span v-if="supportPendingCount > 0" class="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-orange-600 px-1.5 py-0.5 text-[10px] font-bold text-white">{{ supportPendingCount > 99 ? "99+" : supportPendingCount }}</span></RouterLink>
         <RouterLink to="/admin/classificacoes" class="nav-item" :class="{ 'nav-active': route.path === '/admin/classificacoes' }"><AppIcon name="tag" class="size-5 shrink-0" />Classificações globais</RouterLink>
         <RouterLink
           to="/admin"
