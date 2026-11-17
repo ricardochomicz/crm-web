@@ -7,7 +7,7 @@ import { onboardingSteps, useTenantOnboarding } from '../onboarding/useTenantOnb
 
 const route = useRoute()
 const tenantId = computed(() => String(route.params.tenantId))
-const { tenant, progress, loading, busy, error, completedCount, canComplete, base, load, complete } = useTenantOnboarding(tenantId)
+const { tenant, progress, loading, busy, error, completedCount, canComplete, nextStep, missingOperators, base, load, complete } = useTenantOnboarding(tenantId)
 </script>
 
 <template>
@@ -31,14 +31,24 @@ const { tenant, progress, loading, busy, error, completedCount, canComplete, bas
           <div class="h-full rounded-full bg-orange-500 transition-all" :style="{ width: (completedCount / onboardingSteps.length * 100) + '%' }" />
         </div>
       </div>
+      <div v-if="nextStep && !progress.completed" class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-orange-200 bg-orange-50 p-5">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-orange-700">Próxima etapa</p>
+          <h2 class="mt-1 font-semibold text-slate-900">{{ nextStep.title }}</h2>
+          <p class="mt-1 text-sm text-slate-600">{{ nextStep.description }}</p>
+        </div>
+        <RouterLink :to="base + '/' + nextStep.path" class="primary-button w-auto">Continuar configuração</RouterLink>
+      </div>
       <ol class="space-y-3">
-        <li v-for="(step, index) in onboardingSteps" :key="step.key" class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-5">
+        <li v-for="(step, index) in onboardingSteps" :key="step.key" class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-white p-5" :class="nextStep?.key === step.key ? 'border-orange-300' : 'border-stone-200'">
           <div class="flex items-center gap-4">
             <span class="flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-bold" :class="progress.steps[step.key].complete ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-700'">{{ progress.steps[step.key].complete ? '✓' : index + 1 }}</span>
             <div>
               <h3 class="font-semibold text-slate-900">{{ step.title }}</h3>
               <p class="mt-1 text-xs text-slate-500">{{ step.description }}</p>
-              <p v-if="(step.key === 'commissions' || step.key === 'classifications') && !progress.steps[step.key].complete" class="mt-1 text-xs text-amber-700">Existem operadoras sem configuração ativa.</p>
+              <template v-if="step.key === 'commissions' || step.key === 'classifications'">
+                <p v-if="!progress.steps[step.key].complete && missingOperators(step.key).length" class="mt-2 text-xs font-medium text-amber-700">Pendentes: {{ missingOperators(step.key).join(', ') }}</p>
+              </template>
             </div>
           </div>
           <RouterLink :to="base + '/' + step.path" class="secondary-button w-auto text-sm">{{ progress.steps[step.key].complete ? 'Revisar' : 'Configurar' }}</RouterLink>
