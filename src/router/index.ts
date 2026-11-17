@@ -168,6 +168,11 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Produtos e planos' },
     },
     {
+      path: '/admin/suporte',
+      component: () => import('@/features/support/views/PlatformSupportView.vue'),
+      meta: { requiresAuth: true, admin: true, title: 'Central de suporte' },
+    },
+    {
       path: '/admin/classificacoes',
       component: () => import('@/features/clients/views/AdminClassificationsView.vue'),
       meta: { requiresAuth: true, admin: true, title: 'Classificações globais' },
