@@ -107,7 +107,7 @@ async function submit() {
         timezone: 'America/Sao_Paulo',
       },
     })
-    await router.replace(`/empresas/${result.data.id}`)
+    await router.replace(`/empresas/${result.data.id}/configuracao-inicial`)
   } catch (failure) {
     error.value = errorMessage(failure)
     if (failure instanceof ApiError) {
