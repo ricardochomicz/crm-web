@@ -13,10 +13,10 @@ export function usePlatformSupport() {
   const loading = ref(false)
   const busy = ref(false)
   const error = ref('')
-  async function load(page = 1, status = '', search = '') {
+  async function load(page = 1, status = '', search = '', priority = '') {
     loading.value = true
     error.value = ''
-    try { result.value = await platformSupportApi.list(page, status, search) }
+    try { result.value = await platformSupportApi.list(page, status, search, priority) }
     catch (failure) { error.value = errorMessage(failure) }
     finally { loading.value = false }
   }
