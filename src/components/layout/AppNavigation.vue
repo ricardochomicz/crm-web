@@ -217,6 +217,7 @@ watch(() => route.path, (path) => {
         >
         <RouterLink to="/admin/tipos-pedidos" class="nav-item" :class="{ 'nav-active': route.path === '/admin/tipos-pedidos' }"><AppIcon name="fileText" class="size-5 shrink-0" />Tipos de pedido</RouterLink>
         <RouterLink to="/admin/status-pedidos" class="nav-item" :class="{ 'nav-active': route.path === '/admin/status-pedidos' }"><AppIcon name="fileText" class="size-5 shrink-0" />Status dos pedidos</RouterLink>
+        <RouterLink to="/admin/suporte" class="nav-item" :class="{ 'nav-active': route.path === '/admin/suporte' }"><AppIcon name="message-square" class="size-5 shrink-0" />Central de suporte</RouterLink>
         <RouterLink to="/admin/classificacoes" class="nav-item" :class="{ 'nav-active': route.path === '/admin/classificacoes' }"><AppIcon name="tag" class="size-5 shrink-0" />Classificações globais</RouterLink>
         <RouterLink
           to="/admin"
