@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import OpportunityTransferHistoryDialog from '../components/OpportunityTransferHistoryDialog.vue'
+import ClientPortfolioRedistributionReviewDialog from '../components/ClientPortfolioRedistributionReviewDialog.vue'
 import { useRoute } from 'vue-router'
 import AppShell from '@/components/layout/AppShell.vue'
 import SearchSelect from '@/components/ui/SearchSelect.vue'
@@ -261,41 +262,17 @@ watch(mode, () => {
           </button>
         </section>
 
-        <section v-if="previewOpen && canReview" class="space-y-4 rounded-2xl border border-orange-200 bg-white p-5">
-          <h2 class="text-lg font-semibold">3. Conferência antes de confirmar</h2>
-          <p class="text-sm text-slate-600">
-            Serão redistribuídos <strong>{{ selectedPreview.length }} clientes</strong> de {{ source?.name }}.
-            A operação é administrativa e não aplica a regra dos 90 dias.
-          </p>
-          <div class="grid gap-3 md:grid-cols-3">
-            <div v-for="member in distribution" :key="member.id" class="rounded-xl bg-stone-50 p-4">
-              <p class="font-semibold">{{ member.name }}</p>
-              <p class="text-sm text-slate-600">Receberá {{ member.assigned }} clientes · Total previsto: {{ member.client_count + member.assigned }}</p>
-            </div>
-          </div>
-          <div class="max-h-72 overflow-auto rounded-xl border border-stone-200">
-            <table class="w-full text-left text-sm">
-              <thead class="sticky top-0 bg-stone-50"><tr><th class="p-3">Cliente</th><th class="p-3">Novo responsável</th></tr></thead>
-              <tbody>
-                <tr v-for="client in selectedPreview" :key="client.id" class="border-t border-stone-100">
-                  <td class="p-3">{{ client.name }}</td>
-                  <td class="p-3">{{ client.destinationName }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <p class="text-sm text-amber-800">
-            A confirmação atualiza o responsável da carteira e transfere as oportunidades abertas, registrando a movimentação em auditoria. Oportunidades encerradas, vendas, pedidos, contratos e comissões anteriores permanecem preservados. O processo será bloqueado caso existam vínculos comerciais inconsistentes.
-          </p>
-          <div class="flex flex-wrap gap-3">
-            <button type="button" class="secondary-button" :disabled="busy" @click="previewOpen = false">Voltar e ajustar</button>
-            <button type="button" class="primary-button" :disabled="busy" @click="confirm">
-              {{ busy ? 'Redistribuindo...' : 'Confirmar redistribuição' }}
-            </button>
-          </div>
-        </section>
       </template>
     </div>
+    <ClientPortfolioRedistributionReviewDialog
+      :open="previewOpen && canReview"
+      :busy="busy"
+      :source-name="source?.name ?? ''"
+      :clients="selectedPreview"
+      :distribution="distribution"
+      @close="previewOpen = false"
+      @confirm="confirm"
+    />
     <OpportunityTransferHistoryDialog :tenant-id="tenantId" :open="historyOpen" @close="historyOpen = false" />
   </AppShell>
 </template>
