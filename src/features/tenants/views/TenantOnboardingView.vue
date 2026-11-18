@@ -51,7 +51,7 @@ const { tenant, progress, loading, busy, error, completedCount, canComplete, nex
               </template>
             </div>
           </div>
-          <RouterLink :to="base + '/' + step.path" class="secondary-button w-auto text-sm">{{ progress.steps[step.key].complete ? 'Revisar' : 'Configurar' }}</RouterLink>
+          <RouterLink :to="base + '/' + step.path" class="secondary-button w-auto text-sm">{{ step.key === 'classifications' && !progress.steps[step.key].complete ? '+ Criar classificações' : progress.steps[step.key].complete ? 'Revisar' : 'Configurar' }}</RouterLink>
         </li>
       </ol>
       <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white p-5">
