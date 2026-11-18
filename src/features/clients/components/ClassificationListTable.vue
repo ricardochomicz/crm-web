@@ -19,7 +19,6 @@ const emit = defineEmits<{
 function effectiveRule(classification: Classification): RenewalRule | undefined {
   if (props.mode === 'tenant') {
     return classification.rules.find(rule => rule.tenant_id === props.tenantId && rule.is_active)
-      ?? classification.rules.find(rule => rule.is_active)
   }
   return classification.rules.find(rule => rule.is_active && !rule.valid_until)
     ?? classification.rules.find(rule => rule.is_active)
@@ -33,9 +32,8 @@ function effectiveRule(classification: Classification): RenewalRule | undefined 
         <tr>
           <th scope="col" class="px-5 py-4">Operadora</th>
           <th scope="col" class="px-5 py-4">Classificação</th>
-          <th v-if="mode === 'tenant'" scope="col" class="px-5 py-4">Origem</th>
           <th scope="col" class="px-5 py-4">Prazo de renovação</th>
-          <th v-if="mode === 'admin'" scope="col" class="px-5 py-4">Regras</th>
+          <th scope="col" class="px-5 py-4">Regras</th>
           <th scope="col" class="px-5 py-4 text-right">Ações</th>
         </tr>
       </thead>
@@ -43,12 +41,11 @@ function effectiveRule(classification: Classification): RenewalRule | undefined 
         <tr v-for="classification in rows" :key="classification.id" class="hover:bg-stone-50/70">
           <td class="px-5 py-4">{{ classification.operator?.name ?? '—' }}</td>
           <td class="px-5 py-4 font-semibold text-slate-800">{{ classification.name }}</td>
-          <td v-if="mode === 'tenant'" class="px-5 py-4">{{ classification.tenant_id ? 'Empresa' : 'Global' }}</td>
           <td class="px-5 py-4">{{ effectiveRule(classification)?.minimum_months ?? '—' }}{{ effectiveRule(classification) ? ' meses' : '' }}</td>
-          <td v-if="mode === 'admin'" class="px-5 py-4">
+          <td class="px-5 py-4">
             <div v-for="rule in classification.rules" :key="rule.id" class="flex items-center gap-2 py-1">
               <span>{{ rule.minimum_months }} meses · {{ rule.valid_from }} até {{ rule.valid_until ?? 'indeterminado' }}</span>
-              <TableActionButton icon="edit" :label="`Editar regra de ${classification.code}`" :busy="busy" @click="emit('editRule', classification, rule)" />
+              <TableActionButton v-if="mode === 'admin' || writable" icon="edit" :label="`Editar regra de ${classification.code}`" :busy="busy" @click="emit('editRule', classification, rule)" />
             </div>
           </td>
           <td class="whitespace-nowrap px-5 py-4 text-right">
