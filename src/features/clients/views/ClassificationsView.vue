@@ -29,6 +29,7 @@ const {
   edit,
   save,
   addRule,
+  editRule,
   saveRule,
   page,
   total,
@@ -58,7 +59,7 @@ const {
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
     <template v-if="!loading && !error">
       <ClassificationListFilters v-model="filter" :operators="operators" :count="filtered.length" :busy="loading || busy" @search="applyFilters" @clear="clearFilters" />
-      <ClassificationListTable :rows="pageRows" mode="tenant" :tenant-id="tenantId" :writable="writable" :busy="busy" @edit="edit" @add-rule="addRule" />
+      <ClassificationListTable :rows="pageRows" mode="tenant" :tenant-id="tenantId" :writable="writable" :busy="busy" @edit="edit" @add-rule="addRule" @edit-rule="editRule" />
       <PagePagination
         :page="page"
         :last-page="lastPage"
