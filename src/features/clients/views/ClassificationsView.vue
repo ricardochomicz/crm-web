@@ -50,11 +50,10 @@ const {
         <p class="eyebrow">GERENCIAL</p>
         <h1 class="mt-3 text-3xl font-semibold">Classificações das operadoras</h1>
         <p class="mt-2 text-sm text-slate-500">
-          Classificações globais são somente leitura. O proprietário pode criar classificações e
-          regras próprias.
+          Cadastre as classificações e os prazos de renovação específicos das operadoras da sua empresa.
         </p>
       </div>
-      <button v-if="writable" class="primary-button w-auto" @click="edit()">+ Classificação</button>
+      <button v-if="writable" class="primary-button w-auto" @click="edit()">+ Nova classificação</button>
     </header>
     <AsyncNotice :loading="loading" :error="error" @retry="load" />
     <template v-if="!loading && !error">
