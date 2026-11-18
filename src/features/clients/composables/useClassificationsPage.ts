@@ -19,7 +19,11 @@ export function useClassificationsPage() {
     busy = ref(false),
     canManage = ref(false),
     filter = ref('')
-  const writable = computed(() => canManage.value)
+  const writable = computed(
+    () => canManage.value && (
+      !!tenant.value?.access?.allows_operational_writes || !tenant.value?.onboarding_completed_at
+    ),
+  )
   const { applied, apply: applyFilters, clear: clearFilters } = useListFilters({ filter })
   const filtered = computed(() =>
     rows.value.filter(
