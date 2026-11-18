@@ -4,6 +4,7 @@ export interface Tenant {
   name: string
   type: 'PF' | 'PJ'
   role: TenantRole
+  onboarding_completed_at?: string | null
   access?: TenantAccess
 }
 export interface Page<T> {
