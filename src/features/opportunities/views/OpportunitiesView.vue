@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { can } from '@/features/tenants/types'
 import { toast } from '@/services/toast'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import AppTabs from '@/components/ui/AppTabs.vue'
@@ -39,6 +40,8 @@ function onScheduleSaved() {
   toast.success('Compromisso agendado na oportunidade.')
 }
 const { tenantId, tenant, clients, products, operators, orderTypes, rows, stages, viewMode, section, recoveringId, recoverCandidate, askRecover, recover, switchSection, kanbanRows, movingId, draggingOpportunity, resendToBackoffice, askResendToBackoffice, resendCandidate, commercialOverview, stageStates, loadMoreKanban, filters, page, total, lastPage, perPage, loading, error, dialogTab, dialogOpen, confirmingSale, lostCandidate, lostReason, markingLost, askMarkLost, markLost, saleCandidate, askConfirmSale, confirmSale, editing, canCreate, canEdit, reload, changeView, moveStage, forecastCandidate, forecastDate, forecastReason, cancelForecast, confirmForecast, applyFilters, clearFilters, changePage, open, saved, displayOrderType, money } = useOpportunitiesPage()
+const subscriptionBlocked = computed(() => tenant.value?.access?.allows_operational_writes === false)
+const canSeeCreate = computed(() => can(tenant.value, 'opportunities.create'))
 useOpportunityDeepLink(tenantId, dialogOpen, open)
 const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = useOpportunityHighlights(tenantId)
 </script>
@@ -46,8 +49,9 @@ const { showHighlightsOnly, highlightedIds, highlightingId, toggleHighlight } = 
   <AppShell :tenant="tenant" title="Oportunidades" subtitle="Negociações comerciais e acompanhamento">
     <header class="mb-7 flex flex-wrap items-center justify-between gap-4">
       <div><p class="eyebrow">COMERCIAL</p><h1 class="mt-3 text-3xl font-semibold">Oportunidades</h1><p class="mt-2 text-sm text-slate-500">Acompanhe negociações sem misturar pedidos e carteira.</p></div>
-      <button v-if="canCreate" type="button" class="primary-button w-auto" @click="open()">+ Nova oportunidade</button>
+      <button v-if="canSeeCreate" type="button" class="primary-button w-auto disabled:cursor-not-allowed disabled:opacity-50" :disabled="!canCreate" :title="subscriptionBlocked ? 'Assinatura sem permissão para alterações' : undefined" @click="open()">+ Nova oportunidade</button>
     </header>
+    <div v-if="subscriptionBlocked" role="status" class="mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">A assinatura desta empresa não permite alterações no momento. Você pode consultar as oportunidades, mas criar, movimentar, ganhar ou perder negociações está temporariamente indisponível. Verifique o período de teste ou a situação da assinatura em Plano e assinatura.</div>
     <div class="mb-5">
       <AppTabs
         :model-value="section"
